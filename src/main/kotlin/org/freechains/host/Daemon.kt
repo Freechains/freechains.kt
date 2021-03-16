@@ -323,7 +323,7 @@ class Daemon (loc_: Host) {
                                                 val (pos, neg) = chain.repsPost(ref)
                                                 pos - neg
                                             } else {
-                                                chain.repsAuthor(ref, getNow(), chain.getHeads(State.LINKED))
+                                                chain.repsAuthor(ref, getNow(), chain.heads.first)
                                             }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
@@ -447,7 +447,7 @@ class Daemon (loc_: Host) {
         var nmax    = 0
 
         // for each local head
-        val heads = chain.getHeads(State.ALL)
+        val heads = chain.heads.first + chain.heads.second
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
         for (head in heads) {
@@ -548,7 +548,7 @@ class Daemon (loc_: Host) {
                     assert_(len2 <= S128_pay) { "post is too large" }
                     val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
                     reader.readLineX()
-                    assert_(chain.getHeads(State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
+                    assert_(chain.heads.second.size <= N16_blockeds) { "too many blocked blocks" }
 
                     // reject peers with different keys
                     if (chain.isDollar()) {

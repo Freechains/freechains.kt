@@ -12,7 +12,7 @@ fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
 }
 
 fun Chain.bfsBacksFindAuthor (pub: String) : Block? {
-    return this.bfsBacksFirst(this.getHeads(State.ALL)) { it.isFrom(pub) }
+    return this.bfsBacksFirst(this.heads.first) { it.isFrom(pub) }
 }
 
 fun Chain.bfsFrontsFirst (start: Hash, pred: (Block) -> Boolean) : Block? {

@@ -108,17 +108,6 @@ fun Immut.toHash () : Hash {
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
-// HEADS
-
-fun Chain.getHeads (want: State) : List<Hash> {
-    return when (want) {
-        State.ALL     -> this.heads.first + this.heads.second
-        State.LINKED  -> this.heads.first
-        State.BLOCKED -> this.heads.second
-        else -> error("impossible case")
-    }
-}
-
 // REPUTATION
 
 fun Int.toReps () : Int {

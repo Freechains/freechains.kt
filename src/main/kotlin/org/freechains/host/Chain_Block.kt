@@ -193,17 +193,6 @@ fun Chain.blockAssert (blk: Block) {
         val msg = lazySodium.bytes(blk.hash)
         val key = Key.fromHexString(blk.sign.pub).asBytes
         assert_(lazySodium.cryptoSignVerifyDetached(sig, msg, msg.size, key)) { "invalid signature" }
-
-        // check if new post leads to latest post from author currently in the chain
-        this.bfsBacksFirst(this.getHeads(State.ALL)) { it.isFrom(blk.sign.pub) }.let {
-            //if (it != null) println("${imm.prev} --> ${blk.hash} = ${this.isFromTo(imm.prev!!,blk.hash)}")
-            assert_(
-                    if (it == null)
-                        (imm.prev == null)
-                    else
-                        (imm.prev == it.hash)
-            ) { "must point to author's previous post" }
-        }
     }
 
     if (imm.like != null) {
