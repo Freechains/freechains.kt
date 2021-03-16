@@ -300,8 +300,7 @@ class Daemon (loc_: Host) {
                                                 val blk_ = Block_Get (
                                                     blk.hash, blk.local, blk.immut.time,
                                                     blk.immut.pay, blk.immut.like, blk.sign,
-                                                    blk.immut.prev, blk.immut.backs,
-                                                    chain.fronts[blk.hash]!!
+                                                    blk.immut.prev, blk.immut.backs
                                                 )
                                                 blk_.toJson()
                                             }

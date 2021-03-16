@@ -70,8 +70,7 @@ data class Block_Get (          // only used in "freechains ... get block ...
         val like   : Like?,
         val sign   : Signature?,
         val prev   : Hash?,
-        val backs  : Set<Hash>,
-        val fronts : Set<Hash>
+        val backs  : Set<Hash>
 )
 
 @Serializable
