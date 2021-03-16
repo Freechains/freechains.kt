@@ -166,8 +166,7 @@ class Tests {
         val n1 = chain.blockNew(H,   "1", PVT0, false)
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
-        val heads = chain.getHeads(State.LINKED)
-        assert(heads.size == 1)
+        assert(chain.heads.first.size == 1)
     }
 
     @Test
@@ -1416,12 +1415,6 @@ class Tests {
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
             assert_(it.startsWith("2_"))
         }
-        main_cli_assert(arrayOf("chain", "#", "heads", "all")).let { list ->
-            list.split(' ').toTypedArray().let {
-                assert_(it.size == 1)
-                assert_(it[0].startsWith("2_"))
-            }
-        }
 
         main_cli(arrayOf(H0, "chain", "#", "remove", h1)).let { (ok,_) ->
             assert_(!ok) // "! can only remove blocked block")
@@ -1465,6 +1458,7 @@ class Tests {
 
     @Test
     fun m20_posts_20 () {
+        val PUB = "300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
         val PVT = "8A0E17D9B3C29152A797D061C619CFBA829BC7325ED72831CC59C0A7148CA9F8300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M20/")) }
         Thread.sleep(500)
@@ -1472,7 +1466,10 @@ class Tests {
 
         val n = 23
         for (i in 1..n) {
+            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads", "linked")))
+            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads", "blocked")))
             println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "post", "inline", "Post 1")))
+            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "reps", PUB)))
         }
 
         val ret = main_cli_assert(arrayOf(H0, "chain", "#crdt", "heads", "all"))

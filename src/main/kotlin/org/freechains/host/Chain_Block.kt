@@ -56,25 +56,19 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
     assert_(imm_.prev == null) { "prev must not be set" }
 
     assert_(imm_.backs.isEmpty())
-    val backs = this.getHeads(State.LINKED)
-        .let { backs ->
-            backs.plus (
-                // must point to liked blocked block
-                when {
-                    (imm_.like == null) -> emptyArray()
-                    backs.any {
-                        this.bfsFrontsIsFromTo(
-                            imm_.like.hash,
-                            it
-                        )  // already does indirectly (it points to some of the heads)
-                    } -> emptyArray()
-                    else -> arrayOf(imm_.like.hash)  // point directly (it was blocked)
-                }
-            )
+    val backs = this.heads.first.plus (
+        // must point to liked blocked block
+        when {
+            (imm_.like == null) -> emptyArray()
+            this.heads.first.any {
+                this.bfsFrontsIsFromTo(
+                    imm_.like.hash,
+                    it
+                )  // already does indirectly (it points to some of the heads)
+            } -> emptyArray()
+            else -> arrayOf(imm_.like.hash)  // point directly (it was blocked)
         }
-        .let { backs ->
-            this.bfsCleanHeads(backs.toList())
-        }
+    )
 
     val imm = imm_.copy (
         time = max (
@@ -129,7 +123,16 @@ fun Chain.blockChain (blk: Block, pay: String) {
     this.fsSaveBlock(blk)
     this.fsSavePay(blk.hash, pay)
 
-    this.heads = this.bfsCleanHeads(this.heads + blk.hash)
+    this.heads = when (this.blockState(blk,blk.immut.time)) {
+        State.BLOCKED -> Pair (
+            this.heads.first,
+            this.heads.second + blk.hash
+        )
+        else -> Pair (
+            this.heads.first - blk.immut.backs + blk.hash,
+            this.heads.second - blk.immut.backs
+        )
+    }
 
     this.fsSave()
 }
@@ -137,7 +140,7 @@ fun Chain.blockChain (blk: Block, pay: String) {
 fun Chain.blockRemove (hash: Hash) {
     val blk = this.fsLoadBlock(hash)
     assert_(this.blockState(blk, getNow()) == State.BLOCKED) { "can only remove blocked block" }
-    this.heads = this.bfsCleanHeads(this.heads.minus(hash) + blk.immut.backs.toList())
+    this.heads = Pair(this.heads.first, this.heads.second - hash)
     this.fsSave()
 }
 

@@ -24,7 +24,7 @@ data class Chain (
     val key    : HKey?
 ) {
     val hash   : String = this.name.calcHash()
-    var heads  : List<Hash> = emptyList()
+    var heads  : Pair<List<Hash>,List<Hash>> = Pair(emptyList(), emptyList())
     val fronts : Fronts = mutableListOf()
 }
 
@@ -111,27 +111,12 @@ fun Immut.toHash () : Hash {
 // HEADS
 
 fun Chain.getHeads (want: State) : List<Hash> {
-    val now = getNow()
-
-    fun aux (hash: Hash) : List<Hash> {
-        val blk = this.fsLoadBlock(hash)
-        val state = this.blockState(blk,now)
-        //println("HASH=$hash // $state")
-        return when (want) {
-            State.ALL -> listOf(hash)
-            State.LINKED -> if (state > State.LINKED)  listOf(hash) else blk.immut.backs.map(::aux).flatten()
-            State.BLOCKED -> if (state == State.BLOCKED) listOf(hash) else emptyList()
-            else -> error("impossible case")
-        }
+    return when (want) {
+        State.ALL     -> this.heads.first + this.heads.second
+        State.LINKED  -> this.heads.first
+        State.BLOCKED -> this.heads.second
+        else -> error("impossible case")
     }
-
-    return this.heads
-        .map (::aux)
-        .flatten ()
-        .let { this.bfsCleanHeads(it) }
-        .toSet().toList()
-        //.let { println("heads"); println(it); it }
-
 }
 
 // REPUTATION

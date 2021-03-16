@@ -6,15 +6,6 @@ enum class BfsDir {
     BACKS, FRONTS
 }
 
-// remove heads that point to other heads
-fun Chain.bfsCleanHeads (heads: List<Hash>) : List<Hash> {
-    return heads.filter { from ->
-        heads.none { to ->
-            (from != to) && this.bfsFrontsIsFromTo(from,to)
-        }
-    }
-}
-
 fun Chain.bfsFrontsIsFromTo (from: Hash, to: Hash) : Boolean {
     //println(this.bfsFirst(listOf(from), true) { it.hash == to })
     return this.bfsFrontsFirst(from) { it.hash == to } != null
