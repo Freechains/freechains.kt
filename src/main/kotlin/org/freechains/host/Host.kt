@@ -28,8 +28,8 @@ fun Host.chainsLoad (name: String) : Chain {
     return chain
 }
 
-fun Host.chainsJoin (name: String, pass: String? = null) : Chain {
-    val chain = Chain(this.root, name, pass).validate()
+fun Host.chainsJoin (name: String, key: HKey?) : Chain {
+    val chain = Chain(this.root, name, key).validate()
     val file = File(chain.path() + "/chain")
     assert_(!file.exists()) { "chain already exists: $chain" }
     chain.fsSave()

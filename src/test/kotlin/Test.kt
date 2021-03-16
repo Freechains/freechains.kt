@@ -122,7 +122,7 @@ class Tests {
     @Test
     fun b1_chain() {
         val h = Host_load("/tmp/freechains/tests/local/")
-        val c1 = h.chainsJoin("#uerj")
+        val c1 = h.chainsJoin("#uerj", null)
 
         val c2 = h.chainsLoad(c1.name)
         assert_(c1.hashCode().equals(c2.hashCode()))
@@ -137,7 +137,7 @@ class Tests {
     @Test
     fun c1_post() {
         val loc = Host_load("/tmp/freechains/tests/local/")
-        val chain = loc.chainsJoin("@$PUB0")
+        val chain = loc.chainsJoin("@$PUB0", null)
         val n1 = chain.blockNew(H, "", PVT0, false)
         val n2 = chain.blockNew(H, "", PVT0, false)
         val n3 = chain.blockNew(H, "", null, false)
@@ -162,7 +162,7 @@ class Tests {
     @Test
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
-        val chain = loc.chainsJoin("#xxx")
+        val chain = loc.chainsJoin("#xxx", null)
         val n1 = chain.blockNew(H,   "1", PVT0, false)
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
@@ -173,14 +173,14 @@ class Tests {
     fun d1_proto() {
         // SOURCE
         val src = Host_load("/tmp/freechains/tests/src/")
-        val srcChain = src.chainsJoin("@$PUB1")
+        val srcChain = src.chainsJoin("@$PUB1", null)
         srcChain.blockNew(HC, "", PVT1, false)
         srcChain.blockNew(HC, "", PVT1, false)
         thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_load("/tmp/freechains/tests/dst/", PORT1)
-        dst.chainsJoin("@$PUB1")
+        dst.chainsJoin("@$PUB1", null)
         thread { Daemon(dst).daemon() }
         Thread.sleep(200)
 
@@ -209,12 +209,12 @@ class Tests {
     @Test
     fun f1_peers() {
         val h1 = Host_load("/tmp/freechains/tests/h1/", PORT0)
-        val h1Chain = h1.chainsJoin("@$PUB1")
+        val h1Chain = h1.chainsJoin("@$PUB1", null)
         h1Chain.blockNew(H, "", PVT1, false)
         h1Chain.blockNew(H, "", PVT1, false)
 
         val h2 = Host_load("/tmp/freechains/tests/h2/", PORT1)
-        val h2Chain = h2.chainsJoin("@$PUB1")
+        val h2Chain = h2.chainsJoin("@$PUB1", null)
         h2Chain.blockNew(H, "", PVT1, false)
         h2Chain.blockNew(H, "", PVT1, false)
 
@@ -478,7 +478,7 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/M2/")
         val c1 = loc.chainsJoin("\$sym", "password".toShared())
         c1.blockNew(HC, "", null, false)
-        val c2 = loc.chainsJoin("@$PUB0")
+        val c2 = loc.chainsJoin("@$PUB0", null)
         c2.blockNew(H, "", PVT0, true)
     }
 

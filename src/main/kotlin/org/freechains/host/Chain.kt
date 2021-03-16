@@ -6,7 +6,6 @@ import org.freechains.common.*
 import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import java.io.File
 import java.lang.Integer.max
 import java.lang.Integer.min
@@ -19,9 +18,9 @@ typealias Fronts = MutableMap<Hash, MutableSet<Hash>>
 
 @Serializable
 data class Chain (
-    var root   : String,
-    val name   : String,
-    val key    : HKey?
+    var root : String,
+    val name : String,
+    val key  : HKey?    // pioneer for public or shared for private chain
 ) {
     val hash   : String = this.name.calcHash()
     var heads  : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
