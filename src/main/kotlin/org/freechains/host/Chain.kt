@@ -129,14 +129,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 
 fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
     //println("REPS_AUTHOR FROM HEADS $heads")
-    val gen = this.fronts.get(this.getGenesis())!!.let {
-        when {
-            it.isEmpty() -> 0
-            this.fsLoadBlock(it.first()).isFrom((pub)) -> LK30_max
-            else         -> 0
-        }
-    }
-
+    val gen = if (this.key==pub) LK30_max else 0
     val mines = this.bfsBacksAuthor(heads,pub)
 
     val posts = mines                                    // mines

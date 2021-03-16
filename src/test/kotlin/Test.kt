@@ -606,7 +606,7 @@ class Tests {
 
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "first-0", S0))
-        main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
+        main_cli(arrayOf(H1, "chains", "join", "#", PUB1))
         main_cli(arrayOf(H1, "chain", "#", "post", "inline", "first-1", S1))
         Thread.sleep(200)
 
@@ -701,7 +701,7 @@ class Tests {
         main_host(arrayOf(H0, "now", (1 * day + 4 * hour).toString()))
 
         assert_(main_cli_assert(arrayOf("chain", "@$PUB0", "heads")).startsWith("4_"))
-        assert_("29" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)))
+        assert_("2" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)))
         assert_("2" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB1)))
 
         // like myself
@@ -715,7 +715,7 @@ class Tests {
         //          \-> h22 --/
 
         main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)).let {
-            assert_(it == "28")
+            assert_(it == "1")
         }
         main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB1)).let {
             assert_(it == "3")
@@ -739,7 +739,7 @@ class Tests {
             assert_(it == "2")
         }
         main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)).let {
-            assert_(it == "27")
+            assert_(it == "0")
         }
 
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M81/", P1)) }
@@ -876,16 +876,16 @@ class Tests {
             assert_(it == "1 / 1")
         }
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "reps", PUB0)).let {
-            assert_(it == "25")
+            assert_(it == "-2")
         }
 
         main_host(arrayOf(H1, "now", "${1 * day + 10 * hour}"))
 
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "reps", PUB0)).let {
-            assert_(it == "25")
+            assert_(it == "-2")
         }
         main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "reps", PUB0)).let {
-            assert_(it == "25")
+            assert_(it == "-2")
         }
 
         val ln = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "reps", h7))
@@ -907,39 +907,39 @@ class Tests {
         main_host(arrayOf(H0, "now", "0"))
         main_host(arrayOf(H1, "now", "0"))
 
-        val h1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h1", S1))
-        val h2 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h2", S1))
-        val hx = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "hx", S0))
+        val h1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h1", S0))
+        val h2 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h2", S0))
+        val hx = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "hx", S1))
 
         // h1 <- h2 (a) <- hx (r)
 
         val ps1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads"))
         val rs1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "blocked"))
-        assert_(!ps1.contains(h1) && !ps1.contains(h2) && ps1.contains(hx))
-        assert_(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
+        assert_(!ps1.contains(h1) && ps1.contains(h2) && !ps1.contains(hx))
+        assert_(!rs1.contains(h1) && !rs1.contains(h2) && rs1.contains(hx))
 
         main_cli(arrayOf(H1, "peer", "localhost:$PORT0", "recv", "@$PUB0"))
 
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h3", S1)).let {
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h3", S0)).let {
             //assert_(it == "backs must be accepted")
         }
 
-        // h1 <- h2 (p) <- h3
-        //   \-- hx (a)
+        // h1 <- h2 (a) <- hx (r)
+        //             \<- h3
 
         main_host(arrayOf(H1, "now", "${3 * hour}"))
 
-        val h4 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h4", S1))
-        assert_(h4.startsWith("5_"))
+        val h4 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h4", S0))
+        assert_(h4.startsWith("4_"))
 
         // h1 <- h2 (a) <- h3 <- h4
-        //   \-- hx (a)
+        //              \-- hx (r)
 
         main_cli(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0"))
         main_host(arrayOf(H1, "now", "${6 * hour}"))
 
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h5")).let {
-            assert_(it.startsWith("6_"))
+            assert_(it.startsWith("5_"))
         }
     }
 
