@@ -270,22 +270,22 @@ class Daemon (loc_: Host) {
                                     System.err.println("chain genesis: $hash")
                                 }
                                 "heads" -> {
-                                    val heads = chain.getHeads(cmds[3].toState()).joinToString(" ")
+                                    val heads = when (cmds.size) {
+                                        3 -> chain.heads.first
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads.second }
+                                        else -> error("impossible case")
+                                    }.joinToString(" ")
                                     writer.writeLineX(heads)
                                     System.err.println("chain heads: $heads")
                                 }
                                 "traverse" -> {
-                                    val heads = chain.getHeads(cmds[3].toState())
-                                    val downto = cmds.drop(4)
-                                    //println("H=$heads // D=$downto")
+                                    val downto = cmds.drop(3)
                                     val all = chain
-                                            .bfsBacks(heads, false) {
-                                                //println("TRY ${it.hash} -> ${downto.contains(it.hash)}")
+                                            .bfsBacks(chain.heads.first, false) {
                                                 !downto.contains(it.hash)
                                             }
                                             .map { it.hash }
                                             .reversed()
-                                    //println("H=$heads // D=$downto")
                                     val ret = all.joinToString(" ")
                                     writer.writeLineX(ret)
                                     System.err.println("chain traverse: $ret")

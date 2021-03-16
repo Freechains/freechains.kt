@@ -15,13 +15,13 @@ Usage:
     freechains chains listen
     
     freechains chain <chain> genesis
-    freechains chain <chain> heads (all | linked | blocked)
+    freechains chain <chain> heads [blocked]
     freechains chain <chain> get (block | payload) <hash>
     freechains chain <chain> post (file | inline | -) [<path_or_text>]
     freechains chain <chain> (like | dislike) <hash>
     freechains chain <chain> reps <hash_or_pub>
     freechains chain <chain> remove <hash>
-    freechains chain <chain> traverse (all | linked) <hashes>...
+    freechains chain <chain> traverse <hashes>...
     freechains chain <chain> listen
     
     freechains peer <addr:port> ping
@@ -157,8 +157,13 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         reader.readLineX()
                     }
                     "heads" -> {
-                        assert_(cmds.size == 4) { "invalid number of arguments" }
-                        writer.writeLineX("$PRE chain $chain heads ${cmds[3]}")
+                        assert_(cmds.size <= 4) { "invalid number of arguments" }
+                        val blocked = when (cmds.size) {
+                            3 -> ""
+                            4 -> { assert(cmds[3]=="blocked") ; " blocked" }
+                            else -> error("impossible case")
+                        }
+                        writer.writeLineX("$PRE chain $chain heads" + blocked)
                         reader.readLineX()
                     }
                     "get" -> {
@@ -191,9 +196,9 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         reader.readLineX()
                     }
                     "traverse" -> {
-                        assert_(cmds.size >= 5) { "invalid number of arguments" }
-                        val downto = cmds.drop(3).joinToString(" ")
-                        writer.writeLineX("$PRE chain $chain traverse ${cmds[3]} $downto")
+                        assert_(cmds.size >= 4) { "invalid number of arguments" }
+                        val downto = cmds.drop(2).joinToString(" ")
+                        writer.writeLineX("$PRE chain $chain traverse $downto")
                         reader.readLineX()
                     }
                     "reps" -> {

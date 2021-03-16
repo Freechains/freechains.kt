@@ -280,14 +280,14 @@ class Tests {
         }
 
         assert_(main_cli_assert(arrayOf("chain", "#xxx", "genesis")).startsWith("0_"))
-        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked")).startsWith("0_"))
+        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads")).startsWith("0_"))
 
         main_cli(arrayOf("chain", "#xxx", "post", "inline", "aaa", S0))
-        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked")).startsWith("1_"))
+        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads")).startsWith("1_"))
         main_cli_assert(arrayOf("chain", "#xxx", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked")).let { list ->
+        main_cli_assert(arrayOf("chain", "#xxx", "heads")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert_(it.size == 1)
                 assert_(it[0].startsWith("1_"))
@@ -305,7 +305,7 @@ class Tests {
 
         // h0 -> h1 -> h2
 
-        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked")).startsWith("2_"))
+        assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads")).startsWith("2_"))
         assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads", "blocked")).isEmpty())
 
         //org.freechains.core.cli(arrayOf("chain", "#xxx", "post", "file", "base64", "/bin/cat"))
@@ -324,7 +324,7 @@ class Tests {
         main_cli_assert(arrayOf("chain", "#xxx", "post", "inline",   "1", "--sign=$PVT0"))
         main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.1", "--sign=$PVT1"))
         main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.2", "--sign=$PVT1"))
-        val x = main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked"))
+        val x = main_cli_assert(arrayOf("chain", "#xxx", "heads"))
         println(x)
         assert_(!x.contains(" "))
     }
@@ -338,7 +338,7 @@ class Tests {
         main_cli(arrayOf("chains", "join", "#"))
         val gen = main_cli_assert(arrayOf("chain", "#", "genesis"))
         main_cli(arrayOf("chain", "#", "post", "inline", "aaa", S0))
-        main_cli_assert(arrayOf("chain", "#", "traverse", "all", gen)).let {
+        main_cli_assert(arrayOf("chain", "#", "traverse", gen)).let {
             it.split(" ").let {
                 assert_(it.size == 1 && it[0].startsWith("1_"))
             }
@@ -651,7 +651,7 @@ class Tests {
         println("-=-=- POST -=-=-")
         val h5 = main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h5", S1))
         println("-=-=- LNKS -=-=-")
-        main_cli_assert(arrayOf("chain", "#chat", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf("chain", "#chat", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
             }
@@ -674,7 +674,7 @@ class Tests {
         // h0 -> h11 -> h21
         //          \-> h22
 
-        main_cli_assert(arrayOf("chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf("chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
             }
@@ -686,7 +686,7 @@ class Tests {
         // h0 -> h11 -> h21 -> l3
         //          \-> h22 /
 
-        main_cli_assert(arrayOf("chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf("chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 assert_(it[0].startsWith("3_") || it[1].startsWith("3_"))
@@ -702,7 +702,7 @@ class Tests {
 
         main_host(arrayOf(H0, "now", (1 * day + 4 * hour).toString()))
 
-        assert_(main_cli_assert(arrayOf("chain", "@$PUB0", "heads", "linked")).startsWith("4_"))
+        assert_(main_cli_assert(arrayOf("chain", "@$PUB0", "heads")).startsWith("4_"))
         assert_("29" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)))
         assert_("2" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB1)))
 
@@ -723,7 +723,7 @@ class Tests {
             assert_(it == "3")
         }
 
-        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
             }
@@ -754,7 +754,7 @@ class Tests {
         val n1 = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0"))
         assert_(n1 == "0 / 7")
 
-        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 it.forEach { assert_(it.contains("6_")) }
@@ -765,7 +765,7 @@ class Tests {
         main_host(arrayOf(H1, "now", "0"))
         val n2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "recv", "@$PUB0"))
         assert_(n2 == "4 / 7") { n2 }
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let {
             assert_(it.startsWith("3_"))
         }
 
@@ -785,7 +785,7 @@ class Tests {
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0")).let {
             assert_(it == "3 / 3")
         }
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let {
             assert_(it.startsWith("6_"))
         }
 
@@ -803,7 +803,7 @@ class Tests {
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "recv", "@$PUB0")).let {
             assert_(it == "1 / 1")
         }
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let {
             assert_(it.startsWith("7_"))
         }
 
@@ -813,7 +813,7 @@ class Tests {
         //          \               /         \        /
         //           \- h22 <-------           l6 <- h7
 
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 it.forEach {
@@ -830,7 +830,7 @@ class Tests {
         main_host(arrayOf(H0, "now", "${1 * day + 7 * hour}"))
         main_host(arrayOf(H1, "now", "${1 * day + 7 * hour}"))
 
-        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 it.forEach {
@@ -838,7 +838,7 @@ class Tests {
                 }
             }
         }
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 it.forEach {
@@ -915,7 +915,7 @@ class Tests {
 
         // h1 <- h2 (a) <- hx (r)
 
-        val ps1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "linked"))
+        val ps1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads"))
         val rs1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads", "blocked"))
         assert_(!ps1.contains(h1) && !ps1.contains(h2) && ps1.contains(hx))
         assert_(!rs1.contains(h1) && !rs1.contains(h2) && !rs1.contains(hx))
@@ -982,7 +982,7 @@ class Tests {
         // h0 -> h1 -> h21
         //          -> h22
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             assert_(it.startsWith("1_")) { it }
         }
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
@@ -994,7 +994,7 @@ class Tests {
         // h0 -> h1 -> h21 -> l2
         //          -> h22
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
                 it.forEach {
@@ -1008,7 +1008,7 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3
         //          -> h22
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             it.split(' ').let {
                 assert_(it.size == 1)
             }
@@ -1024,7 +1024,7 @@ class Tests {
         main_host(arrayOf(H1, "now", "${3 * hour}"))
 
         assert_(main_cli_assert(arrayOf(H1, "chain", "#", "heads", "blocked")).isEmpty())
-        main_cli_assert(arrayOf(H1, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H1, "chain", "#", "heads")).let { str ->
             assert_(str.startsWith("4_"))
             str.split(' ').let {
                 assert_(it.size == 1)
@@ -1037,7 +1037,7 @@ class Tests {
         // h0 -> h1 -> h21 -> l2 -> l3 -> l4
         //          -> h22
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)
             }
@@ -1073,7 +1073,7 @@ class Tests {
         main_cli_assert(arrayOf(H1, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_cli_assert(arrayOf(H1, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H1, "chain", "#", "heads")).let {
             assert_(it.startsWith("6_"))
         }
     }
@@ -1206,7 +1206,7 @@ class Tests {
         // h0 -> h1 --> h21 -----------------------> h61 --> h7
         //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/-> l-
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             assert_(!it.contains("2_"))
         }
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
@@ -1215,7 +1215,7 @@ class Tests {
 
         main_host(arrayOf(H0, "now", "${40 * hour}"))
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1) { it.size }
                 it.forEach {
@@ -1257,7 +1257,7 @@ class Tests {
         main_host(arrayOf(H0, "now", "${5 * hour}"))
         main_host(arrayOf(H1, "now", "${5 * hour}"))
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1) { it.size }
                 it.forEach { v -> assert_(v.startsWith("4_")) }
@@ -1267,7 +1267,7 @@ class Tests {
             assert_(it.isEmpty())
         }
 
-        main_cli_assert(arrayOf(H1, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H1, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1) { it.size }
                 it.forEach { v -> assert_(v.startsWith("3_")) }
@@ -1291,7 +1291,7 @@ class Tests {
         // HOST-1
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 1@h3
 
-        main_cli_assert(arrayOf(H1, "chain", "#", "heads", "linked")).let { str ->
+        main_cli_assert(arrayOf(H1, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1) { it.size }
                 it.forEach { v -> assert_(v.startsWith("4_")) }
@@ -1357,7 +1357,7 @@ class Tests {
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             assert_(it.startsWith("5_"))
         }
     }
@@ -1394,7 +1394,7 @@ class Tests {
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "linked")).let {
+        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             assert_(it.startsWith("4_"))
         }
     }
@@ -1429,7 +1429,7 @@ class Tests {
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_cli_assert(arrayOf("chain", "#", "heads", "all")).let { list ->
+        main_cli_assert(arrayOf("chain", "#", "heads")).let { list ->
             list.split(' ').toTypedArray().let {
                 assert_(it.size == 1)
                 assert_(it[0].startsWith("1_"))
@@ -1466,13 +1466,13 @@ class Tests {
 
         val n = 23
         for (i in 1..n) {
-            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads", "linked")))
+            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads")))
             println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads", "blocked")))
             println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "post", "inline", "Post 1")))
             println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "reps", PUB)))
         }
 
-        val ret = main_cli_assert(arrayOf(H0, "chain", "#crdt", "heads", "all"))
+        val ret = main_cli_assert(arrayOf(H0, "chain", "#crdt", "heads"))
         println(ret)
         assert_(ret == "$n / $n")
     }
