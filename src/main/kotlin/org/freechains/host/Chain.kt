@@ -129,6 +129,7 @@ fun Chain.getHeads (want: State) : List<Hash> {
         .map (::aux)
         .flatten ()
         .let { this.bfsCleanHeads(it) }
+        .toSet().toList()
         //.let { println("heads"); println(it); it }
 
 }

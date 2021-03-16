@@ -160,6 +160,17 @@ class Tests {
     }
 
     @Test
+    fun c02_blocked() {
+        val loc = Host_load("/tmp/freechains/tests/C02/")
+        val chain = loc.chainsJoin("#xxx")
+        val n1 = chain.blockNew(H,   "1", PVT0, false)
+        val n2 = chain.blockNew(H, "2.1", PVT1, false)
+        val n3 = chain.blockNew(H, "2.2", PVT1, false)
+        val heads = chain.getHeads(State.LINKED)
+        assert(heads.size == 1)
+    }
+
+    @Test
     fun d1_proto() {
         // SOURCE
         val src = Host_load("/tmp/freechains/tests/src/")
@@ -302,6 +313,21 @@ class Tests {
         main_host(arrayOf("stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/blocks/*
+    }
+
+    @Test
+    fun m01_blocked() {
+        thread {
+            main_host(arrayOf("start", "/tmp/freechains/tests/M1B/"))
+        }
+        Thread.sleep(200)
+        main_cli_assert(arrayOf("chains", "join", "#xxx"))
+        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline",   "1", "--sign=$PVT0"))
+        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.1", "--sign=$PVT1"))
+        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.2", "--sign=$PVT1"))
+        val x = main_cli_assert(arrayOf("chain", "#xxx", "heads", "linked"))
+        println(x)
+        assert_(!x.contains(" "))
     }
 
     @Test
