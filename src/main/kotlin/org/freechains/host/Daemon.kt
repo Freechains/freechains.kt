@@ -297,7 +297,7 @@ class Daemon (loc_: Host) {
                                         val ret = when (cmds[3]) {
                                             "block" -> {
                                                 val blk = chain.fsLoadBlock(hash)
-                                                val blk_ = Block_ (
+                                                val blk_ = Block_Get (
                                                     blk.hash, blk.local, blk.immut.time,
                                                     blk.immut.pay, blk.immut.like, blk.sign,
                                                     blk.immut.prev, blk.immut.backs,

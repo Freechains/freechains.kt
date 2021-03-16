@@ -3,7 +3,6 @@ package org.freechains.host
 import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.common.HKey
 
 typealias Hash = String
@@ -63,7 +62,7 @@ data class Immut (
 )
 
 @Serializable
-data class Block_ (
+data class Block_Get (          // only used in "freechains ... get block ...
         val hash   : Hash,
         val local  : Long,
         val time   : Long,
@@ -96,10 +95,10 @@ fun Block.toJson (): String {
     return json.encodeToString(Block.serializer(), this)
 }
 
-fun Block_.toJson (): String {
+fun Block_Get.toJson (): String {
     //@OptIn(UnstableDefault::class)
     val json = Json { prettyPrint=true }
-    return json.encodeToString(Block_.serializer(), this)
+    return json.encodeToString(Block_Get.serializer(), this)
 }
 
 fun String.jsonToBlock (): Block {
@@ -108,10 +107,10 @@ fun String.jsonToBlock (): Block {
     return json.decodeFromString(Block.serializer(), this)
 }
 
-fun String.jsonToBlock_ (): Block_ {
+fun String.jsonToBlock_ (): Block_Get {
     //@OptIn(UnstableDefault::class)
     val json = Json { prettyPrint=true }
-    return json.decodeFromString(Block_.serializer(), this)
+    return json.decodeFromString(Block_Get.serializer(), this)
 }
 
 fun Hash.hashSplit () : Pair<Int,String> {
