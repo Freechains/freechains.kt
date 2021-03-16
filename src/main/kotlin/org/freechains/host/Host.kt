@@ -40,7 +40,7 @@ fun Host.chainsJoin (name: String, pass: String? = null) : Chain {
             Payload(false, ""),
             null,
             null,
-            emptyArray()
+            emptySet()
         ),
         chain.getGenesis(),
         null

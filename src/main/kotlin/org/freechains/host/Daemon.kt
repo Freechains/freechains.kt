@@ -301,7 +301,7 @@ class Daemon (loc_: Host) {
                                                     blk.hash, blk.local, blk.immut.time,
                                                     blk.immut.pay, blk.immut.like, blk.sign,
                                                     blk.immut.prev, blk.immut.backs,
-                                                    chain.fronts.get(blk.hash)!!.toTypedArray()
+                                                    chain.fronts[blk.hash]!!
                                                 )
                                                 blk_.toJson()
                                             }
@@ -349,17 +349,17 @@ class Daemon (loc_: Host) {
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
-                                            val blk = chain.blockNew(
-                                                    Immut(
-                                                            0,
-                                                            Payload(false, ""),
-                                                            null,
-                                                            null,
-                                                            emptyArray()
-                                                    ),
-                                                    pay,
-                                                    if (sign == "anon") null else sign,
-                                                    cmds[4].toBoolean()
+                                            val blk = chain.blockNew (
+                                                Immut (
+                                                    0,
+                                                    Payload(false, ""),
+                                                    null,
+                                                    null,
+                                                    emptySet()
+                                                ),
+                                                pay,
+                                                if (sign == "anon") null else sign,
+                                                cmds[4].toBoolean()
                                             )
                                             ret = blk.hash
                                         }
@@ -379,20 +379,20 @@ class Daemon (loc_: Host) {
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
-                                            val blk = chain.blockNew(
-                                                    Immut(
-                                                            0,
-                                                            Payload(false, ""),
-                                                            null,
-                                                            Like(
-                                                                    cmds[3].toInt(),
-                                                                    cmds[4]
-                                                            ),
-                                                            emptyArray()
+                                            val blk = chain.blockNew (
+                                                Immut (
+                                                    0,
+                                                    Payload(false, ""),
+                                                    null,
+                                                    Like(
+                                                        cmds[3].toInt(),
+                                                        cmds[4]
                                                     ),
-                                                    pay,
-                                                    cmds[5],
-                                                    false
+                                                    emptySet()
+                                                ),
+                                                pay,
+                                                cmds[5],
+                                                false
                                             )
                                             ret = blk.hash
                                         }

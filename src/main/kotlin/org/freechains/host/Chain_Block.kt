@@ -80,7 +80,7 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
             hash  = pay0.calcHash()
         ),
         prev  = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
-        backs = backs.sorted().toTypedArray()   // sort for deterministic tests
+        backs = backs
     )
     val pay1 = when {
         this.isDollar() -> pay0.encryptShared(this.key!!)
@@ -115,10 +115,8 @@ fun Chain.blockChain (blk: Block, pay: String) {
         val fronts = this.fronts.get(bk)!!
         assert_(!fronts.contains(blk.hash)) { "bug found (1): " + bk + " already points to " + blk.hash }
         fronts.add(blk.hash)
-        fronts.sort() // sort for deterministic tests
     }
-    this.fronts.add(Pair(blk.hash,mutableListOf()))
-    this.fronts.sortBy{ it.first } // sort for deterministic tests
+    this.fronts[blk.hash] = mutableSetOf()
 
     this.fsSaveBlock(blk)
     this.fsSavePay(blk.hash, pay)

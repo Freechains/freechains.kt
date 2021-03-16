@@ -15,7 +15,7 @@ import kotlin.math.ceil
 // internal methods are private but are used in tests
 
 // not Map b/c of sorted keys (deterministic tests)
-typealias Fronts = MutableList<Pair<String, MutableList<Hash>>>
+typealias Fronts = MutableMap<Hash, MutableSet<Hash>>
 
 @Serializable
 data class Chain (
@@ -25,11 +25,7 @@ data class Chain (
 ) {
     val hash   : String = this.name.calcHash()
     var heads  : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
-    val fronts : Fronts = mutableListOf()
-}
-
-fun Fronts.get (hash: String): MutableList<Hash>? {
-    return this.firstOrNull { it.first==hash } ?.second
+    val fronts : Fronts = mutableMapOf()
 }
 
 // TODO: change to contract/constructor assertion
@@ -99,7 +95,7 @@ fun String.calcHash () : String {
 }
 
 fun Immut.toHash () : Hash {
-    fun Array<Hash>.backsToHeight () : Int {
+    fun Set<Hash>.backsToHeight () : Int {
         return when {
             this.isEmpty() -> 0
             else -> 1 + this.map { it.toHeight() }.maxOrNull()!!
