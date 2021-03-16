@@ -16,14 +16,14 @@ fun Chain.bfsBacksFindAuthor (pub: String) : Block? {
 }
 
 fun Chain.bfsFrontsFirst (start: Hash, pred: (Block) -> Boolean) : Block? {
-    return this.bfsFirst(listOf(start), BfsDir.FRONTS, pred)
+    return this.bfsFirst(setOf(start), BfsDir.FRONTS, pred)
 }
 
-fun Chain.bfsBacksFirst (heads: List<Hash>, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsBacksFirst (heads: Set<Hash>, pred: (Block) -> Boolean) : Block? {
     return this.bfsFirst(heads, BfsDir.BACKS, pred)
 }
 
-fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
+fun Chain.bfsBacksAuthor (heads: Set<Hash>, pub: String) : List<Block> {
     return this
         .bfsBacksFirst(heads) { it.isFrom(pub) }.let { blk ->
             if (blk == null) {
@@ -39,7 +39,7 @@ fun Chain.bfsBacksAuthor (heads: List<Hash>, pub: String) : List<Block> {
         }
 }
 
-private fun Chain.bfsFirst (starts: List<Hash>, dir: BfsDir, pred: (Block) -> Boolean) : Block? {
+private fun Chain.bfsFirst (starts: Set<Hash>, dir: BfsDir, pred: (Block) -> Boolean) : Block? {
     return this
         .bfs(starts,true, dir) { !pred(it) }
         .last()
@@ -52,19 +52,19 @@ fun Chain.bfsFrontsAll (start: Hash = this.getGenesis()) : List<Block> {
     return this.bfsFronts(start,false) { true }
 }
 
-fun Chain.bfsBacksAll (heads: List<Hash>) : List<Block> {
+fun Chain.bfsBacksAll (heads: Set<Hash>) : List<Block> {
     return this.bfsBacks(heads,false) { true }
 }
 
 fun Chain.bfsFronts (start: Hash, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
-    return this.bfs(listOf(start), inc, BfsDir.FRONTS, ok)
+    return this.bfs(setOf(start), inc, BfsDir.FRONTS, ok)
 }
 
-fun Chain.bfsBacks (starts: List<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
+fun Chain.bfsBacks (starts: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
     return this.bfs(starts, inc, BfsDir.BACKS, ok)
 }
 
-internal fun Chain.bfs (starts: List<Hash>, inc: Boolean, dir: BfsDir, ok: (Block) -> Boolean) : List<Block> {
+internal fun Chain.bfs (starts: Set<Hash>, inc: Boolean, dir: BfsDir, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
 
     val pending =

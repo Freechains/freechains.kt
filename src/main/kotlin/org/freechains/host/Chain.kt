@@ -24,7 +24,7 @@ data class Chain (
     val key    : HKey?
 ) {
     val hash   : String = this.name.calcHash()
-    var heads  : Pair<List<Hash>,List<Hash>> = Pair(emptyList(), emptyList())
+    var heads  : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
     val fronts : Fronts = mutableListOf()
 }
 
@@ -128,7 +128,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     return Pair(pos,-neg)
 }
 
-fun Chain.repsAuthor (pub: String, now: Long, heads: List<Hash>) : Int {
+fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
     //println("REPS_AUTHOR FROM HEADS $heads")
     val gen = this.fronts.get(this.getGenesis())!!.let {
         when {

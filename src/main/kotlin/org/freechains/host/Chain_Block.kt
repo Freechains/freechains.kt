@@ -24,7 +24,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     val ath = when {
         (blk.sign == null) -> 0     // anon post, no author reps
         (prev == null)     -> 0     // no prev post, no author reps
-        else               -> this.repsAuthor(blk.sign.pub, now, listOf(prev))
+        else               -> this.repsAuthor(blk.sign.pub, now, setOf(prev))
     }
     val (pos,neg) = this.repsPost(blk.hash)
 
@@ -207,7 +207,7 @@ fun Chain.blockAssert (blk: Block) {
         assert_(
                 this.fromOwner(blk) ||   // owner has infinite reputation
                         this.isDollar() ||   // dont check reps (private chain)
-                        this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toList()) >= blk.hash.toHeight().toReps()
+                        this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toSet()) >= blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
         }
