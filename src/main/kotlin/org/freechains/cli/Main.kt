@@ -9,7 +9,7 @@ val help = """
 freechains $VERSION
 
 Usage:
-    freechains chains join  <chain> [<shared>]
+    freechains chains join  <chain> [<key>]
     freechains chains leave <chain>
     freechains chains list
     freechains chains listen
@@ -115,8 +115,8 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                     }
                     "join" -> {
                         assert_(cmds.size in 3..4) { "invalid number of arguments" }
-                        val shared = if (cmds.size == 3) "" else " " + cmds[3]
-                        writer.writeLineX("$PRE chains join ${cmds[2]}$shared")
+                        val key = if (cmds.size == 3) "" else " " + cmds[3]
+                        writer.writeLineX("$PRE chains join ${cmds[2]}$key")
                         reader.readLineX()
                     }
                     "listen" -> {

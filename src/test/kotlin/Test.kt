@@ -122,7 +122,7 @@ class Tests {
     @Test
     fun b1_chain() {
         val h = Host_load("/tmp/freechains/tests/local/")
-        val c1 = h.chainsJoin("#uerj", null)
+        val c1 = h.chainsJoin("#uerj", PUB0)
 
         val c2 = h.chainsLoad(c1.name)
         assert_(c1.hashCode().equals(c2.hashCode()))
@@ -162,7 +162,7 @@ class Tests {
     @Test
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
-        val chain = loc.chainsJoin("#xxx", null)
+        val chain = loc.chainsJoin("#xxx", PUB0)
         val n1 = chain.blockNew(H,   "1", PVT0, false)
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
@@ -247,10 +247,10 @@ class Tests {
         main_cli_assert(arrayOf("chains", "leave", "#xxx")).let {
             assert_(it == "false")
         }
-        main_cli_assert(arrayOf("chains", "join", "#xxx")).let {
+        main_cli_assert(arrayOf("chains", "join", "#xxx", PUB0)).let {
             assert_(it.isNotEmpty())
         }
-        main_cli_assert(arrayOf("chains", "join", "#yyy")).let {
+        main_cli_assert(arrayOf("chains", "join", "#yyy", PUB1)).let {
             assert_(it.isNotEmpty())
         }
         main_cli_assert(arrayOf("chains", "list")).let {
@@ -267,7 +267,7 @@ class Tests {
             main_host(arrayOf("start", "/tmp/freechains/tests/M1/"))
         }
         Thread.sleep(200)
-        main_cli(arrayOf("chains", "join", "#xxx"))
+        main_cli(arrayOf("chains", "join", "#xxx", PUB0))
 
         main_cli(arrayOf("xxx", "yyy")).let {
             assert_(!it.first)
@@ -320,12 +320,10 @@ class Tests {
             main_host(arrayOf("start", "/tmp/freechains/tests/M1B/"))
         }
         Thread.sleep(200)
-        main_cli_assert(arrayOf("chains", "join", "#xxx"))
-        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline",   "1", "--sign=$PVT0"))
-        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.1", "--sign=$PVT1"))
-        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "2.2", "--sign=$PVT1"))
+        main_cli_assert(arrayOf("chains", "join", "#xxx", PUB0))
+        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "1.1", "--sign=$PVT1"))
+        main_cli_assert(arrayOf("chain", "#xxx", "post", "inline", "1.2", "--sign=$PVT1"))
         val x = main_cli_assert(arrayOf("chain", "#xxx", "heads"))
-        println(x)
         assert_(!x.contains(" "))
     }
 
@@ -335,7 +333,7 @@ class Tests {
             main_host(arrayOf("start", "/tmp/freechains/tests/trav/"))
         }
         Thread.sleep(200)
-        main_cli(arrayOf("chains", "join", "#"))
+        main_cli(arrayOf("chains", "join", "#", PUB0))
         val gen = main_cli_assert(arrayOf("chain", "#", "genesis"))
         main_cli(arrayOf("chain", "#", "post", "inline", "aaa", S0))
         main_cli_assert(arrayOf("chain", "#", "traverse", gen)).let {
@@ -351,7 +349,7 @@ class Tests {
             main_host(arrayOf("start", "/tmp/freechains/tests/listen/"))
         }
         Thread.sleep(200)
-        main_cli(arrayOf("chains", "join", "#"))
+        main_cli(arrayOf("chains", "join", "#", PUB0))
 
         var ok = 0
         val t1 = thread {
@@ -606,9 +604,9 @@ class Tests {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M71/", P1)) }
         Thread.sleep(200)
 
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "first-0", S0))
-        main_cli(arrayOf(H1, "chains", "join", "#"))
+        main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
         main_cli(arrayOf(H1, "chain", "#", "post", "inline", "first-1", S1))
         Thread.sleep(200)
 
@@ -641,7 +639,7 @@ class Tests {
     fun m08_likes() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M90/")) }
         Thread.sleep(200)
-        main_cli(arrayOf("chains", "join", "#chat"))
+        main_cli(arrayOf("chains", "join", "#chat", PUB0))
         main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h1", S0))
         val h2 = main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h2", S1))
         main_cli_assert(arrayOf("chain", "#chat", "like", h2, S0))
@@ -950,8 +948,8 @@ class Tests {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M100/")) }
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M101/", P1)) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
-        main_cli(arrayOf(H1, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
+        main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
 
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "h1", S0))
         val h2 = main_cli_assert(arrayOf(H0, "chain", "#", "post", "inline", "h2"))
@@ -967,12 +965,12 @@ class Tests {
     fun m12_state () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M120/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
         main_host(arrayOf(H0, "now", "0"))
 
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M121/", P1)) }
         Thread.sleep(200)
-        main_cli(arrayOf(H1, "chains", "join", "#"))
+        main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
         main_host(arrayOf(H1, "now", "0"))
 
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "h1", S0))
@@ -1082,7 +1080,7 @@ class Tests {
     fun m13_reps () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M13/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "h1", S0))
@@ -1151,7 +1149,7 @@ class Tests {
     fun m14_remove() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M140/")) }
         Thread.sleep(200)
-        main_cli(arrayOf("chains", "join", "#"))
+        main_cli(arrayOf("chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
 
@@ -1230,8 +1228,8 @@ class Tests {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M150/")) }
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M151/", P1)) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
-        main_cli(arrayOf(H1, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
+        main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
         main_host(arrayOf(H1, "now", "0"))
@@ -1328,7 +1326,7 @@ class Tests {
     fun m16_likes_fronts () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M16/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
 
@@ -1366,7 +1364,7 @@ class Tests {
     fun m17_likes_day () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M17/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
 
@@ -1403,7 +1401,7 @@ class Tests {
     fun m18_remove () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M18/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#"))
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
         main_host(arrayOf(H0, "now", "0"))
 
@@ -1462,7 +1460,7 @@ class Tests {
         val PVT = "8A0E17D9B3C29152A797D061C619CFBA829BC7325ED72831CC59C0A7148CA9F8300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M20/")) }
         Thread.sleep(500)
-        main_cli(arrayOf("chains", "join", "#crdt"))
+        main_cli(arrayOf("chains", "join", "#crdt", PUB0))
 
         val n = 23
         for (i in 1..n) {

@@ -550,7 +550,7 @@ class Daemon (loc_: Host) {
                     assert_(chain.heads.second.size <= N16_blockeds) { "too many blocked blocks" }
 
                     // reject peers with different keys
-                    if (chain.isDollar()) {
+                    if (chain.isPreDollar()) {
                         pay.decrypt(chain.key!!)  // throws exception if fails
                     }
 

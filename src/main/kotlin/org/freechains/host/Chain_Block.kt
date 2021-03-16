@@ -7,7 +7,7 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import kotlin.math.max
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return this.isAt().let { it!=null && blk.isFrom(it) }
+    return this.isPreAt().let { it!=null && blk.isFrom(it) }
 }
 
 // STATE
@@ -38,7 +38,7 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         // unchangeable
         (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
         this.fromOwner(blk)         -> State.ACCEPTED       // owner signature
-        this.isDollar()              -> State.ACCEPTED       // chain with trusted hosts/authors only
+        this.isPreDollar()              -> State.ACCEPTED       // chain with trusted hosts/authors only
         (blk.immut.like != null)    -> State.ACCEPTED       // a like
 
         // changeable
@@ -76,15 +76,15 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
             1 + backs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()!!
         ),
         pay = imm_.pay.copy (
-            crypt = this.isDollar() || pubpvt,
+            crypt = this.isPreDollar() || pubpvt,
             hash  = pay0.calcHash()
         ),
         prev  = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs = backs
     )
     val pay1 = when {
-        this.isDollar() -> pay0.encryptShared(this.key!!)
-        pubpvt         -> pay0.encryptPublic(this.isAt()!!)
+        this.isPreDollar() -> pay0.encryptShared(this.key!!)
+        pubpvt         -> pay0.encryptPublic(this.isPreAt()!!)
         else           -> pay0
     }
     val hash = imm.toHash()
@@ -170,7 +170,7 @@ fun Chain.blockAssert (blk: Block) {
     if (blk.hash.toHeight() > 0) {
         assert_(blk.hash == imm.toHash()) { "hash must verify" }
         assert_(imm.time >= now - T120D_past) { "too old" }
-        if (this.isAt()!=null && this.isAtBang()) {
+        if (this.isPreAt()!=null && this.isPreAtBang()) {
             assert_(this.fromOwner(blk)) { "must be from owner" }
         }
     }
@@ -204,7 +204,7 @@ fun Chain.blockAssert (blk: Block) {
         }
         assert_(
                 this.fromOwner(blk) ||   // owner has infinite reputation
-                        this.isDollar() ||   // dont check reps (private chain)
+                        this.isPreDollar() ||   // dont check reps (private chain)
                         this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toSet()) >= blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
