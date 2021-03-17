@@ -176,16 +176,6 @@ fun Chain.blockAssert (blk: Block) {
     }
     assert_(imm.time <= now + T30M_future) { "from the future" }
 
-    val gen = this.getGenesis() // unique genesis front (unique 1_xxx)
-    if (imm.backs.contains(gen)) {
-        this
-            .bfsFrontsAll()
-            .filter { it.hash.toHeight() == 1 }
-            .let {
-                assert_(it.isEmpty()) { "genesis is already referred" }
-            }
-    }
-
     if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
         val sig = LazySodium.toBin(blk.sign.hash)
         val msg = lazySodium.bytes(blk.hash)
