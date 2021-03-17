@@ -38,32 +38,20 @@ fun Chain.validate () : Chain {
     assert_(rest != null && rest.all { it.isLetterOrDigit() || it == '.' }) {
         "invalid chain name: $this"
     }
-    when {
-        this.isPreDollar() -> assert_(this.key != null) { "expected shared key" }
-        this.isPreHash()   -> assert_(this.key != null) { "expected public key" }
+    when (this.name.first()) {
+        '$'  -> assert_(this.key != null) { "expected shared key" }
+        '#'  -> assert_(this.key != null) { "expected public key" }
         else -> assert_(this.key == null) { "unexpected key" }
     }
     return this
 }
 
-fun Chain.isPreAt () : HKey? {
+fun Chain.atKey () : HKey? {
     return when {
         this.name.startsWith("@!") -> this.name.drop(2)
         this.name.startsWith('@')   -> this.name.drop(1)
         else -> null
     }
-}
-
-fun Chain.isPreAtBang () : Boolean {
-    return this.name.startsWith("@!")
-}
-
-fun Chain.isPreDollar () : Boolean {
-    return this.name.first() == '$'
-}
-
-fun Chain.isPreHash () : Boolean {
-    return this.name.first() == '#'
 }
 
 fun Chain.path () : String {
@@ -187,7 +175,7 @@ fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
     val pay = this.fsLoadPay0(hash)
     return when {
         !blk.immut.pay.crypt -> pay
-        this.isPreDollar()       -> pay.decrypt(this.key!!)
+        this.name.startsWith('$') -> pay.decrypt(this.key!!)
         (pubpvt == null)     -> pay
         else                 -> pay.decrypt(pubpvt)
     }

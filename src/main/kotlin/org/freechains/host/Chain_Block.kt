@@ -7,7 +7,7 @@ import com.goterl.lazycode.lazysodium.utils.Key
 import kotlin.math.max
 
 fun Chain.fromOwner (blk: Block) : Boolean {
-    return this.isPreAt().let { it!=null && blk.isFrom(it) }
+    return this.atKey().let { it!=null && blk.isFrom(it) }
 }
 
 // STATE
@@ -36,10 +36,10 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
-        (blk.hash.toHeight() <= 1)  -> State.ACCEPTED       // first two blocks
-        this.fromOwner(blk)         -> State.ACCEPTED       // owner signature
-        this.isPreDollar()              -> State.ACCEPTED       // chain with trusted hosts/authors only
-        (blk.immut.like != null)    -> State.ACCEPTED       // a like
+        (blk.hash.toHeight() <= 1)     -> State.ACCEPTED       // first two blocks
+        this.fromOwner(blk)            -> State.ACCEPTED       // owner signature
+        this.name.startsWith('$') -> State.ACCEPTED       // chain with trusted hosts/authors only
+        (blk.immut.like != null)       -> State.ACCEPTED       // a like
 
         // changeable
         (pos==0 && ath<unit)        -> State.BLOCKED        // no likes && noob author
@@ -76,16 +76,16 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
             1 + backs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()!!
         ),
         pay = imm_.pay.copy (
-            crypt = this.isPreDollar() || pubpvt,
+            crypt = this.name.startsWith('$') || pubpvt,
             hash  = pay0.calcHash()
         ),
         prev  = sign?.let { this.bfsBacksFindAuthor(it.pvtToPub()) } ?.hash,
         backs = backs
     )
     val pay1 = when {
-        this.isPreDollar() -> pay0.encryptShared(this.key!!)
-        pubpvt         -> pay0.encryptPublic(this.isPreAt()!!)
-        else           -> pay0
+        this.name.startsWith('$') -> pay0.encryptShared(this.key!!)
+        pubpvt -> pay0.encryptPublic(this.atKey()!!)
+        else   -> pay0
     }
     val hash = imm.toHash()
 
@@ -170,7 +170,7 @@ fun Chain.blockAssert (blk: Block) {
     if (blk.hash.toHeight() > 0) {
         assert_(blk.hash == imm.toHash()) { "hash must verify" }
         assert_(imm.time >= now - T120D_past) { "too old" }
-        if (this.isPreAt()!=null && this.isPreAtBang()) {
+        if (this.name.startsWith("@!")) {
             assert_(this.fromOwner(blk)) { "must be from owner" }
         }
     }
@@ -202,10 +202,10 @@ fun Chain.blockAssert (blk: Block) {
                 assert_(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
             }
         }
-        assert_(
-                this.fromOwner(blk) ||   // owner has infinite reputation
-                        this.isPreDollar() ||   // dont check reps (private chain)
-                        this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toSet()) >= blk.hash.toHeight().toReps()
+        assert_ (
+            this.fromOwner(blk) ||   // owner has infinite reputation
+            this.name.startsWith('$') ||   // dont check reps (private chain)
+            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toSet()) >= blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
         }
