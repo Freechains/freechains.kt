@@ -8,7 +8,6 @@ import com.goterl.lazycode.lazysodium.utils.KeyPair
 import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import org.freechains.cli.main_cli
 import org.freechains.cli.main_cli_assert
 import org.freechains.common.*
@@ -21,8 +20,6 @@ import org.junit.jupiter.api.TestMethodOrder
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
-import java.net.InetAddress
-import java.net.NetworkInterface
 import java.net.Socket
 import java.time.Instant
 import java.util.*
@@ -131,7 +128,7 @@ class Tests {
         val blk2 = c2.fsLoadBlock(blk.hash)
         assert_(blk.hashCode().equals(blk2.hashCode()))
 
-        assert_(c2.bfsFrontsIsFromTo(blk.hash, blk.hash))
+        assert_(c2.bfsIsFromTo(blk.hash, blk.hash))
     }
 
     @Test

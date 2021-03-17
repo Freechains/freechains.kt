@@ -103,7 +103,7 @@ fun Int.toReps () : Int {
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val likes = this
-        .bfsFrontsAll(hash)
+        .bfsAll(this.heads.first)
         .filter { it.immut.like != null }           // only likes
         .filter { it.immut.like!!.hash == hash }    // only likes to this post
         .map    { it.immut.like!!.n * it.hash.toHeight().toReps() }
@@ -118,7 +118,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
     //println("REPS_AUTHOR FROM HEADS $heads")
     val gen = if (this.key==pub) LK30_max else 0
-    val mines = this.bfsBacksAuthor(heads,pub)
+    val mines = this.bfsAuthor(heads,pub)
 
     val posts = mines                                    // mines
         .filter { it.immut.like == null }                     // not likes
@@ -135,7 +135,7 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
             max(gen,min(LK30_max,pos)) - neg
         }
 
-    val recv = this.bfsBacksAll(heads)                     // all pointing from heads to genesis
+    val recv = this.bfsAll(heads)                     // all pointing from heads to genesis
         .filter { it.immut.like != null }                       // which are likes
         .filter {                                               // and are to me
             this.fsLoadBlock(it.immut.like!!.hash).let {

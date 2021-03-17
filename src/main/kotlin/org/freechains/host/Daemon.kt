@@ -281,7 +281,7 @@ class Daemon (loc_: Host) {
                                 "traverse" -> {
                                     val downto = cmds.drop(3)
                                     val all = chain
-                                            .bfsBacks(chain.heads.first, false) {
+                                            .bfs(chain.heads.first, false) {
                                                 !downto.contains(it.hash)
                                             }
                                             .map { it.hash }
