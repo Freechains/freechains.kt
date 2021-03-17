@@ -6,11 +6,7 @@ fun Chain.bfsIsFromTo (from: Hash, to: Hash) : Boolean {
     return this.bfsFirst(setOf(to)) { it.hash == from } != null
 }
 
-fun Chain.bfsFindAuthor (pub: String) : Block? {
-    return this.bfsFirst(this.heads.first) { it.isFrom(pub) }
-}
-
-private fun Chain.bfsFirst (starts: Set<Hash>, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFirst (starts: Set<Hash>, pred: (Block) -> Boolean) : Block? {
     return this
         .bfs(starts,true) { !pred(it) }
         .last()

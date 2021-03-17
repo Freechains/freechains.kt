@@ -79,7 +79,7 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
             crypt = this.name.startsWith('$') || pubpvt,
             hash  = pay0.calcHash()
         ),
-        prev  = sign?.let { this.bfsFindAuthor(it.pvtToPub()) } ?.hash,
+        prev  = sign?.let { sig -> this.bfsFirst(this.heads.first) { it.isFrom(sig.pvtToPub()) } } ?.hash,
         backs = backs
     )
     val pay1 = when {
@@ -151,7 +151,7 @@ fun Chain.backsAssert (blk: Block) {
             when {
                 (this.blockState(bbk,blk.immut.time) != State.BLOCKED) -> true
                 (blk.immut.prev == null)                                -> false
-                else -> this.bfsFindAuthor(blk.sign!!.pub).let {
+                else -> this.bfsFirst(this.heads.first) {it.isFrom(blk.sign!!.pub)}.let {
                     (it!=null && this.blockState(it,blk.immut.time)!= State.BLOCKED)
                 }
             }.let {
