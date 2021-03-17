@@ -39,7 +39,6 @@ fun Host.chainsJoin (name: String, key: HKey?) : Chain {
             0,
             Payload(false, ""),
             null,
-            null,
             emptySet()
         ),
         chain.getGenesis(),

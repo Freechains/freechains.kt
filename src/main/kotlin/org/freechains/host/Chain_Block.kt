@@ -20,18 +20,9 @@ fun Chain.hashState (hash: Hash, now: Long) : State {
 }
 
 fun Chain.blockState (blk: Block, now: Long) : State {
-    val prev = blk.immut.prev
-    val ath = when {
-        (blk.sign == null) -> 0     // anon post, no author reps
-        (prev == null)     -> 0     // no prev post, no author reps
-        else               -> this.repsAuthor(blk.sign.pub, now, setOf(prev))
-    }
+    val ath = if (blk.sign==null) 0 else this.repsAuthor(blk.sign.pub, now, setOf(blk.hash))
     val (pos,neg) = this.repsPost(blk.hash)
-
     val unit = blk.hash.toHeight().toReps()
-
-    // number of blocks that point back to it (-1 myself)
-    //val fronts = max(0, this.bfsAll(blk.hash).count{ this.blockState(it)==State.ACCEPTED } - 1)
 
     //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
@@ -53,7 +44,6 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : Block {
     assert_(imm_.time == 0.toLong()) { "time must not be set" }
     assert_(imm_.pay.hash == "") { "pay must not be set" }
-    assert_(imm_.prev == null) { "prev must not be set" }
 
     assert_(imm_.backs.isEmpty())
     val backs = this.heads.first.plus (
@@ -79,7 +69,6 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
             crypt = this.name.startsWith('$') || pubpvt,
             hash  = pay0.calcHash()
         ),
-        prev  = sign?.let { sig -> this.bfsFirst(this.heads.first) { it.isFrom(sig.pvtToPub()) } } ?.hash,
         backs = backs
     )
     val pay1 = when {
@@ -150,7 +139,6 @@ fun Chain.backsAssert (blk: Block) {
             assert_(bbk.immut.time <= blk.immut.time) { "back must be older" }
             when {
                 (this.blockState(bbk,blk.immut.time) != State.BLOCKED) -> true
-                (blk.immut.prev == null)                                -> false
                 else -> this.bfsFirst(this.heads.first) {it.isFrom(blk.sign!!.pub)}.let {
                     (it!=null && this.blockState(it,blk.immut.time)!= State.BLOCKED)
                 }

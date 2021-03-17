@@ -56,7 +56,6 @@ data class Payload (            // payload metadata
 data class Immut (
     val time    : Long,         // author's timestamp
     val pay     : Payload,      // payload metadata
-    val prev    : Hash?,        // previous author's post (null if anonymous // gen if first post)
     val like    : Like?,        // point to liked post
     val backs   : Set<Hash>     // back links (happened-before blocks)
 )
@@ -69,7 +68,6 @@ data class Block_Get (          // only used in "freechains ... get block ...
         val pay    : Payload,
         val like   : Like?,
         val sign   : Signature?,
-        val prev   : Hash?,
         val backs  : Set<Hash>
 )
 
