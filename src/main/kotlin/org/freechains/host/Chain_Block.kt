@@ -20,15 +20,15 @@ fun Chain.blockState (blk: Block, now: Long) : State {
     //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
         // unchangeable
-        (blk.hash.toHeight() <= 1)     -> State.ACCEPTED       // first two blocks
+        (blk.hash.toHeight() == 0)     -> State.ACCEPTED       // genesis block
         this.fromOwner(blk)            -> State.ACCEPTED       // owner signature
         this.name.startsWith('$') -> State.ACCEPTED       // chain with trusted hosts/authors only
         (blk.immut.like != null)       -> State.ACCEPTED       // a like
 
         // changeable
-        (pos==0 && ath<unit)        -> State.BLOCKED        // no likes && noob author
+        (pos==0 && ath<unit) -> State.BLOCKED        // no likes && noob author
         (neg>= LK5_dislikes && LK2_factor *neg>=pos) -> State.HIDDEN   // too much dislikes
-        else                        -> State.ACCEPTED
+        else -> State.ACCEPTED
     }
 }
 

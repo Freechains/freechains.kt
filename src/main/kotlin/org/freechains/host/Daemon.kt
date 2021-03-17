@@ -572,12 +572,9 @@ class Daemon (loc_: Host) {
         writer.writeLineX(nout.toString())                // 8
 
         for (blk in hiddens) {
-            assert_(
-                    chain.blockState(
-                            blk,
-                            getNow()
-                    ) == State.HIDDEN
-            ) { "bug found: expected hidden state" }
+            assert_(chain.blockState(blk,getNow()) == State.HIDDEN) {
+                "bug found: expected hidden state"
+            }
         }
 
         return Pair(nmin,nmax)
