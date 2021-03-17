@@ -9,12 +9,10 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.lang.Integer.max
 import java.lang.Integer.min
+import java.util.*
 import kotlin.math.ceil
 
 // internal methods are private but are used in tests
-
-// not Map b/c of sorted keys (deterministic tests)
-typealias Fronts = MutableMap<Hash, MutableSet<Hash>>
 
 @Serializable
 data class Chain (
@@ -94,6 +92,48 @@ fun Immut.toHash () : Hash {
     return this.backs.backsToHeight().toString() + "_" + this.toJson().calcHash()
 }
 
+// FILE SYSTEM
+
+internal fun Chain.fsSave () {
+    val dir = File(this.path() + "/blocks/")
+    if (!dir.exists()) {
+        dir.mkdirs()
+    }
+    File(this.path() + "/" + "chain").writeText(this.toJson())
+}
+
+fun Chain.fsLoadBlock (hash: Hash) : Block {
+    return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
+}
+
+fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
+    val blk = this.fsLoadBlock(hash)
+    val pay = this.fsLoadPay0(hash)
+    return when {
+        !blk.immut.pay.crypt -> pay
+        this.name.startsWith('$') -> pay.decrypt(this.key!!)
+        (pubpvt == null)     -> pay
+        else                 -> pay.decrypt(pubpvt)
+    }
+}
+
+fun Chain.fsLoadPay0 (hash: Hash) : String {
+    return File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
+}
+
+fun Chain.fsExistsBlock (hash: Hash) : Boolean {
+    return (this.hash == hash) ||
+            File(this.path() + "/blocks/" + hash + ".blk").exists()
+}
+
+fun Chain.fsSaveBlock (blk: Block) {
+    File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
+}
+
+fun Chain.fsSavePay (hash: Hash, pay: String) {
+    File(this.path() + "/blocks/" + hash + ".pay").writeText(pay)
+}
+
 // REPUTATION
 
 fun Int.toReps () : Int {
@@ -155,44 +195,48 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
     return posts + recv - gave
 }
 
-// FILE SYSTEM
+// BFS
 
-internal fun Chain.fsSave () {
-    val dir = File(this.path() + "/blocks/")
-    if (!dir.exists()) {
-        dir.mkdirs()
+fun Chain.bfsIsFromTo (from: Hash, to: Hash) : Boolean {
+    return this.bfsFirst(setOf(to)) { it.hash == from } != null
+}
+
+fun Chain.bfsFirst (starts: Set<Hash>, pred: (Block) -> Boolean) : Block? {
+    return this
+        .bfs(starts,true) { !pred(it) }
+        .last()
+        .let {
+            if (pred(it)) it else null
+        }
+}
+
+fun Chain.bfsAll (heads: Set<Hash>) : List<Block> {
+    return this.bfs(heads,false) { true }
+}
+
+internal fun Chain.bfs (starts: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
+    val ret = mutableListOf<Block>()
+
+    val pending = TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
+    pending.addAll(starts.map { this.fsLoadBlock(it) })
+
+    val visited = starts.toMutableSet()
+
+    while (pending.isNotEmpty()) {
+        val blk = pending.first()
+        pending.remove(blk)
+        if (!ok(blk)) {
+            if (inc) {
+                ret.add(blk)
+            }
+            break
+        }
+
+        val list = blk.immut.backs.toList()
+        pending.addAll(list.minus(visited).map { this.fsLoadBlock(it) })
+        visited.addAll(list)
+        ret.add(blk)
     }
-    File(this.path() + "/" + "chain").writeText(this.toJson())
-}
 
-fun Chain.fsLoadBlock (hash: Hash) : Block {
-    return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
-}
-
-fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
-    val blk = this.fsLoadBlock(hash)
-    val pay = this.fsLoadPay0(hash)
-    return when {
-        !blk.immut.pay.crypt -> pay
-        this.name.startsWith('$') -> pay.decrypt(this.key!!)
-        (pubpvt == null)     -> pay
-        else                 -> pay.decrypt(pubpvt)
-    }
-}
-
-fun Chain.fsLoadPay0 (hash: Hash) : String {
-    return File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
-}
-
-fun Chain.fsExistsBlock (hash: Hash) : Boolean {
-    return (this.hash == hash) ||
-            File(this.path() + "/blocks/" + hash + ".blk").exists()
-}
-
-fun Chain.fsSaveBlock (blk: Block) {
-    File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-}
-
-fun Chain.fsSavePay (hash: Hash, pay: String) {
-    File(this.path() + "/blocks/" + hash + ".pay").writeText(pay)
+    return ret
 }
