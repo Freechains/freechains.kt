@@ -201,9 +201,9 @@ fun Chain.bfsIsFromTo (from: Hash, to: Hash) : Boolean {
     return this.bfsFirst(setOf(to)) { it.hash == from } != null
 }
 
-fun Chain.bfsFirst (starts: Set<Hash>, pred: (Block) -> Boolean) : Block? {
+fun Chain.bfsFirst (heads: Set<Hash>, pred: (Block) -> Boolean) : Block? {
     return this
-        .bfs(starts,true) { !pred(it) }
+        .bfs(heads,true) { !pred(it) }
         .last()
         .let {
             if (pred(it)) it else null
@@ -214,13 +214,13 @@ fun Chain.bfsAll (heads: Set<Hash>) : List<Block> {
     return this.bfs(heads,false) { true }
 }
 
-internal fun Chain.bfs (starts: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
+internal fun Chain.bfs (heads: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
     val ret = mutableListOf<Block>()
 
     val pending = TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
-    pending.addAll(starts.map { this.fsLoadBlock(it) })
+    pending.addAll(heads.map { this.fsLoadBlock(it) })
 
-    val visited = starts.toMutableSet()
+    val visited = heads.toMutableSet()
 
     while (pending.isNotEmpty()) {
         val blk = pending.first()
