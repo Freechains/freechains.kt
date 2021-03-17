@@ -131,30 +131,26 @@ fun Chain.blockRemove (hash: Hash) {
     this.fsSave()
 }
 
-fun Chain.backsAssert (blk: Block) {
-    for (bk in blk.immut.backs) {
-        //println("$it <- ${blk.hash}")
-        assert_(this.fsExistsBlock(bk)) { "back must exist" }
-        this.fsLoadBlock(bk).let { bbk ->
-            assert_(bbk.immut.time <= blk.immut.time) { "back must be older" }
-            when {
-                (this.blockState(bbk,blk.immut.time) != State.BLOCKED) -> true
-                else -> this.bfsFirst(this.heads.first) {it.isFrom(blk.sign!!.pub)}.let {
-                    (it!=null && this.blockState(it,blk.immut.time)!= State.BLOCKED)
-                }
-            }.let {
-                assert_(it) { "backs must be accepted" }
-            }
-        }
-    }
-}
-
 fun Chain.blockAssert (blk: Block) {
     val imm = blk.immut
     val now = getNow()
     //println(">>> ${blk.hash} vs ${imm.toHash()}")
 
-    this.backsAssert(blk) // backs exist and are older
+    // backs exist and are older
+    for (bk in blk.immut.backs) {
+        //println("$it <- ${blk.hash}")
+        assert_(this.fsExistsBlock(bk)) { "back must exist" }
+        this.fsLoadBlock(bk).let { bbk ->
+            assert_(bbk.immut.time <= blk.immut.time) { "back must be older" }
+            assert_ (
+                (this.blockState(bbk,blk.immut.time) != State.BLOCKED) ||
+                    (blk.immut.like!=null && blk.immut.like.hash==bk)
+            ) {
+                "backs must be accepted"
+            }
+        }
+    }
+
     if (blk.hash.toHeight() > 0) {
         assert_(blk.hash == imm.toHash()) { "hash must verify" }
         assert_(imm.time >= now - T120D_past) { "too old" }
