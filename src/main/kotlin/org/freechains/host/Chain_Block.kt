@@ -46,19 +46,13 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean) : B
     assert_(imm_.pay.hash == "") { "pay must not be set" }
 
     assert_(imm_.backs.isEmpty())
-    val backs = this.heads.first.plus (
-        // must point to liked blocked block
-        when {
-            (imm_.like == null) -> emptyArray()
-            this.heads.first.any {
-                this.bfsIsFromTo(
-                    imm_.like.hash,
-                    it
-                )  // already does indirectly (it points to some of the heads)
-            } -> emptyArray()
-            else -> arrayOf(imm_.like.hash)  // point directly (it was blocked)
+
+    var backs = this.heads.first
+    imm_.like.let { liked ->
+        if (liked!=null && liked.n>0 && this.heads.second.contains(liked.hash)) {
+            backs = backs + liked.hash // TODO: - this.fsLoadBlock(liked.hash).immut.backs
         }
-    )
+    }
 
     val imm = imm_.copy (
         time = max (
