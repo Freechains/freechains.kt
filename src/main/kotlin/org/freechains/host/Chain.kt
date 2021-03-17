@@ -22,9 +22,8 @@ data class Chain (
     val name : String,
     val key  : HKey?    // pioneer for public or shared for private chain
 ) {
-    val hash   : String = this.name.calcHash()
-    var heads  : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
-    val fronts : Fronts = mutableMapOf()
+    val hash  : String = this.name.calcHash()
+    var heads : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
 }
 
 // TODO: change to contract/constructor assertion
