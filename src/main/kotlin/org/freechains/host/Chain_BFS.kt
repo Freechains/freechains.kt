@@ -10,22 +10,6 @@ fun Chain.bfsFindAuthor (pub: String) : Block? {
     return this.bfsFirst(this.heads.first) { it.isFrom(pub) }
 }
 
-fun Chain.bfsAuthor (heads: Set<Hash>, pub: String) : List<Block> {
-    return this
-        .bfsFirst(heads) { it.isFrom(pub) }.let { blk ->
-            if (blk == null) {
-                emptyList()
-            } else {
-                fun f (blk: Block) : List<Block> {
-                    return listOf(blk) + blk.immut.prev.let {
-                        if (it == null) emptyList() else f(this.fsLoadBlock(it))
-                    }
-                }
-                f(blk)
-            }
-        }
-}
-
 private fun Chain.bfsFirst (starts: Set<Hash>, pred: (Block) -> Boolean) : Block? {
     return this
         .bfs(starts,true) { !pred(it) }

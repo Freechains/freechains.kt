@@ -118,7 +118,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
     //println("REPS_AUTHOR FROM HEADS $heads")
     val gen = if (this.key==pub) LK30_max else 0
-    val mines = this.bfsAuthor(heads,pub)
+    val mines = this.bfsAll(this.heads.first).filter { it.isFrom(pub) }
 
     val posts = mines                                    // mines
         .filter { it.immut.like == null }                     // not likes
