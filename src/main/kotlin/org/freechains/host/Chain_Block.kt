@@ -12,13 +12,6 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.hashState (hash: Hash, now: Long) : State {
-    return when {
-        ! this.fsExistsBlock(hash) -> State.MISSING
-        else -> this.blockState(this.fsLoadBlock(hash), now)
-    }
-}
-
 fun Chain.blockState (blk: Block, now: Long) : State {
     val ath = if (blk.sign==null) 0 else this.repsAuthor(blk.sign.pub, now, setOf(blk.hash))
     val (pos,neg) = this.repsPost(blk.hash)
@@ -112,7 +105,7 @@ fun Chain.blockChain (blk: Block, pay: String) {
 
 fun Chain.blockRemove (hash: Hash) {
     val blk = this.fsLoadBlock(hash)
-    assert_(this.blockState(blk, getNow()) == State.BLOCKED) { "can only remove blocked block" }
+    assert_(this.heads.second.contains(blk.hash)) { "can only remove blocked block" }
     this.heads = Pair(this.heads.first, this.heads.second - hash)
     this.fsSave()
 }
@@ -126,14 +119,9 @@ fun Chain.blockAssert (blk: Block) {
     for (bk in blk.immut.backs) {
         //println("$it <- ${blk.hash}")
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
-        this.fsLoadBlock(bk).let { bbk ->
-            assert_(bbk.immut.time <= blk.immut.time) { "back must be older" }
-            assert_ (
-                (this.blockState(bbk,blk.immut.time) != State.BLOCKED) ||
-                    (blk.immut.like!=null && blk.immut.like.hash==bk)
-            ) {
-                "backs must be accepted"
-            }
+        assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
+        assert_(!this.heads.second.contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+            "backs must be accepted"
         }
     }
 
