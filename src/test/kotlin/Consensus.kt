@@ -29,32 +29,20 @@ fun greater (b1: Block, b2: Block): Int {
     val n_b1s = counts.filter { com -> (b1s-b2s).map { it.author }.contains(com.key) }.map { it.value }.sum()
     val n_b2s = counts.filter { com -> (b2s-b1s).map { it.author }.contains(com.key) }.map { it.value }.sum()
 
-    assert(n_b1s != n_b2s) { "TODO: tie between blocks" }
-    return n_b1s - n_b2s
+    return if (n_b1s == n_b2s) -b1.id.compareTo(b2.id) else (n_b1s - n_b2s)
 }
 
-fun seq (b: Block, stops: Set<Block>): List<Block> {
-    val backs = b.backs.toList()
-    return when {
-        stops.contains(b) -> emptyList()
-        else -> when (b.backs.size) {
-            0 -> error("TODO-1") //emptyList()
-            1 -> seq(backs[0], stops)
-            2 -> seqs(b.backs, stops)
-            else -> error("TODO")
-        } + b
-    }
-}
-
-fun seqs (bs: Set<Block>, stops: Set<Block>): List<Block> {
+fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
     val l = bs.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Block>()
-    var stp = stops
+    var exc = excluding
     while (l.size > 0) {
         var cur = l.maxWithOrNull(::greater)!!
-        ret += seq(cur,stp)
-        stp += dfs_all(cur)
+        if (!exc.contains(cur)) {
+            ret += seqs(cur.backs, exc) + cur
+        }
+        exc += dfs_all(cur)
         l.remove(cur)
     }
     return ret
@@ -114,7 +102,7 @@ class Consensus {
         // gen <- a1 <- a2 <- ab3
         //          \-- b2 /
 
-        val x = seq(ab3, setOf(gen)).map { it.id }.joinToString(",")
+        val x = seqs(setOf(ab3), setOf(gen)).map { it.id }.joinToString(",")
         assert(x == "a1,a2,b2,ab3")
     }
 
@@ -132,7 +120,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
+        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,a3")
     }
@@ -151,7 +139,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
+        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c2,a3")
     }
@@ -171,8 +159,26 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
+        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,c2,a3")
+    }
+
+    @Test
+    fun b05_seqs() {
+        val gen = Block(emptySet(),   "_", "gen")
+        val a0  = Block(setOf(gen),   "A", "a0")
+        val a1  = Block(setOf(a0),    "A", "a1")
+        val b1  = Block(setOf(a0),    "B", "b1")
+        val c1  = Block(setOf(a0),    "C", "c1")
+        val a2  = Block(setOf(a1,b1,c1), "A", "a2")
+
+        //          /-- c1 --\
+        // gen <- a0 <- a1 <- a2
+        //          \-- b1 --/
+
+        val x = seqs(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
+        //println(x)
+        assert(x == "a0,a1,b1,c1,a2")
     }
 }
