@@ -17,7 +17,7 @@ fun dfs_all (b: Block): Set<Block> {
     return setOf(b) + b.backs.map(::dfs_all).toSet().unionAll()
 }
 
-fun greater (b1: Block, b2: Block): Pair<Block,Block> {
+fun greater (b1: Block, b2: Block): Int {
     val b1s = dfs_all(b1)
     val b2s = dfs_all(b2)
 
@@ -29,11 +29,8 @@ fun greater (b1: Block, b2: Block): Pair<Block,Block> {
     val n_b1s = counts.filter { com -> (b1s-b2s).map { it.author }.contains(com.key) }.map { it.value }.sum()
     val n_b2s = counts.filter { com -> (b2s-b1s).map { it.author }.contains(com.key) }.map { it.value }.sum()
 
-    return when {
-        (n_b1s > n_b2s) -> Pair(b1,b2)
-        (n_b1s < n_b2s) -> Pair(b2,b1)
-        else -> error("TODO: order tie")
-    }
+    assert(n_b1s != n_b2s) { "TODO: tie between blocks" }
+    return n_b1s - n_b2s
 }
 
 fun seq (b: Block, stops: Set<Block>): List<Block> {
@@ -50,15 +47,17 @@ fun seq (b: Block, stops: Set<Block>): List<Block> {
 }
 
 fun seqs (bs: Set<Block>, stops: Set<Block>): List<Block> {
-    val l = bs.toList()
-    return when (l.size) {
-        1 -> seq(l[0], stops)
-        2 -> {
-            val (x1,x2) = greater(l[0],l[1])
-            return seq(x1,stops) + seq(x2,dfs_all(x1)+stops)
-        }
-        else -> error("TODO")
+    val l = bs.toMutableList()
+    assert(l.size > 0)
+    val ret = mutableListOf<Block>()
+    var stp = stops
+    while (l.size > 0) {
+        var cur = l.maxWithOrNull(::greater)!!
+        ret += seq(cur,stp)
+        stp += dfs_all(cur)
+        l.remove(cur)
     }
+    return ret
 }
 
 @TestMethodOrder(Alphanumeric::class)
@@ -96,8 +95,7 @@ class Consensus {
         val nb1 = counts.filter { pre -> b1s.map { it.author }.contains(pre.key) }.size
         assert(na2==1 && nb1==0)
 
-        val (x1,x2) = greater(b1,a2)
-        assert(x1==a2 && x2==b1)
+        assert(greater(b1,a2) < 0)
 
         val bs = seqs(setOf(b1,a2), setOf(gen))
         val ret = bs.map { it.id }.joinToString(",")
