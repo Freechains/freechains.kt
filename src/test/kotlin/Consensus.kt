@@ -21,13 +21,13 @@ fun greater (b1: Block, b2: Block): Pair<Block,Block> {
     val b1s = dfs_all(b1)
     val b2s = dfs_all(b2)
 
-    // author counts in common blocks
+    // counts the number of common authors in common blocks
     // counts = {A=2, B=5, C=1, ...}
     val counts = b1s.intersect(b2s).groupBy { it.author }.mapValues { it.value.size }
 
-    // number of authors in counts that appear in each side
-    val n_b1s = counts.filter { pre -> (b1s-b2s).map { it.author }.contains(pre.key) }.size
-    val n_b2s = counts.filter { pre -> (b2s-b1s).map { it.author }.contains(pre.key) }.size
+    // counts the sum of common authors that appear in uncommon blocks in each side
+    val n_b1s = counts.filter { com -> (b1s-b2s).map { it.author }.contains(com.key) }.map { it.value }.sum()
+    val n_b2s = counts.filter { com -> (b2s-b1s).map { it.author }.contains(com.key) }.map { it.value }.sum()
 
     return when {
         (n_b1s > n_b2s) -> Pair(b1,b2)
@@ -174,7 +174,7 @@ class Consensus {
         //          \-- b1 --/
 
         val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
-        println(x)
+        //println(x)
         assert(x == "a0,a1,b1,a2,c1,c2,a3")
     }
 }
