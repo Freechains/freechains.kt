@@ -18,10 +18,12 @@ fun dfs_all (b: Block): Set<Block> {
     return setOf(b) + b.backs.map(::dfs_all).toSet().unionAll()
 }
 
-fun common (b1: Block, b2: Block): Block {
+fun common (b1: Block, b2: Block): Set<Block> {
     val b1s = dfs_all(b1)
     val b2s = dfs_all(b2)
-    return b1s.intersect(b2s).sortedByDescending { it.height }.first()
+    val int = b1s.intersect(b2s)
+    val all = int.map { dfs_all(it)-it }.toSet().unionAll()
+    return int - all
 }
 
 fun greater (b1: Block, b2: Block): Pair<Block,Block> {
@@ -43,23 +45,30 @@ fun greater (b1: Block, b2: Block): Pair<Block,Block> {
     }
 }
 
-fun seq (b: Block, stop: Block): List<Block> {
+fun seq (b: Block, stops: Set<Block>): List<Block> {
     val backs = b.backs.toList()
     return when {
-        (b == stop) -> emptyList()
+        stops.contains(b) -> emptyList()
         else -> when (b.backs.size) {
             0 -> error("TODO-1") //emptyList()
-            1 -> seq(backs[0], stop)
-            2 -> seqs(backs[0], backs[1], stop)
+            1 -> seq(backs[0], stops)
+            2 -> seqs(b.backs, stops)
             else -> error("TODO")
         } + b
     }
 }
 
-fun seqs (b1: Block, b2: Block, stop: Block): List<Block> {
-    val (x1,x2) = greater(b1,b2)
-    val com = common(x1,x2)
-    return seq(com, stop) + seq(x1,com) + seq(x2,com)
+fun seqs (bs: Set<Block>, stops: Set<Block>): List<Block> {
+    val l = bs.toList()
+    return when (l.size) {
+        1 -> seq(l[0], stops)
+        2 -> {
+            val (x1,x2) = greater(l[0],l[1])
+            val coms = common(x1,x2)
+            return seqs(coms, stops) + seq(x1,coms) + seq(x2,coms)
+        }
+        else -> error("TODO")
+    }
 }
 
 @TestMethodOrder(Alphanumeric::class)
@@ -97,10 +106,13 @@ class Consensus {
         val nb1 = counts.filter { pre -> b1s.map { it.author }.contains(pre.key) }.size
         assert(na2==1 && nb1==0)
 
+        val coms = common(a2,b1)
+        assert(coms.size==1 && coms.toList()[0]==a1)
+
         val (x1,x2) = greater(b1,a2)
         assert(x1==a2 && x2==b1)
 
-        val bs = seqs(b1, a2, gen)
+        val bs = seqs(setOf(b1,a2), setOf(gen))
         val ret = bs.map { it.id }.joinToString(",")
         //println(ret)
         assert("a1,a2,b1" == ret)
@@ -117,7 +129,7 @@ class Consensus {
         // gen <- a1 <- a2 <- ab3
         //          \-- b2 /
 
-        val x = seq(ab3,gen).map { it.id }.joinToString(",")
+        val x = seq(ab3, setOf(gen)).map { it.id }.joinToString(",")
         assert(x == "a1,a2,b2,ab3")
     }
 
@@ -135,7 +147,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seq(a3,gen).map { it.id }.joinToString(",")
+        val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
         println(x)
         assert(x == "a0,a1,b1,a2,c1,a3")
     }
@@ -154,7 +166,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seq(a3,gen).map { it.id }.joinToString(",")
+        val x = seq(a3, setOf(gen)).map { it.id }.joinToString(",")
         println(x)
         assert(x == "a0,a1,b1,a2,c1,a3")
     }
