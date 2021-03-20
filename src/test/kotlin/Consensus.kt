@@ -18,7 +18,7 @@ fun dfs_all (b: Block): Set<Block> {
     return setOf(b) + b.backs.map(::dfs_all).toSet().unionAll()
 }
 
-fun common (b1: Block, b2: Block): Set<Block> {
+fun commons (b1: Block, b2: Block): Set<Block> {
     val b1s = dfs_all(b1)
     val b2s = dfs_all(b2)
     val int = b1s.intersect(b2s)
@@ -64,7 +64,7 @@ fun seqs (bs: Set<Block>, stops: Set<Block>): List<Block> {
         1 -> seq(l[0], stops)
         2 -> {
             val (x1,x2) = greater(l[0],l[1])
-            val coms = common(x1,x2)
+            val coms = commons(x1,x2)
             return seqs(coms, stops) + seq(x1,coms) + seq(x2,coms)
         }
         else -> error("TODO")
@@ -106,8 +106,8 @@ class Consensus {
         val nb1 = counts.filter { pre -> b1s.map { it.author }.contains(pre.key) }.size
         assert(na2==1 && nb1==0)
 
-        val coms = common(a2,b1)
-        assert(coms.size==1 && coms.toList()[0]==a1)
+        val coms = commons(a2,b1)
+        assert(coms.size==1 && coms.contains(a1))
 
         val (x1,x2) = greater(b1,a2)
         assert(x1==a2 && x2==b1)
@@ -119,7 +119,23 @@ class Consensus {
     }
 
     @Test
-    fun a02_seqs() {
+    fun a02_commons() {
+        val gen = Block(emptySet(), 0, "_", "gen")
+        val a1  = Block(setOf(gen), 1, "A", "a1")
+        val a2  = Block(setOf(a1),  2, "A", "a2")
+        val b2  = Block(setOf(a1),  2, "B", "b2")
+        val a3  = Block(setOf(a2,b2),  3, "A", "a3")
+        val b3  = Block(setOf(a2,b2),  3, "B", "b3")
+
+        // gen <- a1 <- a2 <\ a3
+        //          \-- b2 </ b3
+
+        val coms = commons(a3,b3)
+        assert(coms.size==2 && coms.contains(a2) && coms.contains(b2))
+    }
+
+    @Test
+    fun a03_seqs() {
         val gen = Block(emptySet(),   0, "_", "gen")
         val a1  = Block(setOf(gen),   1, "A", "a1")
         val a2  = Block(setOf(a1),    2, "A", "a2")
@@ -134,7 +150,7 @@ class Consensus {
     }
 
     @Test
-    fun a03_seqs() {
+    fun a04_seqs() {
         val gen = Block(emptySet(),   0, "_", "gen")
         val a0  = Block(setOf(gen),   1, "A", "a0")
         val a1  = Block(setOf(a0),    2, "A", "a1")
@@ -153,7 +169,7 @@ class Consensus {
     }
 
     @Test
-    fun a04_seqs() {
+    fun a05_seqs() {
         val gen = Block(emptySet(),   0, "_", "gen")
         val a0  = Block(setOf(gen),   1, "A", "a0")
         val a1  = Block(setOf(a0),    2, "A", "a1")
