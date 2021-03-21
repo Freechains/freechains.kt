@@ -2,6 +2,7 @@
 import org.junit.jupiter.api.MethodOrderer.Alphanumeric
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
+import kotlin.math.absoluteValue
 
 data class Block (
     val backs  : Set<Block>,
@@ -50,12 +51,25 @@ fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
 }
 
 fun check (pioneer: String, list: List<Block>): Block? {
-    val map = mutableMapOf(Pair(pioneer,30))
-    for (b in list) {
-        if (map[b.author]==null || map[b.author]!!<=0) {
-            return b
-        } else {
-            map[b.author] = map[b.author]!! - 1
+    val map = list.map { Pair(it.author,0) }.toMap().toMutableMap()
+    map[pioneer] = 30
+    for (i in 0..list.size-1) {
+        val cur = list[i]
+        val lk = (i+1 <= list.size-1) && list[i+1].let { nxt ->
+            (nxt.like != null) && map[nxt.author]!!>0 && nxt.like.first==cur && nxt.like.second>0
+        }
+        when {
+            (map[cur.author]!! <= 0) -> when {
+                (cur.like != null)  -> return cur
+                !lk                 -> return cur
+                else                -> map[cur.author] = map[cur.author]!! - 1
+            }
+            (cur.like == null) -> map[cur.author] = map[cur.author]!! - 1
+            else -> {
+                val target = cur.like.first.author
+                map[cur.author] = map[cur.author]!! - cur.like.second.absoluteValue
+                map[target]     = map[target]!!     + cur.like.second
+            }
         }
     }
     return null
@@ -197,10 +211,50 @@ class Consensus {
 
     @Test
     fun c01_likes() {
-        val gen = Block(emptySet(),   "_", "gen", null)
-        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val gen = Block(emptySet(), "_", "gen", null)
+        val a0  = Block(setOf(gen), "A", "a0",  null)
+
+        // gen <- a0
+
         val bs = seqs(setOf(a0), setOf(gen))
         assert(null == check("A", bs))
         assert(a0   == check("_", bs))
     }
-}
+
+    @Test
+    fun c02_likes() {
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+
+        // gen <- a0 <- b1
+
+        val bs = seqs(setOf(b1), setOf(gen))
+        assert(b1 == check("A", bs))
+    }
+
+    @Test
+    fun c03_likes() {
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val a2  = Block(setOf(b1),    "A", "a2", null)
+
+        // gen <- a0 <- b1 <- a2
+
+        val bs = seqs(setOf(a2), setOf(gen))
+        assert(b1 == check("A", bs))
+    }
+
+    @Test
+    fun c04_likes() {
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val a2  = Block(setOf(b1),    "A", "a2", Pair(b1,1))
+
+        // gen <- a0 <- b1 <- a2
+
+        val bs = seqs(setOf(a2), setOf(gen))
+        assert(null == check("A", bs))
+    }}
