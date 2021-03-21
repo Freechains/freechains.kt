@@ -216,7 +216,7 @@ class Consensus {
 
         // gen <- a0
 
-        val bs = seqs(setOf(a0), setOf(gen))
+        val bs = listOf(a0)
         assert(null == check("A", bs))
         assert(a0   == check("_", bs))
     }
@@ -229,7 +229,7 @@ class Consensus {
 
         // gen <- a0 <- b1
 
-        val bs = seqs(setOf(b1), setOf(gen))
+        val bs = listOf(a0,b1)
         assert(b1 == check("A", bs))
     }
 
