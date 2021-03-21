@@ -34,7 +34,8 @@ fun greater (b1: Block, b2: Block): Int {
     return if (n_b1s == n_b2s) -b1.id.compareTo(b2.id) else (n_b1s - n_b2s)
 }
 
-fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
+// receive set of heads, returns total order
+fun blockchain (bs: Set<Block>, excluding: Set<Block>): List<Block> {
     val l = bs.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Block>()
@@ -42,7 +43,7 @@ fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
     while (l.size > 0) {
         var cur = l.maxWithOrNull(::greater)!!
         if (!exc.contains(cur)) {
-            ret += seqs(cur.backs, exc) + cur
+            ret += blockchain(cur.backs, exc) + cur
         }
         exc += dfs_all(cur)
         l.remove(cur)
@@ -50,7 +51,8 @@ fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
     return ret
 }
 
-fun check (pioneer: String, list: List<Block>): Block? {
+// find first invalid block in blockchain
+fun invalid (pioneer: String, list: List<Block>): Block? {
     val map = list.map { Pair(it.author,0) }.toMap().toMutableMap()
     map[pioneer] = 30
     for (i in 0..list.size-1) {
@@ -112,7 +114,7 @@ class Consensus {
 
         assert(greater(b1,a2) < 0)
 
-        val bs = seqs(setOf(b1,a2), setOf(gen))
+        val bs = blockchain(setOf(b1,a2), setOf(gen))
         val ret = bs.map { it.id }.joinToString(",")
         //println(ret)
         assert("a1,a2,b1" == ret)
@@ -129,7 +131,7 @@ class Consensus {
         // gen <- a1 <- a2 <- ab3
         //          \-- b2 /
 
-        val x = seqs(setOf(ab3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = blockchain(setOf(ab3), setOf(gen)).map { it.id }.joinToString(",")
         assert(x == "a1,a2,b2,ab3")
     }
 
@@ -147,7 +149,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,a3")
     }
@@ -166,7 +168,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c2,a3")
     }
@@ -186,7 +188,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = seqs(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,c2,a3")
     }
@@ -204,7 +206,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2
         //          \-- b1 --/
 
-        val x = seqs(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
+        val x = blockchain(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,c1,a2")
     }
@@ -217,10 +219,9 @@ class Consensus {
         // gen <- a0
 
         val bs = listOf(a0)
-        assert(null == check("A", bs))
-        assert(a0   == check("_", bs))
+        assert(null == invalid("A", bs))
+        assert(a0   == invalid("_", bs))
     }
-
     @Test
     fun c02_likes() {
         val gen = Block(emptySet(),   "_", "gen", null)
@@ -230,11 +231,11 @@ class Consensus {
         // gen <- a0 <- b1
 
         val bs = listOf(a0,b1)
-        assert(b1 == check("A", bs))
+        assert(b1 == invalid("A", bs))
     }
 
     @Test
-    fun c03_likes() {
+    fun d01_likes_seqs() {
         val gen = Block(emptySet(),   "_", "gen", null)
         val a0  = Block(setOf(gen),   "A", "a0", null)
         val b1  = Block(setOf(a0),    "B", "b1", null)
@@ -242,12 +243,11 @@ class Consensus {
 
         // gen <- a0 <- b1 <- a2
 
-        val bs = seqs(setOf(a2), setOf(gen))
-        assert(b1 == check("A", bs))
+        val bs = blockchain(setOf(a2), setOf(gen))
+        assert(b1 == invalid("A", bs))
     }
-
     @Test
-    fun c04_likes() {
+    fun d02_likes_seqs() {
         val gen = Block(emptySet(),   "_", "gen", null)
         val a0  = Block(setOf(gen),   "A", "a0", null)
         val b1  = Block(setOf(a0),    "B", "b1", null)
@@ -255,6 +255,7 @@ class Consensus {
 
         // gen <- a0 <- b1 <- a2
 
-        val bs = seqs(setOf(a2), setOf(gen))
-        assert(null == check("A", bs))
-    }}
+        val bs = blockchain(setOf(a2), setOf(gen))
+        assert(null == invalid("A", bs))
+    }
+}
