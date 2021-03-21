@@ -6,7 +6,8 @@ import org.junit.jupiter.api.TestMethodOrder
 data class Block (
     val backs  : Set<Block>,
     val author : String,
-    val id     : String
+    val id     : String,
+    val like   : Pair<Block,Int>?
 )
 
 fun<T> Set<Set<T>>.unionAll (): Set<T> {
@@ -48,15 +49,27 @@ fun seqs (bs: Set<Block>, excluding: Set<Block>): List<Block> {
     return ret
 }
 
+fun check (pioneer: String, list: List<Block>): Block? {
+    val map = mutableMapOf(Pair(pioneer,30))
+    for (b in list) {
+        if (map[b.author]==null || map[b.author]!!<=0) {
+            return b
+        } else {
+            map[b.author] = map[b.author]!! - 1
+        }
+    }
+    return null
+}
+
 @TestMethodOrder(Alphanumeric::class)
 class Consensus {
 
     @Test
     fun a01_bfs() {
-        val gen = Block(emptySet(), "_", "gen")
-        val a1  = Block(setOf(gen), "A", "a1")
-        val a2  = Block(setOf(a1),  "A", "a2")
-        val b1  = Block(setOf(a1),  "B", "b1")
+        val gen = Block(emptySet(), "_", "gen", null)
+        val a1  = Block(setOf(gen), "A", "a1", null)
+        val a2  = Block(setOf(a1),  "A", "a2", null)
+        val b1  = Block(setOf(a1),  "B", "b1", null)
 
         // gen <- a1 <- a2
         //          \-- b1
@@ -93,11 +106,11 @@ class Consensus {
 
     @Test
     fun b01_seqs() {
-        val gen = Block(emptySet(),   "_", "gen")
-        val a1  = Block(setOf(gen),   "A", "a1")
-        val a2  = Block(setOf(a1),    "A", "a2")
-        val b2  = Block(setOf(a1),    "B", "b2")
-        val ab3 = Block(setOf(a2,b2), "B", "ab3")
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a1  = Block(setOf(gen),   "A", "a1", null)
+        val a2  = Block(setOf(a1),    "A", "a2", null)
+        val b2  = Block(setOf(a1),    "B", "b2", null)
+        val ab3 = Block(setOf(a2,b2), "B", "ab3", null)
 
         // gen <- a1 <- a2 <- ab3
         //          \-- b2 /
@@ -108,13 +121,13 @@ class Consensus {
 
     @Test
     fun b02_seqs() {
-        val gen = Block(emptySet(),   "_", "gen")
-        val a0  = Block(setOf(gen),   "A", "a0")
-        val a1  = Block(setOf(a0),    "A", "a1")
-        val b1  = Block(setOf(a0),    "B", "b1")
-        val a2  = Block(setOf(a1,b1), "A", "a2")
-        val c1  = Block(setOf(a0),    "C", "c1")
-        val a3  = Block(setOf(a2,c1), "A", "a3")
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val a1  = Block(setOf(a0),    "A", "a1", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val a2  = Block(setOf(a1,b1), "A", "a2", null)
+        val c1  = Block(setOf(a0),    "C", "c1", null)
+        val a3  = Block(setOf(a2,c1), "A", "a3", null)
 
         //          /----- c1 -----\
         // gen <- a0 <- a1 <- a2 <- a3
@@ -127,13 +140,13 @@ class Consensus {
 
     @Test
     fun b03_seqs() {
-        val gen = Block(emptySet(),   "_", "gen")
-        val a0  = Block(setOf(gen),   "A", "a0")
-        val a1  = Block(setOf(a0),    "A", "a1")
-        val b1  = Block(setOf(a0),    "B", "b1")
-        val a2  = Block(setOf(a1,b1), "A", "a2")
-        val c2  = Block(setOf(a1),    "C", "c2")
-        val a3  = Block(setOf(a2,c2), "A", "a3")
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val a1  = Block(setOf(a0),    "A", "a1", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val a2  = Block(setOf(a1,b1), "A", "a2", null)
+        val c2  = Block(setOf(a1),    "C", "c2", null)
+        val a3  = Block(setOf(a2,c2), "A", "a3", null)
 
         //                /-- c2 --\
         // gen <- a0 <- a1 <- a2 <- a3
@@ -146,14 +159,14 @@ class Consensus {
 
     @Test
     fun b04_seqs() {
-        val gen = Block(emptySet(),   "_", "gen")
-        val a0  = Block(setOf(gen),   "A", "a0")
-        val a1  = Block(setOf(a0),    "A", "a1")
-        val b1  = Block(setOf(a0),    "B", "b1")
-        val c1  = Block(setOf(a0),    "C", "c1")
-        val a2  = Block(setOf(a1,b1), "A", "a2")
-        val c2  = Block(setOf(a1,c1), "C", "c2")
-        val a3  = Block(setOf(a2,c2), "A", "a3")
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val a1  = Block(setOf(a0),    "A", "a1", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val c1  = Block(setOf(a0),    "C", "c1", null)
+        val a2  = Block(setOf(a1,b1), "A", "a2", null)
+        val c2  = Block(setOf(a1,c1), "C", "c2", null)
+        val a3  = Block(setOf(a2,c2), "A", "a3", null)
 
         //          /-- c1 </ c2 <\
         // gen <- a0 <- a1 <- a2 <- a3
@@ -166,12 +179,12 @@ class Consensus {
 
     @Test
     fun b05_seqs() {
-        val gen = Block(emptySet(),   "_", "gen")
-        val a0  = Block(setOf(gen),   "A", "a0")
-        val a1  = Block(setOf(a0),    "A", "a1")
-        val b1  = Block(setOf(a0),    "B", "b1")
-        val c1  = Block(setOf(a0),    "C", "c1")
-        val a2  = Block(setOf(a1,b1,c1), "A", "a2")
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val a1  = Block(setOf(a0),    "A", "a1", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val c1  = Block(setOf(a0),    "C", "c1", null)
+        val a2  = Block(setOf(a1,b1,c1), "A", "a2", null)
 
         //          /-- c1 --\
         // gen <- a0 <- a1 <- a2
@@ -180,5 +193,14 @@ class Consensus {
         val x = seqs(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,c1,a2")
+    }
+
+    @Test
+    fun c01_likes() {
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val bs = seqs(setOf(a0), setOf(gen))
+        assert(null == check("A", bs))
+        assert(a0   == check("_", bs))
     }
 }
