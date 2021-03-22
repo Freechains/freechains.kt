@@ -19,6 +19,14 @@ fun dfs_all (b: Block): Set<Block> {
     return setOf(b) + b.backs.map(::dfs_all).toSet().unionAll()
 }
 
+fun heads_all (heads: Set<Block>): Set<Block> {
+    return heads.map(::dfs_all).toSet().unionAll()
+}
+
+fun find_heads (bs: Set<Block>): Set<Block> {
+    return bs.filter { head -> (bs-head).none { dfs_all(it).contains(head) } }.toSet()
+}
+
 fun greater (b1: Block, b2: Block): Int {
     val b1s = dfs_all(b1)
     val b2s = dfs_all(b2)
@@ -35,15 +43,15 @@ fun greater (b1: Block, b2: Block): Int {
 }
 
 // receive set of heads, returns total order
-fun blockchain (bs: Set<Block>, excluding: Set<Block>): List<Block> {
-    val l = bs.toMutableList()
+fun seq_order (heads: Set<Block>, excluding: Set<Block>): List<Block> {
+    val l = heads.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Block>()
     var exc = excluding
     while (l.size > 0) {
         var cur = l.maxWithOrNull(::greater)!!
         if (!exc.contains(cur)) {
-            ret += blockchain(cur.backs, exc) + cur
+            ret += seq_order(cur.backs, exc) + cur
         }
         exc += dfs_all(cur)
         l.remove(cur)
@@ -52,7 +60,7 @@ fun blockchain (bs: Set<Block>, excluding: Set<Block>): List<Block> {
 }
 
 // find first invalid block in blockchain
-fun invalid (pioneer: String, list: List<Block>): Block? {
+fun seq_invalid (pioneer: String, list: List<Block>): Block? {
     val map = list.map { Pair(it.author,0) }.toMap().toMutableMap()
     map[pioneer] = 30
     for (i in 0..list.size-1) {
@@ -75,6 +83,11 @@ fun invalid (pioneer: String, list: List<Block>): Block? {
         }
     }
     return null
+}
+
+// all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
+fun dag_remove (heads: Set<Block>, rem: Block): Set<Block> {
+    return heads_all(heads).filter { dfs_all(it).contains(rem) }.toSet()
 }
 
 @TestMethodOrder(Alphanumeric::class)
@@ -114,7 +127,7 @@ class Consensus {
 
         assert(greater(b1,a2) < 0)
 
-        val bs = blockchain(setOf(b1,a2), setOf(gen))
+        val bs = seq_order(setOf(b1,a2), setOf(gen))
         val ret = bs.map { it.id }.joinToString(",")
         //println(ret)
         assert("a1,a2,b1" == ret)
@@ -131,7 +144,7 @@ class Consensus {
         // gen <- a1 <- a2 <- ab3
         //          \-- b2 /
 
-        val x = blockchain(setOf(ab3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = seq_order(setOf(ab3), setOf(gen)).map { it.id }.joinToString(",")
         assert(x == "a1,a2,b2,ab3")
     }
 
@@ -149,7 +162,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = seq_order(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,a3")
     }
@@ -168,7 +181,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = seq_order(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c2,a3")
     }
@@ -188,7 +201,7 @@ class Consensus {
         // gen <- a0 <- a1 <- a2 <- a3
         //          \-- b1 --/
 
-        val x = blockchain(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
+        val x = seq_order(setOf(a3), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,a2,c1,c2,a3")
     }
@@ -206,9 +219,12 @@ class Consensus {
         // gen <- a0 <- a1 <- a2
         //          \-- b1 --/
 
-        val x = blockchain(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
+        val x = seq_order(setOf(a2), setOf(gen)).map { it.id }.joinToString(",")
         //println(x)
         assert(x == "a0,a1,b1,c1,a2")
+
+        val hs =  find_heads(heads_all(setOf(a1,b1,c1)))
+        assert(hs.size==3 && hs.contains(a1) && hs.contains(b1) && hs.contains(c1))
     }
 
     @Test
@@ -219,8 +235,8 @@ class Consensus {
         // gen <- a0
 
         val bs = listOf(a0)
-        assert(null == invalid("A", bs))
-        assert(a0   == invalid("_", bs))
+        assert(null == seq_invalid("A", bs))
+        assert(a0   == seq_invalid("_", bs))
     }
     @Test
     fun c02_likes() {
@@ -231,7 +247,7 @@ class Consensus {
         // gen <- a0 <- b1
 
         val bs = listOf(a0,b1)
-        assert(b1 == invalid("A", bs))
+        assert(b1 == seq_invalid("A", bs))
     }
 
     @Test
@@ -243,8 +259,8 @@ class Consensus {
 
         // gen <- a0 <- b1 <- a2
 
-        val bs = blockchain(setOf(a2), setOf(gen))
-        assert(b1 == invalid("A", bs))
+        val bs = seq_order(setOf(a2), setOf(gen))
+        assert(b1 == seq_invalid("A", bs))
     }
     @Test
     fun d02_likes_seqs() {
@@ -255,7 +271,24 @@ class Consensus {
 
         // gen <- a0 <- b1 <- a2
 
-        val bs = blockchain(setOf(a2), setOf(gen))
-        assert(null == invalid("A", bs))
+        val bs = seq_order(setOf(a2), setOf(gen))
+        assert(null == seq_invalid("A", bs))
+    }
+
+
+    @Test
+    fun e01_remove() {
+        val gen = Block(emptySet(),   "_", "gen", null)
+        val a0  = Block(setOf(gen),   "A", "a0", null)
+        val b1  = Block(setOf(a0),    "B", "b1", null)
+        val a2  = Block(setOf(b1),    "A", "a2", null)
+
+        // gen <- a0 <- b1 <- a2
+
+        val bs = seq_order(setOf(a2), setOf(gen))
+        val inv = seq_invalid("A", bs)
+        assert(inv == b1)
+        val rem = dag_remove(setOf(a2), inv!!)
+        assert(rem.size==2 && rem.contains(a2) && rem.contains(b1))
     }
 }
