@@ -302,4 +302,45 @@ class Consensus {
         val new_inv = seq_invalid("A", new_bs)
         assert(new_inv == null)
     }
+    @Test
+    fun e02_remove() {
+        val gen = Block(emptySet(), "_", "gen", null)
+        val a0  = Block(setOf(gen), "A", "a0",  null)
+        val b1  = Block(setOf(a0),  "B", "b1",  null)
+        val a2  = Block(setOf(b1),  "A", "a2",  Pair(b1,2))
+        val c3  = Block(setOf(a2),  "C", "c3",  null)
+        val a4  = Block(setOf(c3),  "A", "a4",  Pair(c3,10))
+        val cx  = Block(setOf(a4),  "C", "cx",  null)
+        val b5  = Block(setOf(cx),  "B", "b5",  null)
+        val b6  = Block(setOf(b5),  "B", "b6",  null)
+        val a7  = Block(setOf(b6),  "A", "a7",  null)
+        val c5  = Block(setOf(cx),  "C", "c5",  null)
+
+        //                                          /- b5 <- b6 <- a7
+        // gen <- a0 <- b1 <- +a2 <- c3 <- +a4 <- cx
+        //                                          \- c5
+
+        val bs = seq_order(setOf(a7,c5), setOf(gen))
+        val x1 = bs.map { it.id }.joinToString(",")
+        println(x1)
+        assert(x1 == "a0,b1,a2,c3,a4,cx,b5,b6,a7,c5")
+
+        val inv = seq_invalid("A", bs)
+        assert(inv == b6)
+
+        val rem = dag_remove(setOf(a7,c5), inv!!)
+        assert(rem.size==2 && rem.contains(b6) && rem.contains(a7))
+
+        val old_all = dag_all(setOf(a7,c5))
+        val new_all = old_all - rem
+        val new_hs  = dag_heads(new_all)
+        assert(new_hs.size==2 && new_hs.contains(b5) && new_hs.contains(c5))
+
+        val new_bs  = seq_order(new_hs, setOf(gen))
+        val x2 = new_bs.map { it.id }.joinToString(",")
+        println(x2)
+        assert(x2 == "a0,b1,a2,c3,a4,cx,c5,b5")
+        val new_inv = seq_invalid("A", new_bs)
+        assert(new_inv == null)
+    }
 }
