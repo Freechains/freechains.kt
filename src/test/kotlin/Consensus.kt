@@ -19,11 +19,11 @@ fun dfs_all (b: Block): Set<Block> {
     return setOf(b) + b.backs.map(::dfs_all).toSet().unionAll()
 }
 
-fun heads_all (heads: Set<Block>): Set<Block> {
+fun dag_all (heads: Set<Block>): Set<Block> {
     return heads.map(::dfs_all).toSet().unionAll()
 }
 
-fun find_heads (bs: Set<Block>): Set<Block> {
+fun dag_heads (bs: Set<Block>): Set<Block> {
     return bs.filter { head -> (bs-head).none { dfs_all(it).contains(head) } }.toSet()
 }
 
@@ -87,7 +87,7 @@ fun seq_invalid (pioneer: String, list: List<Block>): Block? {
 
 // all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
 fun dag_remove (heads: Set<Block>, rem: Block): Set<Block> {
-    return heads_all(heads).filter { dfs_all(it).contains(rem) }.toSet()
+    return dag_all(heads).filter { dfs_all(it).contains(rem) }.toSet()
 }
 
 @TestMethodOrder(Alphanumeric::class)
@@ -223,7 +223,7 @@ class Consensus {
         //println(x)
         assert(x == "a0,a1,b1,c1,a2")
 
-        val hs =  find_heads(heads_all(setOf(a1,b1,c1)))
+        val hs =  dag_heads(dag_all(setOf(a1,b1,c1)))
         assert(hs.size==3 && hs.contains(a1) && hs.contains(b1) && hs.contains(c1))
     }
 
@@ -286,9 +286,20 @@ class Consensus {
         // gen <- a0 <- b1 <- a2
 
         val bs = seq_order(setOf(a2), setOf(gen))
+
         val inv = seq_invalid("A", bs)
         assert(inv == b1)
+
         val rem = dag_remove(setOf(a2), inv!!)
         assert(rem.size==2 && rem.contains(a2) && rem.contains(b1))
+
+        val old_all = dag_all(setOf(a2))
+        val new_all = old_all - rem
+        val new_hs  = dag_heads(new_all)
+        assert(new_hs.size==1 && new_hs.contains(a0))
+
+        val new_bs  = seq_order(new_hs, setOf(gen))
+        val new_inv = seq_invalid("A", new_bs)
+        assert(new_inv == null)
     }
 }
