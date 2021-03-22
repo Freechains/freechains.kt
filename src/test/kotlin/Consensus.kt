@@ -42,6 +42,18 @@ fun greater (b1: Block, b2: Block): Int {
     return if (n_b1s == n_b2s) -b1.id.compareTo(b2.id) else (n_b1s - n_b2s)
 }
 
+fun seq_loop (heads: Set<Block>, gen: Block, pioneer: String): List<Block> {
+    var hs = heads
+    while (true) {
+        val list = seq_order(hs, setOf(gen))
+        val inv = seq_invalid(pioneer, list)
+        if (inv == null) {
+            return list
+        }
+        hs = dag_heads(dag_all(hs) - dag_remove(hs, inv))
+    }
+}
+
 // receive set of heads, returns total order
 fun seq_order (heads: Set<Block>, excluding: Set<Block>): List<Block> {
     val l = heads.toMutableList()
@@ -342,5 +354,28 @@ class Consensus {
         assert(x2 == "a0,b1,a2,c3,a4,cx,c5,b5")
         val new_inv = seq_invalid("A", new_bs)
         assert(new_inv == null)
+    }
+    @Test
+    fun e03_remove() {
+        val gen = Block(emptySet(), "_", "gen", null)
+        val a0  = Block(setOf(gen), "A", "a0",  null)
+        val b1  = Block(setOf(a0),  "B", "b1",  null)
+        val a2  = Block(setOf(b1),  "A", "a2",  Pair(b1,2))
+        val c3  = Block(setOf(a2),  "C", "c3",  null)
+        val a4  = Block(setOf(c3),  "A", "a4",  Pair(c3,10))
+        val cx  = Block(setOf(a4),  "C", "cx",  null)
+        val b5  = Block(setOf(cx),  "B", "b5",  null)
+        val b6  = Block(setOf(b5),  "B", "b6",  null)
+        val a7  = Block(setOf(b6),  "A", "a7",  null)
+        val c5  = Block(setOf(cx),  "C", "c5",  null)
+
+        //                                          /- b5 <- b6 <- a7
+        // gen <- a0 <- b1 <- +a2 <- c3 <- +a4 <- cx
+        //                                          \- c5
+
+        val list = seq_loop(setOf(a7,c5), gen, "A")
+        val x = list.map { it.id }.joinToString(",")
+        println(x)
+        assert(x == "a0,b1,a2,c3,a4,cx,c5,b5")
     }
 }
