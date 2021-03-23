@@ -198,7 +198,7 @@ class Tests {
         assert(30 == chain.reps(PUB0, getNow(), setOf(n3.hash)))
     }
     @Test
-    fun c05_XXX() {
+    fun c05_greater() {
         val loc = Host_load("/tmp/freechains/tests/C05/")
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
@@ -232,6 +232,10 @@ class Tests {
         assert( 2 == chain.reps(PUB1))
 
         assert(chain.greater(a2.hash,b2.hash) > 0)
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "a1,a2,b2,a3")
     }
 
     @Test

@@ -294,3 +294,21 @@ fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads
 
     return ngen + nold - nnew - nlks + nrecv
 }
+
+// receive set of heads, returns total order
+fun Chain.seq_order (heads: Set<Hash> = this.heads.first, excluding: Set<Hash> = setOf(this.getGenesis())): List<Hash> {
+    val l = heads.toMutableList()
+    assert(l.size > 0)
+    val ret = mutableListOf<Hash>()
+    var exc = excluding
+    while (l.size > 0) {
+        var cur = l.maxWithOrNull(::greater)!!
+        if (!exc.contains(cur)) {
+            ret += seq_order(this.fsLoadBlock(cur).immut.backs, exc) + cur
+        }
+        exc += this.all(setOf(cur))
+        l.remove(cur)
+    }
+    return ret
+}
+
