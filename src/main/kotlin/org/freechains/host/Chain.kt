@@ -249,7 +249,7 @@ fun Chain.all (heads: Set<Hash>): Set<Hash> {
     return heads + heads.map { this.all(this.fsLoadBlock(it).immut.backs) }.toSet().unionAll()
 }
 
-fun Chain.greater (h1: Hash, h2: Hash, now: Long): Int {
+fun Chain.greater (h1: Hash, h2: Hash, now: Long = getNow()): Int {
     val h1s = this.all(setOf(h1))
     val h2s = this.all(setOf(h2))
 
@@ -267,7 +267,7 @@ fun Chain.greater (h1: Hash, h2: Hash, now: Long): Int {
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
 
-fun Chain.reps (pub: String, now: Long, heads: Set<Hash>) : Int {
+fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads.first) : Int {
     //println("REPS_AUTHOR FROM HEADS $heads")
     val ngen = if (this.key==pub) LK30_max else 0
     val all = this.all(heads).map { this.fsLoadBlock(it) }
@@ -284,12 +284,13 @@ fun Chain.reps (pub: String, now: Long, heads: Set<Hash>) : Int {
     val nnew = posts.filter { now <  it.immut.time + T12h_new }.size
     val nlks = likes.map { it.immut.like!!.n }.sum()
 
-    val recv = (all - mines)  // (dis)likes to me
-        .filter { it.immut.like != null }                   // likes
-        .map { this.fsLoadBlock(it.immut.like!!.hash) }     // to
-        .filter { it.sign!=null && it.sign.pub==pub }       // me
-        .map    { it.immut.like!!.n }                       // +/- N
-        .sum()                                              // total
+    val nrecv = (all - mines)  // (dis)likes to me
+        .filter { it.immut.like != null }                           // likes
+        .map { Pair(it.immut.like!!.n,
+                    this.fsLoadBlock(it.immut.like.hash)) }         // to
+        .filter { it.second.sign.let { it!=null && it.pub==pub } }  // me
+        .map    { it.first }                                        // +/- N
+        .sum()                                                      // total
 
-    return min(LK30_max, max(ngen,nold)-nnew-nlks+recv)
+    return ngen + nold - nnew - nlks + nrecv
 }

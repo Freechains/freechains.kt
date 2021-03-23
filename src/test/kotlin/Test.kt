@@ -192,10 +192,46 @@ class Tests {
         val n2 = chain.blockNew(H,"2", PVT0, false)
         assert(29 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
         setNow(25*hour)
-        println(chain.reps(PUB0, getNow(), setOf(n2.hash)))
-        assert(30 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        //println(chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        assert(31 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
         val n3 = chain.blockNew(H,"3", PVT0, false)
-        assert(29 == chain.reps(PUB0, getNow(), setOf(n3.hash)))
+        assert(30 == chain.reps(PUB0, getNow(), setOf(n3.hash)))
+    }
+    @Test
+    fun c05_XXX() {
+        val loc = Host_load("/tmp/freechains/tests/C05/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val a1 = chain.blockNew(H,"a1", PVT0, false)
+        val a2 = chain.blockNew(H,"a2", PVT0, false)
+        val b2 = chain.blockNew(H,"b2", PVT1, false, setOf(a1.hash))
+
+        // gen <- a1 <- a2
+        //          \-- b2
+
+        assert(chain.heads.first.let  { it.size==1 && it.contains(a2.hash) })
+        assert(chain.heads.second.let { it.size==1 && it.contains(b2.hash) })
+        assert(28 == chain.reps(PUB0))
+
+        val a3 = chain.blockNew(H.copy(like=Like(1,b2.hash)),"a3", PVT0, false)
+
+        // gen <- a1 <- a2 <- a3
+        //          \-- b2 <-/
+
+        assert(chain.heads.first.let  { it.size==1 && it.contains(a3.hash) })
+        assert(chain.heads.second.let { it.size==0 })
+        assert(27 == chain.reps(PUB0))
+        assert( 0 == chain.reps(PUB1))
+
+        setNow(13*hour)
+        assert(29 == chain.reps(PUB0))
+        assert( 1 == chain.reps(PUB1))
+
+        setNow(25*hour)
+        assert(30 == chain.reps(PUB0))
+        assert( 2 == chain.reps(PUB1))
+
+        assert(chain.greater(a2.hash,b2.hash) > 0)
     }
 
     @Test
