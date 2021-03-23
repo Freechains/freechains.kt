@@ -280,7 +280,7 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
             .filter { it.sign != null }
             .map    { it.sign!!.pub }
         return common
-            .filter { (aut,rep) -> pubs.contains(aut) }
+            .filter { (aut,_) -> pubs.contains(aut) }
             .map { it.value }
             .sum()
     }
@@ -407,3 +407,9 @@ fun Chain.seq_invalid (list_: List<Hash>): Hash? {
     }
     return null
 }
+
+// all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
+fun Chain.seq_remove (rem: Hash): Set<Hash> {
+    return this.all(this.heads.first).filter { this.all(setOf(it)).contains(rem) }.toSet()
+}
+

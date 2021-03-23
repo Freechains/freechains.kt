@@ -189,11 +189,11 @@ class Tests {
         assert(30 == chain.reps(PUB0, getNow(), setOf(chain.getGenesis())))
         val n1 = chain.blockNew(H,"1", PVT0, false)
         assert(29 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
-        setNow(13*hour)
+        setNow(12*hour+10)
         assert(30 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
         val n2 = chain.blockNew(H,"2", PVT0, false)
         assert(29 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
-        setNow(25*hour)
+        setNow(24*hour+20)
         //println(chain.reps(PUB0, getNow(), setOf(n2.hash)))
         assert(31 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
         val n3 = chain.blockNew(H,"3", PVT0, false)
@@ -424,6 +424,9 @@ class Tests {
         val inv = chain.seq_invalid(hs)
         //println(inv)
         assert(inv == c6.hash)
+
+        val rems = chain.seq_remove(inv!!)
+        assert(rems.size==2 && rems.contains(c7.hash))
     }
 
     @Test
