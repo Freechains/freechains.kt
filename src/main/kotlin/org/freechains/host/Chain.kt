@@ -249,20 +249,46 @@ fun Chain.all (heads: Set<Hash>): Set<Hash> {
     return heads + heads.map { this.all(this.fsLoadBlock(it).immut.backs) }.toSet().unionAll()
 }
 
-fun Chain.greater (h1: Hash, h2: Hash, now: Long = getNow()): Int {
+fun Chain.greater (h1: Hash, h2: Hash): Int {
+    fun find_heads (bs: Set<Hash>): Set<Hash> {
+        return bs.filter { head -> (bs-head).none { this.all(setOf(it)).contains(head) } }.toSet()
+    }
+
     val h1s = this.all(setOf(h1))
     val h2s = this.all(setOf(h2))
+    val int = h1s.intersect(h2s)
 
-    // identify common authors in common blocks {A,F,X,...}
-    val common_authors = h1s.intersect(h2s)
-        .map { this.fsLoadBlock(it) }
-        .filter { it.sign!=null }
-        .map { it.sign!!.pub }
-        .toSet()
+    // counts the reps of common authors in common blocks
+    // counts = {A=2, B=5, C=1, ...}
+    val common = let {
+        val pioneer = if (this.name.startsWith("#")) setOf(this.key!!) else emptySet()
+        val authors = pioneer + int
+            .map { this.fsLoadBlock(it) }
+            .filter { it.sign!=null }
+            .map { it.sign!!.pub }
+            .toSet()
+        val hs  = find_heads(int)
+        val now = hs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()
+        authors.map { Pair(it,this.reps(it,now!!,hs)) }.toMap()
+    }
 
     // for each branch h1/h2: sum of reputation of these common authors
-    val n1 = common_authors.map { this.reps(it,now,h1s) }.sum()
-    val n2 = common_authors.map { this.reps(it,now,h2s) }.sum()
+    fun f (hs: Set<Hash>): Int {
+        val pubs = hs
+            .map    { this.fsLoadBlock(it) }
+            .filter { it.sign != null }
+            .map    { it.sign!!.pub }
+        return common
+            .filter { (aut,rep) -> pubs.contains(aut) }
+            .map { it.value }
+            .sum()
+    }
+
+    val n1 = f(h1s - h2s)
+    val n2 = f(h2s - h1s)
+    //println(common)
+    //println(h1s-h2s)
+    //println("$n1 // $n2")
 
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
