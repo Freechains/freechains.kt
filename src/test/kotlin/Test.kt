@@ -240,7 +240,7 @@ class Tests {
         assert(str == "a1,a2,b2,a3")
     }
     @Test
-    fun c06_g1() {
+    fun c06_ord1() {
         val loc = Host_load("/tmp/freechains/tests/C06/")
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
@@ -283,6 +283,147 @@ class Tests {
         val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
         println(str)
         assert(str == "b1,a2,c3,a4,a5,b5,a6,c5,a7")
+    }
+    @Test
+    fun c07_ord2() {
+        val loc = Host_load("/tmp/freechains/tests/C07/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val b1 = chain.blockNew(H,"b1", PVT1, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val c3 = chain.blockNew(H,"c3", PVT2, false)
+        val a4 = chain.blockNew(H.copy(like=Like(1,c3.hash)),"a4", PVT0, false)
+
+        // gen <- b1 <- a2 <- c3 <- a4
+
+        setNow(13*hour)
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5.hash))
+        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c6.hash))
+
+        //                                  /-- c6 --\
+        // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
+        //                            \-- b5 --/
+
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "b1,a2,c3,a4,a5,b5,a6,c6,a7")
+    }
+    @Test
+    fun c08_ord3() {
+        val loc = Host_load("/tmp/freechains/tests/C08/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val b1 = chain.blockNew(H,"b1", PVT1, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val c3 = chain.blockNew(H,"c3", PVT2, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+
+        // gen <- b1 <- a2 <- c3 <- a4
+
+        setNow(13*hour)
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5.hash,c5.hash))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
+        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c6.hash))
+
+        //                            /-- c5 -/ c6 --\
+        // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
+        //                            \-- b5 --/
+
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
+    }
+    @Test
+    fun c09_ord4() {
+        val loc = Host_load("/tmp/freechains/tests/C09/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val b1 = chain.blockNew(H,"b1", PVT1, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val c3 = chain.blockNew(H,"c3", PVT2, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+
+        // gen <- b1 <- a2 <- c3 <- a4
+
+        setNow(13*hour)
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash,c5.hash))
+
+        //                            /-- c5 --\
+        // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6
+        //                            \-- b5 --/
+
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "b1,a2,c3,a4,a5,c5,b5,a6")
+    }
+    @Test
+    fun c10_inv1() {
+        val loc = Host_load("/tmp/freechains/tests/C10/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val b1 = chain.blockNew(H,"b1", PVT1, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val c3 = chain.blockNew(H,"c3", PVT2, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+
+        // gen <- b1 <- a2 <- c3 <- a4
+
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "b1,a2,c3,a4")
+        assert(null == chain.seq_invalid(hs))
+    }
+    @Test
+    fun c11_inv2() {
+        val loc = Host_load("/tmp/freechains/tests/C11/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val b1 = chain.blockNew(H,"b1", PVT1, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val c3 = chain.blockNew(H,"c3", PVT2, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+
+        // gen <- b1 <- a2 <- c3 <- a4
+
+        setNow(13*hour)
+        assert(2 == chain.reps(PUB2))
+        assert(1 == chain.reps(PUB1))
+        setNow(25*hour)
+        assert(3 == chain.reps(PUB2))
+        assert(2 == chain.reps(PUB1))
+
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(c5.hash))
+
+        assert(1 == chain.reps(PUB2))
+        val c7 = chain.blockNew(H,"c7", PVT2, false, setOf(c6.hash))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
+        val a6 = chain.blockNew(H.copy(like=Like(-2,c3.hash)),"a6", PVT0, false, setOf(b5.hash))
+
+        //                            /-- c5 -- c6 -- c7
+        // gen <- b1 <- a2 <- c3 <- a4
+        //                            \-- b5 -- a6
+
+        val hs = chain.seq_order()
+        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        //println(str)
+        assert(str == "b1,a2,c3,a4,b5,a6,c5,c6,c7")
+        val inv = chain.seq_invalid(hs)
+        //println(inv)
+        assert(inv == c6.hash)
     }
 
     @Test

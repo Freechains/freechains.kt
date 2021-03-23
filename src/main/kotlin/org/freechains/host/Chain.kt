@@ -10,6 +10,7 @@ import java.io.File
 import java.lang.Integer.max
 import java.lang.Integer.min
 import java.util.*
+import kotlin.math.absoluteValue
 import kotlin.math.ceil
 
 // internal methods are private but are used in tests
@@ -338,3 +339,71 @@ fun Chain.seq_order (heads: Set<Hash> = this.heads.first, excluding: Set<Hash> =
     return ret
 }
 
+// find first invalid block in blockchain
+fun Chain.seq_invalid (list_: List<Hash>): Hash? {
+    val list = list_.map { this.fsLoadBlock(it) }
+    val negs = mutableSetOf<Block>()
+    val zers = mutableSetOf<Block>()
+    val reps = list
+        .filter { it.sign != null }
+        .map    { Pair(it.sign!!.pub,0) }
+        .toMap().toMutableMap()
+    if (this.name.startsWith("#")) {
+        reps[this.key!!] = LK30_max
+    }
+    for (i in 0..list.size-1) {
+        val cur = list[i]
+
+        val nonegs = negs.filter { it.immut.time <= cur.immut.time-12*hour }
+        negs -= nonegs
+        nonegs.forEach {
+            reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+        }
+
+        val nozers = zers.filter { it.immut.time <= cur.immut.time-24*hour }
+        zers -= nozers
+        nozers.forEach {
+            reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+        }
+
+        // next block is a like to my hash?
+        val lk = (i+1 <= list.size-1) && list[i+1].let { nxt ->
+            (nxt.immut.like!=null) && reps[nxt.sign!!.pub]!!>0 && nxt.immut.like.hash==cur.hash && nxt.immut.like.n>0
+        }
+
+        when {
+            // anonymous or no-reps author
+
+            (cur.sign==null || reps[cur.sign.pub]!! <= 0) -> when {
+                (cur.immut.like != null)  -> return cur.hash        // can't like w/o reps
+                !lk                       -> return cur.hash        // can't post if next !lk
+                else                      -> if (cur.sign!=null) {  // ok, but set -1
+                    reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
+                    negs.add(cur)
+                    zers.add(cur)
+                }
+            }
+
+            // has reps
+
+            // normal post just decrements 1
+            (cur.immut.like == null) -> {
+                reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
+                negs.add(cur)
+                zers.add(cur)
+            }
+
+            // like also affects target
+            else -> {
+                val target = this.fsLoadBlock(cur.immut.like.hash).let {
+                    if (it.sign == null) null else it.sign.pub
+                }
+                reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
+                if (target != null) {
+                    reps[target] = reps[target]!! + cur.immut.like.n
+                }
+            }
+        }
+    }
+    return null
+}
