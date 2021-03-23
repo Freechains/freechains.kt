@@ -225,12 +225,12 @@ class Tests {
         assert(27 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
 
-        setNow(13*hour)
+        setNow(12*hour+10)
         assert(29 == chain.reps(PUB0))
         assert( 1 == chain.reps(PUB1))
 
-        setNow(25*hour)
-        assert(30 == chain.reps(PUB0))
+        setNow(24*hour+20)
+        assert(31 == chain.reps(PUB0))
         assert( 2 == chain.reps(PUB1))
 
         assert(chain.greater(a2.hash,b2.hash) > 0)
@@ -384,7 +384,7 @@ class Tests {
         val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4")
-        assert(null == chain.seq_invalid(hs))
+        assert(null == chain.seq_invalid(hs).second)
     }
     @Test
     fun c11_inv2() {
@@ -421,7 +421,7 @@ class Tests {
         val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4,b5,a6,c5,c6,c7")
-        val inv = chain.seq_invalid(hs)
+        val inv = chain.seq_invalid(hs).second
         //println(inv)
         assert(inv == c6.hash)
 

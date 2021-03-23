@@ -268,9 +268,13 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
             .filter { it.sign!=null }
             .map { it.sign!!.pub }
             .toSet()
-        val hs  = find_heads(int)
-        val now = hs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()
-        authors.map { Pair(it,this.reps(it,now!!,hs)) }.toMap()
+        authors
+            .map {
+                val (reps,inv) = this.seq_invalid(this.seq_order(find_heads(int)))
+                assert(inv == null)
+                Pair(it,reps[it]!!)
+            }
+            .toMap()
     }
 
     // for each branch h1/h2: sum of reputation of these common authors
@@ -295,31 +299,9 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
 }
 
 fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads.first) : Int {
-    //println("REPS_AUTHOR FROM HEADS $heads")
-    val ngen = if (this.key==pub) LK30_max else 0
-    val all = this.all(heads).map { this.fsLoadBlock(it) }
-
-    val mines = all.filter   { it.isFrom(pub) }
-    val posts = mines.filter { it.immut.like == null }
-    val likes = mines.filter { it.immut.like != null }
-
-    val nold = if (posts.size == 0) 0 else {
-        val olds = posts.filter { now >= it.immut.time + T24h_old }.size
-        val first = posts.minByOrNull{ it.immut.time }!!.immut.time
-        min(olds, ((now-first)/day).toInt())
-    }
-    val nnew = posts.filter { now <  it.immut.time + T12h_new }.size
-    val nlks = likes.map { it.immut.like!!.n }.sum()
-
-    val nrecv = (all - mines)  // (dis)likes to me
-        .filter { it.immut.like != null }                           // likes
-        .map { Pair(it.immut.like!!.n,
-                    this.fsLoadBlock(it.immut.like.hash)) }         // to
-        .filter { it.second.sign.let { it!=null && it.pub==pub } }  // me
-        .map    { it.first }                                        // +/- N
-        .sum()                                                      // total
-
-    return ngen + nold - nnew - nlks + nrecv
+    val (reps,inv) = this.seq_invalid(this.seq_order(heads), now)
+    assert(inv == null)
+    return reps[pub]!!
 }
 
 // receive set of heads, returns total order
@@ -340,7 +322,7 @@ fun Chain.seq_order (heads: Set<Hash> = this.heads.first, excluding: Set<Hash> =
 }
 
 // find first invalid block in blockchain
-fun Chain.seq_invalid (list_: List<Hash>): Hash? {
+fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,Int>,Hash?> {
     val list = list_.map { this.fsLoadBlock(it) }
     val negs = mutableSetOf<Block>()
     val zers = mutableSetOf<Block>()
@@ -351,61 +333,79 @@ fun Chain.seq_invalid (list_: List<Hash>): Hash? {
     if (this.name.startsWith("#")) {
         reps[this.key!!] = LK30_max
     }
-    for (i in 0..list.size-1) {
-        val cur = list[i]
 
-        val nonegs = negs.filter { it.immut.time <= cur.immut.time-12*hour }
-        negs -= nonegs
-        nonegs.forEach {
-            reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-        }
+    fun f (): Hash? {
+        for (i in 0..list.size-1) {
+            val cur = list[i]
 
-        val nozers = zers.filter { it.immut.time <= cur.immut.time-24*hour }
-        zers -= nozers
-        nozers.forEach {
-            reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-        }
+            val nonegs = negs.filter { it.immut.time <= cur.immut.time-12*hour }
+            negs -= nonegs
+            nonegs.forEach {
+                reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+            }
 
-        // next block is a like to my hash?
-        val lk = (i+1 <= list.size-1) && list[i+1].let { nxt ->
-            (nxt.immut.like!=null) && reps[nxt.sign!!.pub]!!>0 && nxt.immut.like.hash==cur.hash && nxt.immut.like.n>0
-        }
+            val nozers = zers.filter { it.immut.time <= cur.immut.time-24*hour }
+            zers -= nozers
+            nozers.forEach {
+                reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+            }
 
-        when {
-            // anonymous or no-reps author
+            // next block is a like to my hash?
+            val lk = (i+1 <= list.size-1) && list[i+1].let { nxt ->
+                (nxt.immut.like!=null) && reps[nxt.sign!!.pub]!!>0 && nxt.immut.like.hash==cur.hash && nxt.immut.like.n>0
+            }
 
-            (cur.sign==null || reps[cur.sign.pub]!! <= 0) -> when {
-                (cur.immut.like != null)  -> return cur.hash        // can't like w/o reps
-                !lk                       -> return cur.hash        // can't post if next !lk
-                else                      -> if (cur.sign!=null) {  // ok, but set -1
+            when {
+                // anonymous or no-reps author
+
+                (cur.sign==null || reps[cur.sign.pub]!! <= 0) -> when {
+                    (cur.immut.like != null)  -> return cur.hash        // can't like w/o reps
+                    !lk                       -> return cur.hash        // can't post if next !lk
+                    else                      -> if (cur.sign!=null) {  // ok, but set -1
+                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
+                        negs.add(cur)
+                        zers.add(cur)
+                    }
+                }
+
+                // has reps
+
+                // normal post just decrements 1
+                (cur.immut.like == null) -> {
                     reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
                     negs.add(cur)
                     zers.add(cur)
                 }
-            }
 
-            // has reps
-
-            // normal post just decrements 1
-            (cur.immut.like == null) -> {
-                reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
-                negs.add(cur)
-                zers.add(cur)
-            }
-
-            // like also affects target
-            else -> {
-                val target = this.fsLoadBlock(cur.immut.like.hash).let {
-                    if (it.sign == null) null else it.sign.pub
-                }
-                reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
-                if (target != null) {
-                    reps[target] = reps[target]!! + cur.immut.like.n
+                // like also affects target
+                else -> {
+                    val target = this.fsLoadBlock(cur.immut.like.hash).let {
+                        if (it.sign == null) null else it.sign.pub
+                    }
+                    reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
+                    if (target != null) {
+                        reps[target] = reps[target]!! + cur.immut.like.n
+                    }
                 }
             }
         }
+        return null
     }
-    return null
+    val inv = f()
+
+    val nonegs = negs.filter { it.immut.time <= now-12*hour }
+    negs -= nonegs
+    nonegs.forEach {
+        reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+    }
+
+    val nozers = zers.filter { it.immut.time <= now-24*hour }
+    zers -= nozers
+    nozers.forEach {
+        reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
+    }
+
+    return Pair(reps,inv)
 }
 
 // all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
