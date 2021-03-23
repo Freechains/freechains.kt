@@ -34,16 +34,18 @@ fun Chain.blockState (blk: Block, now: Long) : State {
 
 // NEW
 
-fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, backs_: Set<Hash> = this.heads.first) : Block {
+fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, backs_: Set<Hash>? = null) : Block {
     assert_(imm_.time == 0.toLong()) { "time must not be set" }
     assert_(imm_.pay.hash == "") { "pay must not be set" }
 
     assert_(imm_.backs.isEmpty())
 
-    var backs = backs_
-    imm_.like.let { liked ->
-        if (liked!=null && liked.n>0 && this.heads.second.contains(liked.hash)) {
-            backs = backs + liked.hash // TODO: - this.fsLoadBlock(liked.hash).immut.backs
+    var backs: Set<Hash> = backs_ ?: this.heads.first + imm_.like.let { liked ->
+        when {
+            (liked == null) -> emptySet()
+            (liked.n <= 0)  -> emptySet()
+            !this.heads.second.contains(liked.hash) -> emptySet()
+            else -> setOf(liked.hash) // TODO: - this.fsLoadBlock(liked.hash).immut.backs
         }
     }
 
