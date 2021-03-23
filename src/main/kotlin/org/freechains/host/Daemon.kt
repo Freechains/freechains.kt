@@ -318,12 +318,12 @@ class Daemon (loc_: Host) {
                                 "reps" -> {
                                     val ref = cmds[3]
                                     val likes =
-                                            if (ref.hashIsBlock()) {
-                                                val (pos, neg) = chain.repsPost(ref)
-                                                pos - neg
-                                            } else {
-                                                chain.repsAuthor(ref, getNow(), chain.heads.first)
-                                            }
+                                        if (ref.hashIsBlock()) {
+                                            val (pos, neg) = chain.repsPost(ref)
+                                            pos - neg
+                                        } else {
+                                            chain.repsAuthor(ref, getNow(), chain.heads.first)
+                                        }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
                                 }

@@ -155,7 +155,6 @@ class Tests {
         assert_(chain.fsExistsBlock(n3.hash))
         assert_(!chain.fsExistsBlock("2_........"))
     }
-
     @Test
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
@@ -163,7 +162,40 @@ class Tests {
         val n1 = chain.blockNew(H,   "1", PVT0, false)
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
-        assert(chain.heads.first.size == 1)
+        assert(chain.heads.first.let { it.size==1 && it.contains(n1.hash) })
+        assert(chain.heads.second.let { it.size==2 && it.contains(n2.hash) && it.contains(n3.hash) })
+    }
+    @Test
+    fun c03_all() {
+        val loc = Host_load("/tmp/freechains/tests/C03/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        val n1 = chain.blockNew(H,"1", PVT0, false)
+        val n2 = chain.blockNew(H,"2", PVT0, false)
+        val n3 = chain.blockNew(H,"3", PVT0, false)
+        val all = chain.all(chain.heads.first)
+        assert(all.size==4 && all.contains(n3.hash))
+        val rep1 = chain.reps(PUB0, getNow(), setOf(n3.hash))
+        assert(rep1 == 27)
+        val rep2 = chain.reps(PUB0, getNow()+12*hour, setOf(n3.hash))
+        assert(rep2 == 30)
+    }
+    @Test
+    fun c04_all() {
+        val loc = Host_load("/tmp/freechains/tests/C04/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        assert(30 == chain.reps(PUB0, getNow(), setOf(chain.getGenesis())))
+        val n1 = chain.blockNew(H,"1", PVT0, false)
+        assert(29 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
+        setNow(13*hour)
+        assert(30 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
+        val n2 = chain.blockNew(H,"2", PVT0, false)
+        assert(29 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        setNow(25*hour)
+        println(chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        assert(30 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        val n3 = chain.blockNew(H,"3", PVT0, false)
+        assert(29 == chain.reps(PUB0, getNow(), setOf(n3.hash)))
     }
 
     @Test
@@ -641,11 +673,8 @@ class Tests {
         val h2 = main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h2", S1))
         main_cli_assert(arrayOf("chain", "#chat", "like", h2, S0))
         main_cli_assert(arrayOf("chain", "#chat", "like", h2, S0))
-        println("-=-=- REPS -=-=-")
         assert_("1" == main_cli_assert(arrayOf("chain", "#chat", "reps", PUB1)))
-        println("-=-=- POST -=-=-")
         val h5 = main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h5", S1))
-        println("-=-=- LNKS -=-=-")
         main_cli_assert(arrayOf("chain", "#chat", "heads")).let { str ->
             str.split(' ').let {
                 assert_(it.size == 1)

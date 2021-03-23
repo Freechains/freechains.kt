@@ -62,13 +62,13 @@ data class Immut (
 
 @Serializable
 data class Block_Get (          // only used in "freechains ... get block ...
-        val hash   : Hash,
-        val local  : Long,
-        val time   : Long,
-        val pay    : Payload,
-        val like   : Like?,
-        val sign   : Signature?,
-        val backs  : Set<Hash>
+    val hash   : Hash,
+    val local  : Long,
+    val time   : Long,
+    val pay    : Payload,
+    val like   : Like?,
+    val sign   : Signature?,
+    val backs  : Set<Hash>
 )
 
 @Serializable

@@ -163,11 +163,11 @@ fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
         .filter { it.immut.like == null }                     // not likes
         .let { list ->
             val pos = list
-                .filter { now >= it.immut.time + T1D_reps }   // posts older than 1 day
+                .filter { now >= it.immut.time + T24h_old }   // posts older than 1 day
                 .map    { it.hash.toHeight().toReps() }       // get reps of each post height
                 .sum    ()                                    // sum everything
             val neg = list
-                .filter { now <  it.immut.time + T1D_reps }   // posts newer than 1 day
+                .filter { now <  it.immut.time + T12h_new }   // posts newer than 1 day
                 .map    { it.hash.toHeight().toReps() }       // get reps of each post height
                 .sum    ()                                    // sum everything
             //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
@@ -239,4 +239,57 @@ internal fun Chain.bfs (heads: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) 
     }
 
     return ret
+}
+
+fun<T> Set<Set<T>>.unionAll (): Set<T> {
+    return this.fold(emptySet(), {x,y->x+y})
+}
+
+fun Chain.all (heads: Set<Hash>): Set<Hash> {
+    return heads + heads.map { this.all(this.fsLoadBlock(it).immut.backs) }.toSet().unionAll()
+}
+
+fun Chain.greater (h1: Hash, h2: Hash, now: Long): Int {
+    val h1s = this.all(setOf(h1))
+    val h2s = this.all(setOf(h2))
+
+    // identify common authors in common blocks {A,F,X,...}
+    val common_authors = h1s.intersect(h2s)
+        .map { this.fsLoadBlock(it) }
+        .filter { it.sign!=null }
+        .map { it.sign!!.pub }
+        .toSet()
+
+    // for each branch h1/h2: sum of reputation of these common authors
+    val n1 = common_authors.map { this.reps(it,now,h1s) }.sum()
+    val n2 = common_authors.map { this.reps(it,now,h2s) }.sum()
+
+    return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
+}
+
+fun Chain.reps (pub: String, now: Long, heads: Set<Hash>) : Int {
+    //println("REPS_AUTHOR FROM HEADS $heads")
+    val ngen = if (this.key==pub) LK30_max else 0
+    val all = this.all(heads).map { this.fsLoadBlock(it) }
+
+    val mines = all.filter   { it.isFrom(pub) }
+    val posts = mines.filter { it.immut.like == null }
+    val likes = mines.filter { it.immut.like != null }
+
+    val nold = if (posts.size == 0) 0 else {
+        val olds = posts.filter { now >= it.immut.time + T24h_old }.size
+        val first = posts.minByOrNull{ it.immut.time }!!.immut.time
+        min(olds, ((now-first)/day).toInt())
+    }
+    val nnew = posts.filter { now <  it.immut.time + T12h_new }.size
+    val nlks = likes.map { it.immut.like!!.n }.sum()
+
+    val recv = (all - mines)  // (dis)likes to me
+        .filter { it.immut.like != null }                   // likes
+        .map { this.fsLoadBlock(it.immut.like!!.hash) }     // to
+        .filter { it.sign!=null && it.sign.pub==pub }       // me
+        .map    { it.immut.like!!.n }                       // +/- N
+        .sum()                                              // total
+
+    return min(LK30_max, max(ngen,nold)-nnew-nlks+recv)
 }
