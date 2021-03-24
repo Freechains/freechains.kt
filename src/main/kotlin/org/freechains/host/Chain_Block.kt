@@ -13,9 +13,10 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 // STATE
 
 fun Chain.blockState (blk: Block, now: Long) : State {
-    val ath = if (blk.sign==null) 0 else this.repsAuthor(blk.sign.pub, now, setOf(blk.hash))
+    val ath = if (blk.sign==null) 0 else this.reps(blk.sign.pub, now, setOf(blk.hash))
     val (pos,neg) = this.repsPost(blk.hash)
-    val unit = blk.hash.toHeight().toReps()
+    //val unit = blk.hash.toHeight().toReps()
+    println(this.fsLoadPay0(blk.hash) + ": " + ath)
 
     //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
     return when {
@@ -26,8 +27,8 @@ fun Chain.blockState (blk: Block, now: Long) : State {
         (blk.immut.like != null)       -> State.ACCEPTED       // a like
 
         // changeable
-        (pos==0 && ath<unit) -> State.BLOCKED        // no likes && noob author
-        (neg>= LK5_dislikes && LK2_factor *neg>=pos) -> State.HIDDEN   // too much dislikes
+        (ath < 0) -> State.BLOCKED        // no likes && noob author
+        (neg>=LK5_dislikes && LK2_factor *neg>=pos) -> State.HIDDEN   // too much dislikes
         else -> State.ACCEPTED
     }
 }
@@ -86,10 +87,10 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
 }
 
 fun Chain.blockChain (blk: Block, pay: String) {
-    this.blockAssert(blk)
-
     this.fsSaveBlock(blk)
     this.fsSavePay(blk.hash, pay)
+
+    this.blockAssert(blk) // TODO: put before save
 
     this.heads = when (this.blockState(blk,blk.immut.time)) {
         State.BLOCKED -> Pair (
@@ -155,7 +156,7 @@ fun Chain.blockAssert (blk: Block) {
         assert_ (
             this.fromOwner(blk) ||   // owner has infinite reputation
             this.name.startsWith('$') ||   // dont check reps (private chain)
-            this.repsAuthor(blk.sign!!.pub, imm.time, imm.backs.toSet()) >= blk.hash.toHeight().toReps()
+            this.reps(blk.sign!!.pub, imm.time, setOf(blk.hash)) >= 0 //blk.hash.toHeight().toReps()
         ) {
             "like author must have reputation"
         }

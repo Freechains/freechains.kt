@@ -155,47 +155,6 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     return Pair(pos,-neg)
 }
 
-fun Chain.repsAuthor (pub: String, now: Long, heads: Set<Hash>) : Int {
-    //println("REPS_AUTHOR FROM HEADS $heads")
-    val gen = if (this.key==pub) LK30_max else 0
-    val mines = this.bfsAll(this.heads.first).filter { it.isFrom(pub) }
-
-    val posts = mines                                    // mines
-        .filter { it.immut.like == null }                     // not likes
-        .let { list ->
-            val pos = list
-                .filter { now >= it.immut.time + T24h_old }   // posts older than 1 day
-                .map    { it.hash.toHeight().toReps() }       // get reps of each post height
-                .sum    ()                                    // sum everything
-            val neg = list
-                .filter { now <  it.immut.time + T12h_new }   // posts newer than 1 day
-                .map    { it.hash.toHeight().toReps() }       // get reps of each post height
-                .sum    ()                                    // sum everything
-            //println("gen=$gen // pos=$pos // neg=$neg // now=$now")
-            max(gen,min(LK30_max,pos)) - neg
-        }
-
-    val recv = this.bfsAll(heads)                     // all pointing from heads to genesis
-        .filter { it.immut.like != null }                       // which are likes
-        .filter {                                               // and are to me
-            this.fsLoadBlock(it.immut.like!!.hash).let {
-                //println("${it.hash}")
-                (it.sign!=null && it.sign.pub==pub)
-            }
-        }
-        .map    { it.immut.like!!.n * it.hash.toHeight().toReps() } // get likes N
-        .sum()                                                      // likes I received
-
-    val gave = mines
-        .filter { it.immut.like != null }                       // likes I gave
-        //.let { println(it) ; it }
-        .map { it.hash.toHeight().toReps() }                    // doesn't matter the signal
-        .sum()
-
-    //println("posts=$posts + recv=$recv - gave=$gave")
-    return posts + recv - gave
-}
-
 // BFS
 
 fun Chain.bfsIsFromTo (from: Hash, to: Hash) : Boolean {
@@ -299,9 +258,13 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
 }
 
 fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads.first) : Int {
+    //println(this.seq_order(heads).joinToString(","))
     val (reps,inv) = this.seq_invalid(this.seq_order(heads), now)
-    assert(inv == null)
-    return reps[pub]!!
+    //println(pub)
+    //println(reps)
+    //println(inv)
+    //assert(inv == null)
+    return if (inv != null) -1 else reps[pub]!!
 }
 
 // receive set of heads, returns total order
