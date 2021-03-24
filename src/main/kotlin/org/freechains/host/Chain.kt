@@ -7,8 +7,6 @@ import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.lang.Integer.max
-import java.lang.Integer.min
 import java.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
@@ -22,7 +20,6 @@ data class Chain (
     val key  : HKey?    // pioneer for public or shared for private chain
 ) {
     val hash  : String = this.name.calcHash()
-    var heads : Pair<Set<Hash>,Set<Hash>> = Pair(emptySet(), emptySet())
 }
 
 // TODO: change to contract/constructor assertion
@@ -70,10 +67,22 @@ fun String.fromJsonToChain () : Chain {
     return json.decodeFromString(Chain.serializer(), this)
 }
 
-// GENESIS
+// GENESIS, HEADS
 
-fun Chain.getGenesis () : Hash {
+fun Chain.genesis () : Hash {
     return "0_" + this.hash
+}
+
+fun Chain.heads (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Pair<Set<Hash>,Set<Hash>> {
+    val blks = hs
+        .filter { head -> (hs-head).none { this.all(setOf(it)).contains(head) } }
+        .filter { this.isBlocked(this.fsLoadBlock(it),now) }
+        .toSet()
+    val accs = (hs-blks).let { it
+        .filter { head -> (it-head).none { this.all(setOf(it)).contains(head) } }
+        .toSet()
+    }
+    return Pair(accs, blks)
 }
 
 // HASH
@@ -135,6 +144,10 @@ fun Chain.fsSavePay (hash: Hash, pay: String) {
     File(this.path() + "/blocks/" + hash + ".pay").writeText(pay)
 }
 
+fun Chain.fsAll (): Set<Hash> {
+    return File(this.path() + "/blocks/").listFiles().map { it.nameWithoutExtension }.toSet()
+}
+
 // REPUTATION
 
 fun Int.toReps () : Int {
@@ -143,7 +156,7 @@ fun Int.toReps () : Int {
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val likes = this
-        .bfsAll(this.heads.first)
+        .bfsAll(this.heads().first)
         .filter { it.immut.like != null }           // only likes
         .filter { it.immut.like!!.hash == hash }    // only likes to this post
         .map    { it.immut.like!!.n * it.hash.toHeight().toReps() }
@@ -156,19 +169,6 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 }
 
 // BFS
-
-fun Chain.bfsIsFromTo (from: Hash, to: Hash) : Boolean {
-    return this.bfsFirst(setOf(to)) { it.hash == from } != null
-}
-
-fun Chain.bfsFirst (heads: Set<Hash>, pred: (Block) -> Boolean) : Block? {
-    return this
-        .bfs(heads,true) { !pred(it) }
-        .last()
-        .let {
-            if (pred(it)) it else null
-        }
-}
 
 fun Chain.bfsAll (heads: Set<Hash>) : List<Block> {
     return this.bfs(heads,false) { true }
@@ -257,7 +257,7 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
 
-fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads.first) : Int {
+fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads().first) : Int {
     //println(this.seq_order(heads).joinToString(","))
     val (reps,inv) = this.seq_invalid(this.seq_order(heads), now)
     //println(pub)
@@ -268,7 +268,7 @@ fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads
 }
 
 // receive set of heads, returns total order
-fun Chain.seq_order (heads: Set<Hash> = this.heads.first, excluding: Set<Hash> = setOf(this.getGenesis())): List<Hash> {
+fun Chain.seq_order (heads: Set<Hash> = this.heads().first, excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
     val l = heads.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Hash>()
@@ -373,6 +373,6 @@ fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,I
 
 // all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
 fun Chain.seq_remove (rem: Hash): Set<Hash> {
-    return this.all(this.heads.first).filter { this.all(setOf(it)).contains(rem) }.toSet()
+    return this.all(this.heads().first).filter { this.all(setOf(it)).contains(rem) }.toSet()
 }
 

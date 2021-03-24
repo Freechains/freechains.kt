@@ -41,7 +41,7 @@ fun Host.chainsJoin (name: String, key: HKey?) : Chain {
             null,
             emptySet()
         ),
-        chain.getGenesis(),
+        chain.genesis(),
         null
     )
     chain.blockChain(gen, "")

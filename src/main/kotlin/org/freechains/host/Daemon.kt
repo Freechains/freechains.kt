@@ -265,14 +265,14 @@ class Daemon (loc_: Host) {
                             val chain = this.chainsLoadSync(name)
                             when (cmds[2]) {
                                 "genesis" -> {
-                                    val hash = chain.getGenesis()
+                                    val hash = chain.genesis()
                                     writer.writeLineX(hash)
                                     System.err.println("chain genesis: $hash")
                                 }
                                 "heads" -> {
                                     val heads = when (cmds.size) {
-                                        3 -> chain.heads.first
-                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads.second }
+                                        3 -> chain.heads().first
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads().second }
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
@@ -281,7 +281,7 @@ class Daemon (loc_: Host) {
                                 "traverse" -> {
                                     val downto = cmds.drop(3)
                                     val all = chain
-                                            .bfs(chain.heads.first, false) {
+                                            .bfs(chain.heads().first, false) {
                                                 !downto.contains(it.hash)
                                             }
                                             .map { it.hash }
@@ -322,7 +322,7 @@ class Daemon (loc_: Host) {
                                             val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            chain.reps(ref, getNow(), chain.heads.first)
+                                            chain.reps(ref, getNow(), chain.heads().first)
                                         }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
@@ -444,7 +444,7 @@ class Daemon (loc_: Host) {
         var nmax    = 0
 
         // for each local head
-        val heads = chain.heads.first + chain.heads.second
+        val heads = chain.heads().first + chain.heads().second
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
         for (head in heads) {
@@ -486,10 +486,7 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = when (chain.blockState(out, getNow())) {
-                    State.HIDDEN -> ""
-                    else         -> chain.fsLoadPay0(hash)
-                }
+                val pay = if (chain.isHidden(out)) "" else chain.fsLoadPay0(hash)
                 writer.writeLineX(pay.length.toString())
                 writer.writeBytes(pay)
                 writer.writeLineX("")
@@ -545,7 +542,7 @@ class Daemon (loc_: Host) {
                     assert_(len2 <= S128_pay) { "post is too large" }
                     val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
                     reader.readLineX()
-                    assert_(chain.heads.second.size <= N16_blockeds) { "too many blocked blocks" }
+                    assert_(chain.heads().second.size <= N16_blockeds) { "too many blocked blocks" }
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {
@@ -572,7 +569,7 @@ class Daemon (loc_: Host) {
         writer.writeLineX(nout.toString())                // 8
 
         for (blk in hiddens) {
-            assert_(chain.blockState(blk,getNow()) == State.HIDDEN) {
+            assert_(chain.isHidden(blk)) {
                 "bug found: expected hidden state"
             }
         }

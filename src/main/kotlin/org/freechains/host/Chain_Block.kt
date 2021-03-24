@@ -12,24 +12,35 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.blockState (blk: Block, now: Long) : State {
-    val ath = if (blk.sign==null) 0 else this.reps(blk.sign.pub, now, setOf(blk.hash))
-    val (pos,neg) = this.repsPost(blk.hash)
-    //val unit = blk.hash.toHeight().toReps()
-    println(this.fsLoadPay0(blk.hash) + ": " + ath)
-
-    //println("rep ${blk.hash} = reps=$pos-$neg + ath=$ath // ${blk.immut.time}")
+fun Chain.isBlocked (blk: Block, now: Long) : Boolean {
     return when {
-        // unchangeable
-        (blk.hash.toHeight() == 0)     -> State.ACCEPTED       // genesis block
-        this.fromOwner(blk)            -> State.ACCEPTED       // owner signature
-        this.name.startsWith('$') -> State.ACCEPTED       // chain with trusted hosts/authors only
-        (blk.immut.like != null)       -> State.ACCEPTED       // a like
+        // immutable
+        (blk.hash.toHeight() == 0)     -> false       // genesis block
+        this.fromOwner(blk)            -> false       // owner signature
+        this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
+        (blk.immut.like != null)       -> false       // a like
 
-        // changeable
-        (ath < 0) -> State.BLOCKED        // no likes && noob author
-        (neg>=LK5_dislikes && LK2_factor *neg>=pos) -> State.HIDDEN   // too much dislikes
-        else -> State.ACCEPTED
+        // mutable
+        else -> {
+            val rep = if (blk.sign==null) 0 else this.reps(blk.sign.pub, now, setOf(blk.hash))
+            (rep < 0)
+        }
+    }
+}
+
+fun Chain.isHidden (blk: Block) : Boolean {
+    return when {
+        // immutable
+        (blk.hash.toHeight() == 0)     -> false       // genesis block
+        this.fromOwner(blk)            -> false       // owner signature
+        this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
+        (blk.immut.like != null)       -> false       // a like
+
+        // mutable
+        else -> {
+            val (pos,neg) = this.repsPost(blk.hash)
+            (neg>=LK5_dislikes && LK2_factor*neg>=pos) // too many dislikes
+        }
     }
 }
 
@@ -41,18 +52,18 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
 
     assert_(imm_.backs.isEmpty())
 
-    var backs: Set<Hash> = backs_ ?: this.heads.first + imm_.like.let { liked ->
+    var backs: Set<Hash> = backs_ ?: this.heads().first + imm_.like.let { liked ->
         when {
             (liked == null) -> emptySet()
             (liked.n <= 0)  -> emptySet()
-            !this.heads.second.contains(liked.hash) -> emptySet()
+            !this.heads().second.contains(liked.hash) -> emptySet()
             else -> setOf(liked.hash) // TODO: - this.fsLoadBlock(liked.hash).immut.backs
         }
     }
 
     val imm = imm_.copy (
         time = max (
-                getNow(),
+            getNow(),
             1 + backs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()!!
         ),
         pay = imm_.pay.copy (
@@ -92,24 +103,12 @@ fun Chain.blockChain (blk: Block, pay: String) {
 
     this.blockAssert(blk) // TODO: put before save
 
-    this.heads = when (this.blockState(blk,blk.immut.time)) {
-        State.BLOCKED -> Pair (
-            this.heads.first,
-            this.heads.second + blk.hash
-        )
-        else -> Pair (
-            this.heads.first - blk.immut.backs + blk.hash,
-            this.heads.second - blk.immut.backs
-        )
-    }
-
     this.fsSave()
 }
 
 fun Chain.blockRemove (hash: Hash) {
     val blk = this.fsLoadBlock(hash)
-    assert_(this.heads.second.contains(blk.hash)) { "can only remove blocked block" }
-    this.heads = Pair(this.heads.first, this.heads.second - hash)
+    assert_(this.heads().second.contains(blk.hash)) { "can only remove blocked block" }
     this.fsSave()
 }
 
@@ -123,7 +122,7 @@ fun Chain.blockAssert (blk: Block) {
         //println("$it <- ${blk.hash}")
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.heads.second.contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.heads().second.contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
             "backs must be accepted"
         }
     }
