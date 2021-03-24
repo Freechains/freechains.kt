@@ -548,7 +548,7 @@ class Daemon (loc_: Host) {
 
                     //println("[recv] ${blk.hash} // len=$len2 // ${pay.length}")
                     synchronized(getLock(chain.name)) {
-                        chain.blockChain(blk,pay)
+                        chain.fsSaveBlock(blk,pay)
                     }
                     if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
                         hiddens.add(blk)

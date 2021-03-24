@@ -49,23 +49,18 @@ fun Chain.isHidden (blk: Block) : Boolean {
 fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, backs_: Set<Hash>? = null) : Block {
     assert_(imm_.time == 0.toLong()) { "time must not be set" }
     assert_(imm_.pay.hash == "") { "pay must not be set" }
-
     assert_(imm_.backs.isEmpty())
 
-    var backs: Set<Hash> = backs_ ?: this.heads() + imm_.like.let { liked ->
-        when {
-            (liked == null) -> emptySet()
-            (liked.n <= 0)  -> emptySet()
-            !this.blockeds().contains(liked.hash) -> emptySet()
-            else -> setOf(liked.hash) // TODO: - this.fsLoadBlock(liked.hash).immut.backs
+    val backs = backs_ ?: this.heads() + (
+        if (imm_.like != null && imm_.like.n > 0 && this.blockeds().contains(imm_.like.hash)) {
+            setOf(imm_.like.hash) // include blocked liked block in backs
+        } else {
+            emptySet()
         }
-    }
+    )
 
     val imm = imm_.copy (
-        time = max (
-            getNow(),
-            1 + backs.map { this.fsLoadBlock(it).immut.time }.maxOrNull()!!
-        ),
+        time = max (getNow(), 1+backs.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
         pay = imm_.pay.copy (
             crypt = this.name.startsWith('$') || pubpvt,
             hash  = pay0.calcHash()
@@ -80,7 +75,7 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
     val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
-    val signature=
+    val signature =
         if (sign == null)
             null
         else {
@@ -93,17 +88,8 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
         }
 
     val new = Block(imm, hash, signature)
-    this.blockChain(new,pay1)
+    this.fsSaveBlock(new,pay1)
     return new
-}
-
-fun Chain.blockChain (blk: Block, pay: String) {
-    this.fsSaveBlock(blk)
-    this.fsSavePay(blk.hash, pay)
-
-    this.blockAssert(blk) // TODO: put before save
-
-    this.fsSave()
 }
 
 fun Chain.blockRemove (hash: Hash) {
@@ -151,13 +137,6 @@ fun Chain.blockAssert (blk: Block) {
             this.fsLoadBlock(imm.like.hash).let {
                 assert_(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
             }
-        }
-        assert_ (
-            this.fromOwner(blk) ||   // owner has infinite reputation
-            this.name.startsWith('$') ||   // dont check reps (private chain)
-            this.reps(blk.sign!!.pub, imm.time, setOf(blk.hash)) >= 0 //blk.hash.toHeight().toReps()
-        ) {
-            "like author must have reputation"
         }
     }
 }

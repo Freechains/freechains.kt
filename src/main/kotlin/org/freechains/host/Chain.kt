@@ -22,7 +22,6 @@ data class Chain (
     val hash  : String = this.name.calcHash()
 }
 
-// TODO: change to contract/constructor assertion
 fun Chain.validate () : Chain {
     val rest = when (this.name.first()) {
         '#' -> this.name.drop(1)
@@ -139,12 +138,10 @@ fun Chain.fsExistsBlock (hash: Hash) : Boolean {
             File(this.path() + "/blocks/" + hash + ".blk").exists()
 }
 
-fun Chain.fsSaveBlock (blk: Block) {
+fun Chain.fsSaveBlock (blk: Block, pay: String) {
+    this.blockAssert(blk)
+    File(this.path() + "/blocks/" + blk.hash + ".pay").writeText(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-}
-
-fun Chain.fsSavePay (hash: Hash, pay: String) {
-    File(this.path() + "/blocks/" + hash + ".pay").writeText(pay)
 }
 
 fun Chain.fsAll (): Set<Hash> {
@@ -280,10 +277,13 @@ fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,I
                 (nxt.immut.like!=null) && reps[nxt.sign!!.pub]!!>0 && nxt.immut.like.hash==cur.hash && nxt.immut.like.n>0
             }
 
+            // owner/private chain has infinite reputation
+            val ok = this.fromOwner(cur) || this.name.startsWith('$')
+
             when {
                 // anonymous or no-reps author
 
-                (cur.sign==null || reps[cur.sign.pub]!! <= 0) -> when {
+                !ok && (cur.sign==null || reps[cur.sign.pub]!!<=0) -> when {
                     (cur.immut.like != null)  -> return cur.hash        // can't like w/o reps
                     !lk                       -> return cur.hash        // can't post if next !lk
                     else                      -> if (cur.sign!=null) {  // ok, but set -1
@@ -297,9 +297,11 @@ fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,I
 
                 // normal post just decrements 1
                 (cur.immut.like == null) -> {
-                    reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
-                    negs.add(cur)
-                    zers.add(cur)
+                    if (cur.sign != null) {
+                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
+                        negs.add(cur)
+                        zers.add(cur)
+                    }
                 }
 
                 // like also affects target
@@ -307,7 +309,9 @@ fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,I
                     val target = this.fsLoadBlock(cur.immut.like.hash).let {
                         if (it.sign == null) null else it.sign.pub
                     }
-                    reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
+                    if (cur.sign != null) {
+                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
+                    }
                     if (target != null) {
                         reps[target] = reps[target]!! + cur.immut.like.n
                     }
