@@ -150,23 +150,15 @@ fun Chain.fsAll (): Set<Hash> {
 
 // REPUTATION
 
-fun Int.toReps () : Int {
-    return ceil(this.toFloat() / 10).toInt()
-}
-
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
-    val likes = this
+    val (pos,neg) = this
         .fsAll()
         .map    { this.fsLoadBlock(it) }
         .filter { it.immut.like != null }           // only likes
         .filter { it.immut.like!!.hash == hash }    // only likes to this post
-        .map    { it.immut.like!!.n * it.hash.toHeight().toReps() }
-
-    val pos = likes.filter { it > 0 }.map { it }.sum()
-    val neg = likes.filter { it < 0 }.map { it }.sum()
-
-    //println("$hash // chk=$chkRejected // pos=$pos // neg=$neg")
-    return Pair(pos,-neg)
+        .map    { it.immut.like!!.n }
+        .partition { it > 0 }
+    return Pair(pos.sum(),-neg.sum())
 }
 
 fun Chain.all (heads: Set<Hash>): Set<Hash> {
