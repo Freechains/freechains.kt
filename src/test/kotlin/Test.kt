@@ -126,9 +126,9 @@ class Tests {
         val c2 = h.chainsLoad(c1.name)
         assert_(c1.hashCode().equals(c2.hashCode()))
 
-        val blk = c2.blockNew(HC, "", null, false)
-        val blk2 = c2.fsLoadBlock(blk.hash)
-        assert_(blk.hashCode().equals(blk2.hashCode()))
+        val hash = c2.blockNew(HC, "", null, false)
+        val blk2 = c2.fsLoadBlock(hash)
+        assert_(c2.fsLoadBlock(hash).hashCode().equals(blk2.hashCode()))
     }
 
     @Test
@@ -141,7 +141,8 @@ class Tests {
 
         var ok = false
         try {
-            val n = n3.copy(immut=n3.immut.copy(pay=n3.immut.pay.copy(hash="xxx")))
+            val b3 = chain.fsLoadBlock(n3)
+            val n = b3.copy(immut=b3.immut.copy(pay=b3.immut.pay.copy(hash="xxx")))
             chain.blockAssert(n)
         } catch (e: Throwable) {
             ok = true
@@ -150,9 +151,9 @@ class Tests {
 
         assert_(chain.fsExistsBlock(chain.genesis()))
         //println(n1.toHeightHash())
-        assert_(chain.fsExistsBlock(n1.hash))
-        assert_(chain.fsExistsBlock(n2.hash))
-        assert_(chain.fsExistsBlock(n3.hash))
+        assert_(chain.fsExistsBlock(n1))
+        assert_(chain.fsExistsBlock(n2))
+        assert_(chain.fsExistsBlock(n3))
         assert_(!chain.fsExistsBlock("2_........"))
     }
     @Test
@@ -163,8 +164,8 @@ class Tests {
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
         //println(chain.heads)
-        assert(chain.heads().let { it.size==1 && it.contains(n1.hash) })
-        assert(chain.blockeds().let { it.size==2 && it.contains(n2.hash) && it.contains(n3.hash) })
+        assert(chain.heads().let { it.size==1 && it.contains(n1) })
+        assert(chain.blockeds().let { it.size==2 && it.contains(n2) && it.contains(n3) })
     }
     @Test
     fun c03_all() {
@@ -174,10 +175,10 @@ class Tests {
         val n2 = chain.blockNew(H,"2", PVT0, false)
         val n3 = chain.blockNew(H,"3", PVT0, false)
         val all = chain.all(chain.heads())
-        assert(all.size==4 && all.contains(n3.hash))
-        val rep1 = chain.reps(PUB0, getNow(), setOf(n3.hash))
+        assert(all.size==4 && all.contains(n3))
+        val rep1 = chain.reps(PUB0, getNow(), setOf(n3))
         assert(rep1 == 27)
-        val rep2 = chain.reps(PUB0, getNow()+12*hour, setOf(n3.hash))
+        val rep2 = chain.reps(PUB0, getNow()+12*hour, setOf(n3))
         assert(rep2 == 30)
     }
     @Test
@@ -187,15 +188,15 @@ class Tests {
         setNow(0)
         assert(30 == chain.reps(PUB0, getNow(), setOf(chain.genesis())))
         val n1 = chain.blockNew(H,"1", PVT0, false)
-        assert(29 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
+        assert(29 == chain.reps(PUB0, getNow(), setOf(n1)))
         setNow(12*hour+100)
-        assert(30 == chain.reps(PUB0, getNow(), setOf(n1.hash)))
+        assert(30 == chain.reps(PUB0, getNow(), setOf(n1)))
         val n2 = chain.blockNew(H,"2", PVT0, false)
-        assert(29 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        assert(29 == chain.reps(PUB0, getNow(), setOf(n2)))
         setNow(24*hour+200)
-        assert(31 == chain.reps(PUB0, getNow(), setOf(n2.hash)))
+        assert(31 == chain.reps(PUB0, getNow(), setOf(n2)))
         val n3 = chain.blockNew(H,"3", PVT0, false)
-        assert(30 == chain.reps(PUB0, getNow(), setOf(n3.hash)))
+        assert(30 == chain.reps(PUB0, getNow(), setOf(n3)))
     }
     @Test
     fun c05_seq() {
@@ -204,21 +205,21 @@ class Tests {
         setNow(0)
         val a1 = chain.blockNew(H,"a1", PVT0, false)
         val a2 = chain.blockNew(H,"a2", PVT0, false)
-        val b2 = chain.blockNew(H,"b2", PVT1, false, setOf(a1.hash))
+        val b2 = chain.blockNew(H,"b2", PVT1, false, setOf(a1))
 
         // gen <- a1 <- a2
         //          \-- b2
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a2.hash) })
-        assert(chain.blockeds().let { it.size==1 && it.contains(b2.hash) })
+        assert(chain.heads().let  { it.size==1 && it.contains(a2) })
+        assert(chain.blockeds().let { it.size==1 && it.contains(b2) })
         assert(28 == chain.reps(PUB0))
 
-        val a3 = chain.blockNew(H.copy(like=Like(1,b2.hash)),"a3", PVT0, false)
+        val a3 = chain.blockNew(H.copy(like=Like(1,b2)),"a3", PVT0, false)
 
         // gen <- a1 <- a2 <- a3
         //          \-- b2 <-/
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a3.hash) })
+        assert(chain.heads().let  { it.size==1 && it.contains(a3) })
         assert(chain.blockeds().let { it.size==0 })
         assert(27 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
@@ -231,7 +232,7 @@ class Tests {
         assert(31 == chain.reps(PUB0))
         assert( 2 == chain.reps(PUB1))
 
-        assert(chain.greater(a2.hash,b2.hash) > 0)
+        assert(chain.greater(a2,b2) > 0)
         val hs = chain.seq_order()
         val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
         //println(str)
@@ -243,13 +244,13 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(1,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(1,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a4.hash) })
+        assert(chain.heads().let  { it.size==1 && it.contains(a4) })
         assert(chain.blockeds().let { it.size==0 })
         assert(28 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
@@ -260,13 +261,13 @@ class Tests {
         assert( 1 == chain.reps(PUB1))
         assert( 1 == chain.reps(PUB2))
 
-        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
-        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
-        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
-        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c5.hash))
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5,b5))
+        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6,c5))
         assert(chain.heads().size==1 && chain.blockeds().size==0)
-        assert(chain.heads().contains(a7.hash))
+        assert(chain.heads().contains(a7))
         assert(25 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
         assert( 0 == chain.reps(PUB2))
@@ -275,7 +276,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        assert(chain.greater(a5.hash,c5.hash) > 0)
+        assert(chain.greater(a5,c5) > 0)
 
         val hs = chain.seq_order()
         val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
@@ -288,18 +289,18 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(1,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(1,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
-        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
-        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5.hash))
-        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c6.hash))
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5,b5))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5))
+        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6,c6))
 
         //                                  /-- c6 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
@@ -316,19 +317,19 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
-        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
-        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5.hash,c5.hash))
-        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
-        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c6.hash))
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(a5,c5))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5,b5))
+        val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6,c6))
 
         //                            /-- c5 -/ c6 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
@@ -345,17 +346,17 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
-        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
-        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash,c5.hash))
+        val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4))
+        val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5,b5,c5))
 
         //                            /-- c5 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6
@@ -372,9 +373,9 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
@@ -390,9 +391,9 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
         val b1 = chain.blockNew(H,"b1", PVT1, false)
-        val a2 = chain.blockNew(H.copy(like=Like(1,b1.hash)),"a2", PVT0, false)
+        val a2 = chain.blockNew(H.copy(like=Like(1,b1)),"a2", PVT0, false)
         val c3 = chain.blockNew(H,"c3", PVT2, false)
-        val a4 = chain.blockNew(H.copy(like=Like(2,c3.hash)),"a4", PVT0, false)
+        val a4 = chain.blockNew(H.copy(like=Like(2,c3)),"a4", PVT0, false)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
@@ -403,13 +404,13 @@ class Tests {
         assert(3 == chain.reps(PUB2))
         assert(2 == chain.reps(PUB1))
 
-        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
-        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(c5.hash))
+        val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4))
+        val c6 = chain.blockNew(H,"c6", PVT2, false, setOf(c5))
 
         assert(1 == chain.reps(PUB2))
-        val c7 = chain.blockNew(H,"c7", PVT2, false, setOf(c6.hash))
-        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        val a6 = chain.blockNew(H.copy(like=Like(-2,c3.hash)),"a6", PVT0, false, setOf(b5.hash))
+        val c7 = chain.blockNew(H,"c7", PVT2, false, setOf(c6))
+        val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4))
+        val a6 = chain.blockNew(H.copy(like=Like(-2,c3)),"a6", PVT0, false, setOf(b5))
 
         //                            /-- c5 -- c6 -- c7
         // gen <- b1 <- a2 <- c3 <- a4
@@ -421,10 +422,10 @@ class Tests {
         assert(str == "b1,a2,c3,a4,b5,a6,c5,c6,c7")
         val inv = chain.seq_invalid(hs).second
         //println(inv)
-        assert(inv == c6.hash)
+        assert(inv == c6)
 
         val rems = chain.seq_remove(inv!!)
-        assert(rems.size==2 && rems.contains(c7.hash))
+        assert(rems.size==2 && rems.contains(c7))
     }
 
     @Test
@@ -744,10 +745,10 @@ class Tests {
         val c1 = loc.chainsLoad("\$sym")
         //println(c1.root)
         val n1 = c1.blockNew(HC, "aaa", null, false)
-        //println(n1.hash)
-        val n2 = c1.fsLoadPay1(n1.hash, null)
+        //println(n1)
+        val n2 = c1.fsLoadPay1(n1, null)
         assert_(n2 == "aaa")
-        val n3 = c1.fsLoadPay0(n1.hash)
+        val n3 = c1.fsLoadPay0(n1)
         assert_(n3 != "aaa")
     }
 

@@ -345,7 +345,7 @@ class Daemon (loc_: Host) {
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
-                                            val blk = chain.blockNew (
+                                            ret = chain.blockNew (
                                                 Immut (
                                                     0,
                                                     Payload(false, ""),
@@ -356,7 +356,6 @@ class Daemon (loc_: Host) {
                                                 if (sign == "anon") null else sign,
                                                 cmds[4].toBoolean()
                                             )
-                                            ret = blk.hash
                                         }
                                         thread {
                                             signal(name, 1)
@@ -374,7 +373,7 @@ class Daemon (loc_: Host) {
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
-                                            val blk = chain.blockNew (
+                                            ret = chain.blockNew (
                                                 Immut (
                                                     0,
                                                     Payload(false, ""),
@@ -388,7 +387,6 @@ class Daemon (loc_: Host) {
                                                 cmds[5],
                                                 false
                                             )
-                                            ret = blk.hash
                                         }
                                     } catch (e: Throwable) {
                                         System.err.println(e.stackTrace.contentToString())
