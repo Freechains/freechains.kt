@@ -156,7 +156,8 @@ fun Int.toReps () : Int {
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     val likes = this
-        .bfsAll(this.heads().first)
+        .fsAll()
+        .map    { this.fsLoadBlock(it) }
         .filter { it.immut.like != null }           // only likes
         .filter { it.immut.like!!.hash == hash }    // only likes to this post
         .map    { it.immut.like!!.n * it.hash.toHeight().toReps() }
@@ -168,44 +169,10 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     return Pair(pos,-neg)
 }
 
-// BFS
-
-fun Chain.bfsAll (heads: Set<Hash>) : List<Block> {
-    return this.bfs(heads,false) { true }
-}
-
-internal fun Chain.bfs (heads: Set<Hash>, inc: Boolean, ok: (Block) -> Boolean) : List<Block> {
-    val ret = mutableListOf<Block>()
-
-    val pending = TreeSet<Block>(compareByDescending { it.immut.time })       // TODO: val cmp = ...
-    pending.addAll(heads.map { this.fsLoadBlock(it) })
-
-    val visited = heads.toMutableSet()
-
-    while (pending.isNotEmpty()) {
-        val blk = pending.first()
-        pending.remove(blk)
-        if (!ok(blk)) {
-            if (inc) {
-                ret.add(blk)
-            }
-            break
-        }
-
-        val list = blk.immut.backs.toList()
-        pending.addAll(list.minus(visited).map { this.fsLoadBlock(it) })
-        visited.addAll(list)
-        ret.add(blk)
-    }
-
-    return ret
-}
-
-fun<T> Set<Set<T>>.unionAll (): Set<T> {
-    return this.fold(emptySet(), {x,y->x+y})
-}
-
 fun Chain.all (heads: Set<Hash>): Set<Hash> {
+    fun<T> Set<Set<T>>.unionAll (): Set<T> {
+        return this.fold(emptySet(), {x,y->x+y})
+    }
     return heads + heads.map { this.all(this.fsLoadBlock(it).immut.backs) }.toSet().unionAll()
 }
 
