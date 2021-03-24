@@ -72,14 +72,32 @@ fun Chain.genesis () : Hash {
     return "0_" + this.hash
 }
 
-fun Chain.blockeds (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Set<Hash> {
+fun Chain.blockeds (hs: Set<Hash> = this.fsAll()): Set<Hash> {
     return hs
         .filter { head -> (hs-head).none { this.all(setOf(it)).contains(head) } }
-        .filter { this.isBlocked(this.fsLoadBlock(it),now) }
+        .filter {
+            val blk = this.fsLoadBlock(it)
+            when {
+                // immutable
+                (blk.hash.toHeight() == 0)     -> false       // genesis block
+                this.fromOwner(blk)            -> false       // owner signature
+                this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
+                (blk.immut.like != null)       -> false       // a like
+
+                // mutable
+                else -> {
+                    val rep = if (blk.sign==null) 0 else {
+                        this.reps(blk.sign.pub, getNow(), setOf(blk.hash))
+                    }
+                    (rep < 0)
+                }
+            }
+        }
         .toSet()
 }
 
-fun Chain.heads (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Set<Hash> {
+fun Chain.heads (): Set<Hash> {
+    val hs = this.fsAll()
     val blks = this.blockeds(hs)
     return (hs-blks).let { it
         .filter { head -> (it-head).none { this.all(setOf(it)).contains(head) } }

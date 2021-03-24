@@ -12,22 +12,6 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.isBlocked (blk: Block, now: Long) : Boolean {
-    return when {
-        // immutable
-        (blk.hash.toHeight() == 0)     -> false       // genesis block
-        this.fromOwner(blk)            -> false       // owner signature
-        this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
-        (blk.immut.like != null)       -> false       // a like
-
-        // mutable
-        else -> {
-            val rep = if (blk.sign==null) 0 else this.reps(blk.sign.pub, now, setOf(blk.hash))
-            (rep < 0)
-        }
-    }
-}
-
 fun Chain.isHidden (blk: Block) : Boolean {
     return when {
         // immutable
