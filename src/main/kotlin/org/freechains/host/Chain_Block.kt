@@ -52,11 +52,11 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
 
     assert_(imm_.backs.isEmpty())
 
-    var backs: Set<Hash> = backs_ ?: this.heads().first + imm_.like.let { liked ->
+    var backs: Set<Hash> = backs_ ?: this.heads() + imm_.like.let { liked ->
         when {
             (liked == null) -> emptySet()
             (liked.n <= 0)  -> emptySet()
-            !this.heads().second.contains(liked.hash) -> emptySet()
+            !this.blockeds().contains(liked.hash) -> emptySet()
             else -> setOf(liked.hash) // TODO: - this.fsLoadBlock(liked.hash).immut.backs
         }
     }
@@ -108,7 +108,7 @@ fun Chain.blockChain (blk: Block, pay: String) {
 
 fun Chain.blockRemove (hash: Hash) {
     val blk = this.fsLoadBlock(hash)
-    assert_(this.heads().second.contains(blk.hash)) { "can only remove blocked block" }
+    assert_(this.blockeds().contains(blk.hash)) { "can only remove blocked block" }
     this.fsSave()
 }
 
@@ -122,7 +122,7 @@ fun Chain.blockAssert (blk: Block) {
         //println("$it <- ${blk.hash}")
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.heads().second.contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.blockeds().contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
             "backs must be accepted"
         }
     }

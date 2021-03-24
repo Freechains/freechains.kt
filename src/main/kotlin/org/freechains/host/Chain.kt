@@ -73,16 +73,19 @@ fun Chain.genesis () : Hash {
     return "0_" + this.hash
 }
 
-fun Chain.heads (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Pair<Set<Hash>,Set<Hash>> {
-    val blks = hs
+fun Chain.blockeds (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Set<Hash> {
+    return hs
         .filter { head -> (hs-head).none { this.all(setOf(it)).contains(head) } }
         .filter { this.isBlocked(this.fsLoadBlock(it),now) }
         .toSet()
-    val accs = (hs-blks).let { it
+}
+
+fun Chain.heads (hs: Set<Hash> = this.fsAll(), now: Long = getNow()): Set<Hash> {
+    val blks = this.blockeds(hs)
+    return (hs-blks).let { it
         .filter { head -> (it-head).none { this.all(setOf(it)).contains(head) } }
         .toSet()
     }
-    return Pair(accs, blks)
 }
 
 // HASH
@@ -216,7 +219,7 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
 
-fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads().first) : Int {
+fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads()) : Int {
     //println(this.seq_order(heads).joinToString(","))
     val (reps,inv) = this.seq_invalid(this.seq_order(heads), now)
     //println(pub)
@@ -227,7 +230,7 @@ fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads
 }
 
 // receive set of heads, returns total order
-fun Chain.seq_order (heads: Set<Hash> = this.heads().first, excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
+fun Chain.seq_order (heads: Set<Hash> = this.heads(), excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
     val l = heads.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Hash>()
@@ -332,6 +335,6 @@ fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,I
 
 // all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
 fun Chain.seq_remove (rem: Hash): Set<Hash> {
-    return this.all(this.heads().first).filter { this.all(setOf(it)).contains(rem) }.toSet()
+    return this.all(this.heads()).filter { this.all(setOf(it)).contains(rem) }.toSet()
 }
 

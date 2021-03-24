@@ -271,8 +271,8 @@ class Daemon (loc_: Host) {
                                 }
                                 "heads" -> {
                                     val heads = when (cmds.size) {
-                                        3 -> chain.heads().first
-                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads().second }
+                                        3 -> chain.heads()
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.blockeds() }
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
@@ -319,7 +319,7 @@ class Daemon (loc_: Host) {
                                             val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            chain.reps(ref, getNow(), chain.heads().first)
+                                            chain.reps(ref, getNow(), chain.heads())
                                         }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
@@ -441,7 +441,7 @@ class Daemon (loc_: Host) {
         var nmax    = 0
 
         // for each local head
-        val heads = chain.heads().first + chain.heads().second
+        val heads = chain.heads() + chain.blockeds()
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
         for (head in heads) {
@@ -539,7 +539,7 @@ class Daemon (loc_: Host) {
                     assert_(len2 <= S128_pay) { "post is too large" }
                     val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
                     reader.readLineX()
-                    assert_(chain.heads().second.size <= N16_blockeds) { "too many blocked blocks" }
+                    assert_(chain.blockeds().size <= N16_blockeds) { "too many blocked blocks" }
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {

@@ -163,8 +163,8 @@ class Tests {
         val n2 = chain.blockNew(H, "2.1", PVT1, false)
         val n3 = chain.blockNew(H, "2.2", PVT1, false)
         //println(chain.heads)
-        assert(chain.heads().first.let { it.size==1 && it.contains(n1.hash) })
-        assert(chain.heads().second.let { it.size==2 && it.contains(n2.hash) && it.contains(n3.hash) })
+        assert(chain.heads().let { it.size==1 && it.contains(n1.hash) })
+        assert(chain.blockeds().let { it.size==2 && it.contains(n2.hash) && it.contains(n3.hash) })
     }
     @Test
     fun c03_all() {
@@ -173,7 +173,7 @@ class Tests {
         val n1 = chain.blockNew(H,"1", PVT0, false)
         val n2 = chain.blockNew(H,"2", PVT0, false)
         val n3 = chain.blockNew(H,"3", PVT0, false)
-        val all = chain.all(chain.heads().first)
+        val all = chain.all(chain.heads())
         assert(all.size==4 && all.contains(n3.hash))
         val rep1 = chain.reps(PUB0, getNow(), setOf(n3.hash))
         assert(rep1 == 27)
@@ -209,8 +209,8 @@ class Tests {
         // gen <- a1 <- a2
         //          \-- b2
 
-        assert(chain.heads().first.let  { it.size==1 && it.contains(a2.hash) })
-        assert(chain.heads().second.let { it.size==1 && it.contains(b2.hash) })
+        assert(chain.heads().let  { it.size==1 && it.contains(a2.hash) })
+        assert(chain.blockeds().let { it.size==1 && it.contains(b2.hash) })
         assert(28 == chain.reps(PUB0))
 
         val a3 = chain.blockNew(H.copy(like=Like(1,b2.hash)),"a3", PVT0, false)
@@ -218,8 +218,8 @@ class Tests {
         // gen <- a1 <- a2 <- a3
         //          \-- b2 <-/
 
-        assert(chain.heads().first.let  { it.size==1 && it.contains(a3.hash) })
-        assert(chain.heads().second.let { it.size==0 })
+        assert(chain.heads().let  { it.size==1 && it.contains(a3.hash) })
+        assert(chain.blockeds().let { it.size==0 })
         assert(27 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
 
@@ -249,8 +249,8 @@ class Tests {
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        assert(chain.heads().first.let  { it.size==1 && it.contains(a4.hash) })
-        assert(chain.heads().second.let { it.size==0 })
+        assert(chain.heads().let  { it.size==1 && it.contains(a4.hash) })
+        assert(chain.blockeds().let { it.size==0 })
         assert(28 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
         assert( 0 == chain.reps(PUB2))
@@ -260,15 +260,13 @@ class Tests {
         assert( 1 == chain.reps(PUB1))
         assert( 1 == chain.reps(PUB2))
 
-        println(getNow())
         val a5 = chain.blockNew(H,"a5", PVT0, false, setOf(a4.hash))
         val c5 = chain.blockNew(H,"c5", PVT2, false, setOf(a4.hash))
         val b5 = chain.blockNew(H,"b5", PVT1, false, setOf(a4.hash))
-        chain.heads().second.forEach { println(it) }
         val a6 = chain.blockNew(H,"a6", PVT0, false, setOf(a5.hash,b5.hash))
         val a7 = chain.blockNew(H,"a7", PVT0, false, setOf(a6.hash,c5.hash))
-        assert(chain.heads().first.size==1 && chain.heads().second.size==0)
-        assert(chain.heads().first.contains(a7.hash))
+        assert(chain.heads().size==1 && chain.blockeds().size==0)
+        assert(chain.heads().contains(a7.hash))
         assert(25 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
         assert( 0 == chain.reps(PUB2))
