@@ -46,48 +46,44 @@ fun Chain.isHidden (blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.blockNew (imm: Immut, pay: String, sign: HKey?, crypt: Boolean, backs: Set<Hash>? = null) : Hash {
-    assert_(imm.time == 0.toLong()) { "time must not be set" }
-    assert_(imm.pay.hash == "") { "pay must not be set" }
-    assert_(imm.backs.isEmpty())
-
+fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val backs_ = backs ?: this.heads() + (
-        if (imm.like != null && imm.like.n > 0 && this.blockeds().contains(imm.like.hash)) {
-            setOf(imm.like.hash) // include blocked liked block in backs
+        if (like != null && like.n > 0 && this.blockeds().contains(like.hash)) {
+            setOf(like.hash) // include blocked liked block in backs
         } else {
             emptySet()
         }
     )
 
-    val imm_ = imm.copy (
-        time = max (getNow(), 1+backs_.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
-        pay = imm.pay.copy (
-            crypt = this.name.startsWith('$') || crypt,
-            hash  = pay.calcHash()
-        ),
-        backs = backs_
-    )
     val pay_ = when {
         this.name.startsWith('$') -> pay.encryptShared(this.key!!)
         crypt -> pay.encryptPublic(this.atKey()!!)
-        else   -> pay
+        else  -> pay
     }
-    val hash = imm_.toHash()
+
+    val imm = Immut (
+        time = max (getNow(), 1+backs_.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
+        pay = Payload (
+            crypt = this.name.startsWith('$') || crypt,
+            hash  = pay_.calcHash()
+        ),
+        like  = like,
+        backs = backs_
+    )
+
+    val hash = imm.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
-    val signature =
-        if (sign == null)
-            null
-        else {
-            val sig = ByteArray(Sign.BYTES)
-            val msg = lazySodium.bytes(hash)
-            val pvt = Key.fromHexString(sign).asBytes
-            lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
-            val sig_hash = LazySodium.toHex(sig)
-            Signature(sig_hash, sign.pvtToPub())
-        }
+    val signature = if (sign == null) null else {
+        val sig = ByteArray(Sign.BYTES)
+        val msg = lazySodium.bytes(hash)
+        val pvt = Key.fromHexString(sign).asBytes
+        lazySodium.cryptoSignDetached(sig, msg, msg.size.toLong(), pvt)
+        val sig_hash = LazySodium.toHex(sig)
+        Signature(sig_hash, sign.pvtToPub())
+    }
 
-    this.fsSaveBlock(Block(imm_, hash, signature),pay_)
+    this.fsSaveBlock(Block(imm, hash, signature),pay_)
     return hash
 }
 

@@ -346,15 +346,11 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                Immut (
-                                                    0,
-                                                    Payload(false, ""),
-                                                    null,
-                                                    emptySet()
-                                                ),
-                                                pay,
                                                 if (sign == "anon") null else sign,
-                                                cmds[4].toBoolean()
+                                                null,
+                                                pay,
+                                                cmds[4].toBoolean(),
+                                                null
                                             )
                                         }
                                         thread {
@@ -374,18 +370,11 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                Immut (
-                                                    0,
-                                                    Payload(false, ""),
-                                                    Like(
-                                                        cmds[3].toInt(),
-                                                        cmds[4]
-                                                    ),
-                                                    emptySet()
-                                                ),
-                                                pay,
                                                 cmds[5],
-                                                false
+                                                Like(cmds[3].toInt(), cmds[4]),
+                                                pay,
+                                                false,
+                                                null
                                             )
                                         }
                                     } catch (e: Throwable) {
