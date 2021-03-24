@@ -301,7 +301,7 @@ class Daemon (loc_: Host) {
                                                 )
                                                 blk_.toJson()
                                             }
-                                            "payload" -> chain.fsLoadPay1(hash, decrypt)
+                                            "payload" -> chain.fsLoadPayCrypt(hash, decrypt)
                                             else -> error("impossible case")
                                         }
                                         writer.writeLineX(ret.length.toString())
@@ -481,7 +481,7 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = if (chain.isHidden(out)) "" else chain.fsLoadPay0(hash)
+                val pay = if (chain.isHidden(out)) "" else chain.fsLoadPayRaw(hash)
                 writer.writeLineX(pay.length.toString())
                 writer.writeBytes(pay)
                 writer.writeLineX("")

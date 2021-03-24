@@ -234,7 +234,7 @@ class Tests {
 
         assert(chain.greater(a2,b2) > 0)
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "a1,a2,b2,a3")
     }
@@ -279,7 +279,7 @@ class Tests {
         assert(chain.greater(a5,c5) > 0)
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         println(str)
         assert(str == "b1,a2,c3,a4,a5,b5,a6,c5,a7")
     }
@@ -307,7 +307,7 @@ class Tests {
         //                            \-- b5 --/
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4,a5,b5,a6,c6,a7")
     }
@@ -336,7 +336,7 @@ class Tests {
         //                            \-- b5 --/
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
     }
@@ -363,7 +363,7 @@ class Tests {
         //                            \-- b5 --/
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4,a5,c5,b5,a6")
     }
@@ -380,7 +380,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4")
         assert(null == chain.seq_invalid(hs).second)
@@ -417,7 +417,7 @@ class Tests {
         //                            \-- b5 -- a6
 
         val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPay0(it) }.joinToString(",")
+        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
         assert(str == "b1,a2,c3,a4,b5,a6,c5,c6,c7")
         val inv = chain.seq_invalid(hs).second
@@ -746,9 +746,9 @@ class Tests {
         //println(c1.root)
         val n1 = c1.blockNew(HC, "aaa", null, false)
         //println(n1)
-        val n2 = c1.fsLoadPay1(n1, null)
+        val n2 = c1.fsLoadPayCrypt(n1, null)
         assert_(n2 == "aaa")
-        val n3 = c1.fsLoadPay0(n1)
+        val n3 = c1.fsLoadPayRaw(n1)
         assert_(n3 != "aaa")
     }
 

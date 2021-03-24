@@ -118,9 +118,9 @@ fun Chain.fsLoadBlock (hash: Hash) : Block {
     return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
-fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
+fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?) : String {
     val blk = this.fsLoadBlock(hash)
-    val pay = this.fsLoadPay0(hash)
+    val pay = this.fsLoadPayRaw(hash)
     return when {
         !blk.immut.pay.crypt -> pay
         this.name.startsWith('$') -> pay.decrypt(this.key!!)
@@ -129,7 +129,7 @@ fun Chain.fsLoadPay1 (hash: Hash, pubpvt: HKey?) : String {
     }
 }
 
-fun Chain.fsLoadPay0 (hash: Hash) : String {
+fun Chain.fsLoadPayRaw (hash: Hash) : String {
     return File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
 }
 

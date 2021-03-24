@@ -46,33 +46,33 @@ fun Chain.isHidden (blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, backs_: Set<Hash>? = null) : Hash {
-    assert_(imm_.time == 0.toLong()) { "time must not be set" }
-    assert_(imm_.pay.hash == "") { "pay must not be set" }
-    assert_(imm_.backs.isEmpty())
+fun Chain.blockNew (imm: Immut, pay: String, sign: HKey?, crypt: Boolean, backs: Set<Hash>? = null) : Hash {
+    assert_(imm.time == 0.toLong()) { "time must not be set" }
+    assert_(imm.pay.hash == "") { "pay must not be set" }
+    assert_(imm.backs.isEmpty())
 
-    val backs = backs_ ?: this.heads() + (
-        if (imm_.like != null && imm_.like.n > 0 && this.blockeds().contains(imm_.like.hash)) {
-            setOf(imm_.like.hash) // include blocked liked block in backs
+    val backs_ = backs ?: this.heads() + (
+        if (imm.like != null && imm.like.n > 0 && this.blockeds().contains(imm.like.hash)) {
+            setOf(imm.like.hash) // include blocked liked block in backs
         } else {
             emptySet()
         }
     )
 
-    val imm = imm_.copy (
-        time = max (getNow(), 1+backs.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
-        pay = imm_.pay.copy (
-            crypt = this.name.startsWith('$') || pubpvt,
-            hash  = pay0.calcHash()
+    val imm_ = imm.copy (
+        time = max (getNow(), 1+backs_.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
+        pay = imm.pay.copy (
+            crypt = this.name.startsWith('$') || crypt,
+            hash  = pay.calcHash()
         ),
-        backs = backs
+        backs = backs_
     )
-    val pay1 = when {
-        this.name.startsWith('$') -> pay0.encryptShared(this.key!!)
-        pubpvt -> pay0.encryptPublic(this.atKey()!!)
-        else   -> pay0
+    val pay_ = when {
+        this.name.startsWith('$') -> pay.encryptShared(this.key!!)
+        crypt -> pay.encryptPublic(this.atKey()!!)
+        else   -> pay
     }
-    val hash = imm.toHash()
+    val hash = imm_.toHash()
 
     // signs message if requested (pvt provided or in pvt chain)
     val signature =
@@ -87,7 +87,7 @@ fun Chain.blockNew (imm_: Immut, pay0: String, sign: HKey?, pubpvt: Boolean, bac
             Signature(sig_hash, sign.pvtToPub())
         }
 
-    this.fsSaveBlock(Block(imm, hash, signature),pay1)
+    this.fsSaveBlock(Block(imm_, hash, signature),pay_)
     return hash
 }
 
