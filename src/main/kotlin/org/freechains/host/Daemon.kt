@@ -280,18 +280,12 @@ class Daemon (loc_: Host) {
                                 }
                                 "traverse" -> {
                                     val downto = cmds.drop(3)
-                                    error("TODO")
-                                    /*
-                                    val all = chain
-                                            .bfs(chain.heads().first, false) {
-                                                !downto.contains(it.hash)
-                                            }
-                                            .map { it.hash }
-                                            .reversed()
-                                    val ret = all.joinToString(" ")
+                                    val ret = chain
+                                        .seq_order ()
+                                        .dropWhile { downto.contains(it) }
+                                        .joinToString(" ")
                                     writer.writeLineX(ret)
                                     System.err.println("chain traverse: $ret")
-                                     */
                                 }
                                 "get" -> {
                                     val hash = cmds[4]
