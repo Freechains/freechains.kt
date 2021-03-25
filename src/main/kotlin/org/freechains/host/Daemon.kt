@@ -319,7 +319,7 @@ class Daemon (loc_: Host) {
                                             val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            chain.reps(ref, chain.heads(Head_State.LINKED))
+                                            chain.reps(ref)
                                         }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")

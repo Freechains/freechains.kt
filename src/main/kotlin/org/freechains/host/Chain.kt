@@ -245,7 +245,7 @@ fun Chain.reps (pub: String, heads: Set<Hash> = this.heads(Head_State.LINKED)) :
 }
 
 // Triple<reps,list,invs>
-fun Chain.process (): Triple<Map<HKey,Int>,List<Hash>,Set<Hash>> {
+fun Chain.consensus (): Triple<Map<HKey,Int>,List<Hash>,Set<Hash>> {
     val invs = mutableSetOf<Hash>()
     while (true) {
         val list = this.seq_order()
@@ -258,7 +258,7 @@ fun Chain.process (): Triple<Map<HKey,Int>,List<Hash>,Set<Hash>> {
 }
 
 // receive set of heads, returns total order
-fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.LINKED), excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
+fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.ALL), excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
     val l = heads.toMutableList()
     assert(l.size > 0)
     val ret = mutableListOf<Hash>()
