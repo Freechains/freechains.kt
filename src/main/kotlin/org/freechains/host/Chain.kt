@@ -91,7 +91,7 @@ fun Chain.heads (state: Head_State): Set<Hash> {
                     // mutable
                     else -> {
                         val rep = if (blk.sign==null) 0 else {
-                            this.reps(blk.sign.pub, getNow(), setOf(blk.hash))
+                            this.reps(blk.sign.pub, setOf(blk.hash))
                         }
                         (rep < 0)
                     }
@@ -239,17 +239,23 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
 
-fun Chain.reps (pub: String, now: Long = getNow(), heads: Set<Hash> = this.heads(Head_State.LINKED)) : Int {
-    val (reps,inv) = this.seq_invalid(this.seq_order(heads), now)
+fun Chain.reps (pub: String, heads: Set<Hash> = this.heads(Head_State.LINKED)) : Int {
+    val (reps,inv) = this.seq_invalid(this.seq_order(heads))
     return if (inv != null) -1 else reps[pub]!!
 }
 
-/*
+// Triple<reps,list,invs>
 fun Chain.process (): Triple<Map<HKey,Int>,List<Hash>,Set<Hash>> {
-    val list = this.seq_order()
-
+    val invs = mutableSetOf<Hash>()
+    while (true) {
+        val list = this.seq_order()
+        val (reps, inv) = this.seq_invalid(list)
+        if (inv == null) {
+            return Triple(reps,list,invs)
+        }
+        invs.addAll(this.seq_remove(inv))
+    }
 }
-*/
 
 // receive set of heads, returns total order
 fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.LINKED), excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
@@ -269,7 +275,8 @@ fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.LINKED), excluding
 }
 
 // find first invalid block in blockchain
-fun Chain.seq_invalid (list_: List<Hash>, now: Long = getNow()): Pair<Map<HKey,Int>,Hash?> {
+fun Chain.seq_invalid (list_: List<Hash>): Pair<Map<HKey,Int>,Hash?> {
+    val now  = getNow()
     val list = list_.map { this.fsLoadBlock(it) }
     val negs = mutableSetOf<Block>()
     val zers = mutableSetOf<Block>()
