@@ -184,6 +184,11 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     return Pair(pos.sum(),-neg.sum())
 }
 
+fun Chain.repsAuthor (pub: HKey) : Int {
+    val (reps,_,_) = this.consensus()
+    return reps[pub].let { if (it == null) 0 else it }
+}
+
 fun Chain.all (heads: Set<Hash>): Set<Hash> {
     fun<T> Set<Set<T>>.unionAll (): Set<T> {
         return this.fold(emptySet(), {x,y->x+y})
