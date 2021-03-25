@@ -7,31 +7,8 @@ import org.freechains.common.HKey
 
 typealias Hash = String
 
-enum class State {
-    MISSING, BLOCKED, LINKED, HIDDEN, ACCEPTED, ALL
-}
-
-fun State.toString_ () : String {
-    return when (this) {
-        State.ALL -> "all"
-        State.ACCEPTED -> "accepted"
-        State.HIDDEN -> "hidden"
-        State.LINKED -> "linked"
-        State.BLOCKED -> "blocked"
-        State.MISSING -> "missing"
-    }
-}
-
-fun String.toState () : State {
-    return when (this) {
-        "all"      -> State.ALL
-        "accepted" -> State.ACCEPTED
-        "hidden"   -> State.HIDDEN
-        "linked"   -> State.LINKED
-        "blocked"  -> State.BLOCKED
-        "missing"  -> State.MISSING
-        else       -> error("bug found (2)")
-    }
+enum class Head_State {
+    BLOCKED, LINKED, ALL
 }
 
 @Serializable

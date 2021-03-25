@@ -161,8 +161,8 @@ class Tests {
         val n2 = chain.blockNew(PVT1, null, "2.1", false, null)
         val n3 = chain.blockNew(PVT1, null, "2.2", false, null)
         //println(chain.heads)
-        assert(chain.heads().let { it.size==1 && it.contains(n1) })
-        assert(chain.blockeds().let { it.size==2 && it.contains(n2) && it.contains(n3) })
+        assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
     }
     @Test
     fun c03_all() {
@@ -171,7 +171,7 @@ class Tests {
         val n1 = chain.blockNew(PVT0, null, "1", false, null)
         val n2 = chain.blockNew(PVT0, null, "2", false, null)
         val n3 = chain.blockNew(PVT0, null, "3", false, null)
-        val all = chain.all(chain.heads())
+        val all = chain.all(chain.heads(Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
         val rep1 = chain.reps(PUB0, getNow(), setOf(n3))
         assert(rep1 == 27)
@@ -207,8 +207,8 @@ class Tests {
         // gen <- a1 <- a2
         //          \-- b2
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a2) })
-        assert(chain.blockeds().let { it.size==1 && it.contains(b2) })
+        assert(chain.heads(Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
         assert(28 == chain.reps(PUB0))
 
         val a3 = chain.blockNew(PVT0, Like(1,b2), "a3", false, null)
@@ -216,8 +216,8 @@ class Tests {
         // gen <- a1 <- a2 <- a3
         //          \-- b2 <-/
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a3) })
-        assert(chain.blockeds().let { it.size==0 })
+        assert(chain.heads(Head_State.LINKED).let  { it.size==1 && it.contains(a3) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==0 })
         assert(27 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
 
@@ -247,8 +247,8 @@ class Tests {
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        assert(chain.heads().let  { it.size==1 && it.contains(a4) })
-        assert(chain.blockeds().let { it.size==0 })
+        assert(chain.heads(Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==0 })
         assert(28 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
         assert( 0 == chain.reps(PUB2))
@@ -263,8 +263,8 @@ class Tests {
         val b5 = chain.blockNew(PVT1, null, "b5", false, setOf(a4))
         val a6 = chain.blockNew(PVT0, null, "a6", false, setOf(a5,b5))
         val a7 = chain.blockNew(PVT0, null, "a7", false, setOf(a6,c5))
-        assert(chain.heads().size==1 && chain.blockeds().size==0)
-        assert(chain.heads().contains(a7))
+        assert(chain.heads(Head_State.LINKED).size==1 && chain.heads(Head_State.BLOCKED).size==0)
+        assert(chain.heads(Head_State.LINKED).contains(a7))
         assert(25 == chain.reps(PUB0))
         assert( 0 == chain.reps(PUB1))
         assert( 0 == chain.reps(PUB2))
