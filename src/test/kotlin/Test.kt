@@ -668,7 +668,6 @@ class Tests {
         val decrypted = lazySodium.cryptoSecretBoxOpenEasy(encrypted, nonce, key)
         assert_(msg == decrypted)
     }
-
     @Test
     fun m02_crypto_passphrase() {
         thread {
@@ -686,7 +685,6 @@ class Tests {
         val k2 = main_cli_assert(arrayOf("crypto", "pubpvt", "senha super secreta"))
         assert_(k0 != k1 && k1 != k2)
     }
-
     @Test
     fun m02_crypto_pubpvt() {
         val ls = LazySodiumJava(SodiumJava())
@@ -736,7 +734,6 @@ class Tests {
         lazySodium.cryptoBoxSealOpen(dec2, enc2, enc2.size.toLong(), pubcu, pvtcu)
         assert_(dec2.toString(Charsets.UTF_8) == "mensagem secreta")
     }
-
     @Test
     fun m03_crypto_post() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
@@ -745,7 +742,6 @@ class Tests {
         val c2 = loc.chainsJoin("@$PUB0", null)
         c2.blockNew(c2.consensus(), PVT0, null, "", true, null)
     }
-
     @Test
     fun m04_crypto_encrypt() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
@@ -758,7 +754,6 @@ class Tests {
         val n3 = c1.fsLoadPayRaw(n1)
         assert_(n3 != "aaa")
     }
-
     @Test
     fun m05_crypto_encrypt_sym() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M50/")) }
@@ -804,7 +799,6 @@ class Tests {
         val pay2 = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", h2))
         assert_(pay2 == "bbbb")
     }
-
     @Test
     fun m06x_crypto_encrypt_asy() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M60x/")) }
@@ -826,7 +820,6 @@ class Tests {
             assert_(!it.first && it.second.equals("! must be from owner"))
         }
     }
-
     @Test
     fun m06y_shared() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M60y/")) }
@@ -919,7 +912,6 @@ class Tests {
             assert_(str == h5)
         }
     }
-
     @Test
     fun m09_likes() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M90/")) }
@@ -1158,7 +1150,6 @@ class Tests {
         println("$ln // $x1 // $x2 // $x3 // $x4")
         assert_(ln == "1" && x1 == "0" && x2 == "2" && x3 == "-1" && x4 == "1")
     }
-
     @Test
     fun m10_cons() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M100/")) }
@@ -1222,7 +1213,6 @@ class Tests {
 
         // this all to test an internal assertion
     }
-
     @Test
     fun m12_state () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M120/")) }
@@ -1340,7 +1330,6 @@ class Tests {
             assert_(it.startsWith("5_"))
         }
     }
-
     @Test
     fun m13_reps () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M13/")) }
@@ -1418,56 +1407,53 @@ class Tests {
 
         main_host(arrayOf(H0, "now", "0"))
 
-        /*val h1  =*/ main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "h0"))
+        val h1  = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h0"))
         val h21 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h21"))
-        /*val h20 =*/ main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "h20"))
+        val h20 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h20"))
 
-        // h0 -> h1 --> h21
-        //          \-> h20
+        // h0 -- h1 -- h21
+        //         \-- h20
 
-        // no double spend
-        main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h30")).let {
-            //assert_(it == "backs must be accepted")
-        }
+        main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h30"))
 
-        // h0 -> h1 --> h21
-        //          \-> h20 -> h30
+        // h0 -- h1 -- h21
+        //         \-- h20 -- h30
 
         main_host(arrayOf(H0, "now", "${3 * hour}"))
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "h40"))
 
-        // h0 -> h1 --> h20 -> h30 -> h40
-        //          \-> h21
+        // h0 -- h1 -- h21
+        //         \-- h20 -- h30 -- h40
 
         main_host(arrayOf(H0, "now", "${6 * hour}"))
-        /*val l50 =*/ main_cli(arrayOf(H0, S0, "chain", "#", "like", h21, "--why=l50"))
+        val l21 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "like", h21, "--why=l21"))
 
-        // h0 -> h1 --> h21
-        //          \-> h20 -> h30 -> h40 -> l50
+        // h0 -- h1 -- h21 -- l21
+        //         \-- h20 -- h30 -- h40
 
         main_host(arrayOf(H0, "now", "${9 * hour}"))
 
-        val h61 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h61"))
+        val h51 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h51"))
 
-        // h0 -> h1 --> h21 -----------------------> h61
-        //          \-> h20 -> h30 -> l40 -> l50 /
+        // h0 -- h1 -- h21 -- l21 --------- h51
+        //         \-- h20 -- h30 -- h40 --/
 
-        /*val l60 =*/ main_cli(arrayOf(H0, S0, "chain", "#", "like", h61, "--why=l60"))
+        val l60 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "like", h51, "--why=l60"))
 
-        // h0 -> h1 --> h21 -----------------------> h61
-        //          \-> h20 -> h30 -> l40 -> l50 /-> l60
+        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60
+        //         \-- h20 -- h30 -- h40 --/
 
         main_host(arrayOf(H0, "now", "${34 * hour}"))
-        /*val h7 =*/ main_cli(arrayOf(H0, S1, "chain", "#", "post", "inline", "h7"))
+        val h7 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h7"))
 
-        // h0 -> h1 --> h21 ---------------------\-> h61 --> h7
-        //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/
+        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60 -- h7
+        //         \-- h20 -- h30 -- h40 --/
 
         // removes h21 (wont remove anything)
-        /*val l- =*/ main_cli(arrayOf(H0, S0, "chain", "#", "dislike", h21, "--why=dislike"))
+        val lx = main_cli_assert(arrayOf(H0, S0, "chain", "#", "dislike", h21, "--why=dislike"))
 
-        // h0 -> h1 --> h21 -----------------------> h61 --> h7
-        //          \-> h20 -> h30 -> l40 -> l50 /-> l60 -/-> l-
+        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60 -- h7 -- lx
+        //         \-- h20 -- h30 -- h40 --/
 
         main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
             assert_(!it.contains("2_"))
@@ -1482,12 +1468,11 @@ class Tests {
             str.split(' ').let {
                 assert_(it.size == 1) { it.size }
                 it.forEach {
-                    assert_(it.startsWith("9_"))
+                    assert_(it.startsWith("8_"))
                 }
             }
         }
     }
-
     @Test
     fun m15_rejected() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M150/")) }
@@ -1586,7 +1571,6 @@ class Tests {
             assert_(it.isEmpty())
         }
     }
-
     @Test
     fun m16_likes_fronts () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M16/")) }
@@ -1624,7 +1608,6 @@ class Tests {
             assert_(it.startsWith("5_"))
         }
     }
-
     @Test
     fun m17_likes_day () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M17/")) }
@@ -1661,7 +1644,6 @@ class Tests {
             assert_(it.startsWith("4_"))
         }
     }
-
     @Test
     fun m18_remove () {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M18/")) }
@@ -1707,10 +1689,10 @@ class Tests {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M19-0/"))     }
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M19-1/", P1)) }
         Thread.sleep(500)
-        main_cli(arrayOf(H0, "chains", "join", "@!$PUB"))
-        main_cli(arrayOf(H1, "chains", "join", "@!$PUB"))
+        main_cli_assert(arrayOf(H0, "chains", "join", "@!$PUB"))
+        main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB"))
 
-        val n = 500
+        val n = 100
         for (i in 1..n) {
             main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "@!$PUB", "post", "inline", "$i"))
         }
