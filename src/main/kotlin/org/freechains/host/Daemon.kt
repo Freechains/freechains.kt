@@ -84,13 +84,10 @@ class Daemon (loc_: Host) {
         try {
             val (v1,v2,_,cmds_) =
                 Regex("FC v(\\d+)\\.(\\d+)\\.(\\d+) (.*)").find(ln)!!.destructured
-            //println("$MAJOR/${v1.toInt()}  --  $MINOR/${v2.toInt()}")
             assert_(MAJOR == v1.toInt() && MINOR >= v2.toInt()) { "incompatible versions" }
             val cmds = cmds_.split(' ')
 
-            //println("addr = ${remote.inetAddress!!}")
             if (!client.inetAddress!!.toString().equals("/127.0.0.1")) {
-                //println("no = ${remote.inetAddress!!}")
                 assert_(
                         cmds[0].equals("_peer_") && (
                                 cmds[1].equals("_send_") || cmds[1].equals("_recv_") ||
@@ -99,10 +96,8 @@ class Daemon (loc_: Host) {
                 ) {
                     "invalid remote address"
                 }
-                //println("ok = ${remote.inetAddress!!}")
             }
 
-            //println("[handle] $cmd1 // $cmd2")
             when (cmds[0]) {
                 "host" -> when (cmds[1]) {
                     "stop" -> {
@@ -212,7 +207,6 @@ class Daemon (loc_: Host) {
                     "pubpvt" -> {
                         val pass = reader.readLineX()
                         val keys = pass.toPubPvt()
-                        //println("PUBPVT: ${keys.publicKey.asHexString} // ${keys.secretKey.asHexString}")
                         writer.writeLineX(
                             keys.publicKey.asHexString + ' ' +
                                     keys.secretKey.asHexString
@@ -410,7 +404,6 @@ class Daemon (loc_: Host) {
             System.err.println("! connection timeout")
             //writer.writeLineX("! connection timeout")
         } catch (e: Throwable) {
-            //println("XxXxXxXxXxXxX - $e - ${e.message}")
             System.err.println(e.stackTrace.contentToString())
             writer.writeLineX("! TODO - $e - ${e.message}")
         }
@@ -456,7 +449,6 @@ class Daemon (loc_: Host) {
                 }
 
                 // sends this one and visits children
-                //println("[add] $hash")
                 toSend.add(hash)
                 for (back in blk.immut.backs) {
                     pending.push(back)
@@ -507,7 +499,6 @@ class Daemon (loc_: Host) {
             // for each head path of blocks
             while (true) {
                 val hash = reader.readLineX()   // 2: receives hash in the path
-                //println("[recv-1] $hash")
                 if (hash.isEmpty()) {                   // 4
                     break                               // nothing else to answer
                 } else {
@@ -535,7 +526,6 @@ class Daemon (loc_: Host) {
                         pay.decrypt(chain.key!!)  // throws exception if fails
                     }
 
-                    //println("[recv] ${blk.hash} // len=$len2 // ${pay.length}")
                     synchronized(getLock(chain.name)) {
                         val con = chain.consensus()
                         chain.fsSaveBlock(con,blk,pay)

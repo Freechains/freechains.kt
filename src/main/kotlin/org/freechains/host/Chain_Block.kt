@@ -42,14 +42,11 @@ fun Chain.xxx (con: Consensus, want: Head_State): Set<Hash> {
 
 fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val con = this.consensus()
-    println(con)
     val backs_ = when {
         (backs != null) -> backs
         (like!=null && like.n>0 && this.xxx(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
         else -> this.xxx(con,Head_State.LINKED)
     }
-    println(pay + ": " + backs_)
-    println(this.xxx(con,Head_State.LINKED))
 
     val pay_ = when {
         this.name.startsWith('$') -> pay.encryptShared(this.key!!)
@@ -92,11 +89,9 @@ fun Chain.blockRemove (hash: Hash) {
 fun Chain.blockAssert (con: Consensus?, blk: Block) {
     val imm = blk.immut
     val now = getNow()
-    //println(">>> ${blk.hash} vs ${imm.toHash()}")
 
     // backs exist and are older
     for (bk in blk.immut.backs) {
-        //println("$it <- ${blk.hash}")
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
         assert_(!this.xxx(con!!,Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {

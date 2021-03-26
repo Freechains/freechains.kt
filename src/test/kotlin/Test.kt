@@ -308,10 +308,10 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        //println(str)
-        assert(str == "b1,a2,c3,a4,a5,b5,a6,c6,a7")
+        val con = chain.consensus()
+        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        println(str)
+        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
     }
     @Test
     fun c08_ord3() {
@@ -337,10 +337,10 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        //println(str)
-        assert(str == "b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
+        val con = chain.consensus()
+        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        println(str)
+        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
     }
     @Test
     fun c09_ord4() {
@@ -364,10 +364,10 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6
         //                            \-- b5 --/
 
-        val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        //println(str)
-        assert(str == "b1,a2,c3,a4,a5,c5,b5,a6")
+        val con = chain.consensus()
+        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        println(str)
+        assert(str == ",b1,a2,c3,a4,a5,c5,b5,a6")
     }
     @Test
     fun c10_inv1() {
@@ -381,11 +381,11 @@ class Tests {
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val con = chain.consensus()
+        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         //println(str)
-        assert(str == "b1,a2,c3,a4")
-        assert(null == chain.seq_invalid(hs).second)
+        assert(str == ",b1,a2,c3,a4")
+        assert(con.invs.isEmpty())
     }
     @Test
     fun c11_inv2() {
@@ -418,16 +418,12 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
         //                            \-- b5 -- a6
 
-        val hs = chain.seq_order()
-        val str = hs.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        //println(str)
-        assert(str == "b1,a2,c3,a4,b5,a6,c5,c6,c7")
-        val inv = chain.seq_invalid(hs).second
+        val con = chain.consensus()
+        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        println(str)
+        assert(str == ",b1,a2,c3,a4,b5,a6,c5,c6,c7")
         //println(inv)
-        assert(inv == c6)
-
-        val rems = chain.seq_remove(inv!!)
-        assert(rems.size==2 && rems.contains(c7))
+        assert(con.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
     }
 
     @Test

@@ -141,7 +141,6 @@ class Consensus {
 
         val bs = seq_order(setOf(b1,a2), setOf(gen))
         val ret = bs.map { it.id }.joinToString(",")
-        //println(ret)
         assert("a1,a2,b1" == ret)
     }
 

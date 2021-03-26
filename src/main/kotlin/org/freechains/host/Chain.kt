@@ -232,10 +232,6 @@ fun Chain.greater (h1: Hash, h2: Hash): Int {
 
     val n1 = f(h1s - h2s)
     val n2 = f(h2s - h1s)
-    //println(common)
-    //println(h1s-h2s)
-    //println("$n1 // $n2")
-
     return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
 }
 
@@ -274,8 +270,6 @@ fun Consensus.repsAuthor (pub: HKey) : Int {
 
 fun Chain.consensus (): Consensus {
     val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf())
-    //println(this.fsAll())
-    //println(this.find_heads(this.fsAll()))
     this.consensus_aux(this.find_heads(this.fsAll()),null,con)
     negs_zers(getNow(), con)
     return con
