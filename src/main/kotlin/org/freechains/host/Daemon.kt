@@ -20,9 +20,10 @@ class Daemon (loc_: Host) {
         return (loc.root+chain).intern()
     }
 
-    private fun chainsLoadSync (name: String) : Chain {
+    private fun chainsLoadSync (name: String) : Pair<Chain,Consensus> {
         return synchronized(this.getLock(name)) {
-            loc.chainsLoad(name)
+            val chain = loc.chainsLoad(name)
+            Pair(chain, chain.consensus())
         }
     }
 
@@ -89,10 +90,10 @@ class Daemon (loc_: Host) {
 
             if (!client.inetAddress!!.toString().equals("/127.0.0.1")) {
                 assert_(
-                        cmds[0].equals("_peer_") && (
-                                cmds[1].equals("_send_") || cmds[1].equals("_recv_") ||
-                                        cmds[1].equals("_ping_") || cmds[1].equals("_chains_")
-                                )
+                cmds[0].equals("_peer_") && (
+                        cmds[1].equals("_send_") || cmds[1].equals("_recv_") ||
+                                cmds[1].equals("_ping_") || cmds[1].equals("_chains_")
+                        )
                 ) {
                     "invalid remote address"
                 }
@@ -256,7 +257,7 @@ class Daemon (loc_: Host) {
                             }
                         }
                         else -> {
-                            val chain = this.chainsLoadSync(name)
+                            val (chain,con) = this.chainsLoadSync(name)
                             when (cmds[2]) {
                                 "genesis" -> {
                                     val hash = chain.genesis()
@@ -264,7 +265,6 @@ class Daemon (loc_: Host) {
                                     System.err.println("chain genesis: $hash")
                                 }
                                 "heads" -> {
-                                    val con = chain.consensus()
                                     val heads = when (cmds.size) {
                                         3 -> chain.heads(con,Head_State.LINKED)
                                         4 -> { assert(cmds[3]=="blocked") ; chain.heads(con,Head_State.BLOCKED) }
@@ -275,7 +275,7 @@ class Daemon (loc_: Host) {
                                 }
                                 "traverse" -> {
                                     val downto = cmds.drop(3)
-                                    val ret = chain.consensus().list
+                                    val ret = con.list
                                         .dropWhile { downto.contains(it) }
                                         .joinToString(" ")
                                     writer.writeLineX(ret)
@@ -313,7 +313,6 @@ class Daemon (loc_: Host) {
                                             val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            val con = chain.consensus()
                                             con.repsAuthor(ref)
                                         }
                                     writer.writeLineX(likes.toString())
@@ -344,7 +343,7 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                chain.consensus(),
+                                                con,
                                                 if (sign == "anon") null else sign,
                                                 null,
                                                 pay,
@@ -369,7 +368,7 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                chain.consensus(),
+                                                con,
                                                 cmds[5],
                                                 Like(cmds[3].toInt(), cmds[4]),
                                                 pay,
@@ -421,13 +420,12 @@ class Daemon (loc_: Host) {
         //   - pushes into toSend
         // - sends toSend
 
-        val chain = this.chainsLoadSync(chain_)
+        val (chain,con) = this.chainsLoadSync(chain_)
         val visited = HashSet<Hash>()
         var nmin    = 0
         var nmax    = 0
 
         // for each local head
-        val con = chain.consensus()
         val heads = chain.heads(con,Head_State.LINKED) + chain.heads(con,Head_State.BLOCKED)
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
@@ -490,7 +488,7 @@ class Daemon (loc_: Host) {
         // - answers if contains each host
         // - receives all
 
-        val chain = this.chainsLoadSync(chain_)
+        val (chain,con) = this.chainsLoadSync(chain_)
         var nmax = 0
         var nmin = 0
 
@@ -531,7 +529,6 @@ class Daemon (loc_: Host) {
                     }
 
                     synchronized(getLock(chain.name)) {
-                        val con = chain.consensus()
                         assert_(chain.heads(con,Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
                         chain.fsSaveBlock(con,blk,pay)
                     }
