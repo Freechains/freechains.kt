@@ -30,16 +30,6 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.heads (con: Consensus, want: Head_State): Set<Hash> {
-    return when (want) {
-        Head_State.BLOCKED -> con.invs.filter {
-            this.fsLoadBlock(it).immut.backs.all { con.list.contains(it) }
-        }.toSet()
-        Head_State.LINKED  -> this.find_heads(this.fsAll()-con.invs)
-        else -> error("TODO")
-    }
-}
-
 fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val backs_ = when {
         (backs != null) -> backs
