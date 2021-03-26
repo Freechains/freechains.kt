@@ -30,14 +30,26 @@ fun Chain.isHidden (blk: Block) : Boolean {
 
 // NEW
 
+fun Chain.xxx (con: Consensus, want: Head_State): Set<Hash> {
+    return when (want) {
+        Head_State.BLOCKED -> con.invs.filter {
+            this.fsLoadBlock(it).immut.backs.all { con.list.contains(it) }
+        }.toSet()
+        Head_State.LINKED  -> this.find_heads(this.fsAll()-con.invs)
+        else -> error("TODO")
+    }
+}
+
 fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
-    val backs_ = backs ?: this.heads(Head_State.LINKED) + (
-        if (like != null && like.n > 0 && this.heads(Head_State.BLOCKED).contains(like.hash)) {
-            setOf(like.hash) // include blocked liked block in backs
-        } else {
-            emptySet()
-        }
-    )
+    val con = this.consensus()
+    println(con)
+    val backs_ = when {
+        (backs != null) -> backs
+        (like!=null && like.n>0 && this.xxx(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
+        else -> this.xxx(con,Head_State.LINKED)
+    }
+    println(pay + ": " + backs_)
+    println(this.xxx(con,Head_State.LINKED))
 
     val pay_ = when {
         this.name.startsWith('$') -> pay.encryptShared(this.key!!)
@@ -67,7 +79,7 @@ fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs
         Signature(sig_hash, sign.pvtToPub())
     }
 
-    this.fsSaveBlock(Block(imm, hash, signature),pay_)
+    this.fsSaveBlock(con, Block(imm, hash, signature),pay_)
     return hash
 }
 
@@ -77,7 +89,7 @@ fun Chain.blockRemove (hash: Hash) {
     this.fsSave()
 }
 
-fun Chain.blockAssert (blk: Block) {
+fun Chain.blockAssert (con: Consensus?, blk: Block) {
     val imm = blk.immut
     val now = getNow()
     //println(">>> ${blk.hash} vs ${imm.toHash()}")
@@ -87,12 +99,14 @@ fun Chain.blockAssert (blk: Block) {
         //println("$it <- ${blk.hash}")
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.heads(Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.xxx(con!!,Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
             "backs must be accepted"
         }
     }
 
-    if (blk.hash.toHeight() > 0) {
+    if (blk.hash.toHeight() == 0) {
+        assert_(blk.hash == this.genesis()) { "invalid genesis" }
+    } else {
         assert_(blk.hash == imm.toHash()) { "hash must verify" }
         assert_(imm.time >= now - T120D_past) { "too old" }
         if (this.name.startsWith("@!")) {

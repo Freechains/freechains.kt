@@ -270,9 +270,10 @@ class Daemon (loc_: Host) {
                                     System.err.println("chain genesis: $hash")
                                 }
                                 "heads" -> {
+                                    val con = chain.consensus()
                                     val heads = when (cmds.size) {
-                                        3 -> chain.heads(Head_State.LINKED)
-                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads(Head_State.BLOCKED) }
+                                        3 -> chain.xxx(con,Head_State.LINKED)
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.xxx(con,Head_State.BLOCKED) }
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
@@ -319,7 +320,8 @@ class Daemon (loc_: Host) {
                                             val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            chain.reps(ref)
+                                            val con = chain.consensus()
+                                            con.repsAuthor(ref)
                                         }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
@@ -535,7 +537,8 @@ class Daemon (loc_: Host) {
 
                     //println("[recv] ${blk.hash} // len=$len2 // ${pay.length}")
                     synchronized(getLock(chain.name)) {
-                        chain.fsSaveBlock(blk,pay)
+                        val con = chain.consensus()
+                        chain.fsSaveBlock(con,blk,pay)
                     }
                     if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
                         hiddens.add(blk)

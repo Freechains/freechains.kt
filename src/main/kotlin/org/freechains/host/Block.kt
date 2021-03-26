@@ -8,7 +8,7 @@ import org.freechains.common.HKey
 typealias Hash = String
 
 enum class Head_State {
-    BLOCKED, LINKED, ALL
+    INVALID, BLOCKED, LINKED, ALL
 }
 
 @Serializable

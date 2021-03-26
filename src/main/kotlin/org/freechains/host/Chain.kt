@@ -105,6 +105,7 @@ fun Chain.heads (state: Head_State): Set<Hash> {
             .filter { head -> (it-head).none { this.allFrom(it).contains(head) } }
             .toSet()
         }
+        else -> error("TODO")
     }
 }
 
@@ -159,8 +160,8 @@ fun Chain.fsExistsBlock (hash: Hash) : Boolean {
             File(this.path() + "/blocks/" + hash + ".blk").exists()
 }
 
-fun Chain.fsSaveBlock (blk: Block, pay: String) {
-    this.blockAssert(blk)
+fun Chain.fsSaveBlock (con: Consensus?, blk: Block, pay: String) {
+    this.blockAssert(con, blk)
     File(this.path() + "/blocks/" + blk.hash + ".pay").writeText(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
@@ -180,11 +181,6 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
         .map    { it.immut.like!!.n }
         .partition { it > 0 }
     return Pair(pos.sum(),-neg.sum())
-}
-
-fun Chain.repsAuthor (pub: HKey) : Int {
-    val (reps,_,_) = this.consensus().let { println(it) ; it }
-    return reps[pub].let { if (it == null) 0 else it }
 }
 
 fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
@@ -261,27 +257,38 @@ data class Consensus (
     val reps: MutableMap<HKey,Int>,
     val list: MutableList<Hash>,
     val invs: MutableSet<Hash>,
-    val negs: MutableSet<Block>,
-    val zers: MutableSet<Block>
+    val negs: MutableSet<Hash>,
+    val zers: MutableSet<Hash>
 )
+
+fun MutableMap<HKey,Int>.getZ (pub: HKey): Int {
+    if (!this.containsKey(pub)) {
+        this[pub] = 0
+    }
+    return this[pub]!!
+}
+
+fun Consensus.repsAuthor (pub: HKey) : Int {
+    return this.reps.getZ(pub)
+}
 
 fun Chain.consensus (): Consensus {
     val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf())
-    println(this.fsAll())
-    println(this.find_heads(this.fsAll()))
+    //println(this.fsAll())
+    //println(this.find_heads(this.fsAll()))
     this.consensus_aux(this.find_heads(this.fsAll()),null,con)
     negs_zers(getNow(), con)
     return con
 }
 
-fun negs_zers (now: Long, con: Consensus) {
-    val nonegs = con.negs.filter { it.immut.time <= now-12*hour }
-    con.negs -= nonegs
+fun Chain.negs_zers (now: Long, con: Consensus) {
+    val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-12*hour }
+    con.negs -= nonegs.map { it.hash }
     nonegs.forEach {
         con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
     }
-    val nozers = con.zers.filter { it.immut.time <= now-24*hour }
-    con.zers -= nozers
+    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-24*hour }
+    con.zers -= nozers.map { it.hash }
     nozers.forEach {
         con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
     }
@@ -289,18 +296,10 @@ fun negs_zers (now: Long, con: Consensus) {
 
 fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?, con: Consensus) {
     when (heads.size) {
-        0    -> consensus_aux0(con)
+        0    -> {}
         1    -> consensus_aux1(heads.single(), nxt, con)
         else -> consensus_auxN(heads, con)
     }
-}
-
-fun Chain.consensus_aux0 (con: Consensus) {
-    assert(con.reps.isEmpty() && con.list.isEmpty() && con.invs.isEmpty() && con.negs.isEmpty() && con.zers.isEmpty())
-    if (this.name.startsWith("#")) {
-        con.reps[this.key!!] = 30
-    }
-    con.list.add(this.genesis())
 }
 
 fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
@@ -318,27 +317,32 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
              nxt.immut.like.hash==blk.hash && nxt.immut.like.n>0)
 
     val ok = head==this.genesis() || this.fromOwner(blk) || this.name.startsWith('$') ||
-             (blk.sign!=null && con.reps[blk.sign.pub]!!>0) ||
+             (blk.sign!=null && con.reps.getZ(blk.sign.pub)>0) ||
              (lk && blk.immut.like==null)
 
     when {
         !ok -> con.invs += blk.hash     // no reps
         (blk.immut.like != null) -> {   // a like
+            con.list.add(blk.hash)
             val target = this.fsLoadBlock(blk.immut.like.hash).let {
                 if (it.sign == null) null else it.sign.pub
             }
             if (blk.sign != null) {
-                con.reps[blk.sign.pub] = con.reps[blk.sign.pub]!! - blk.immut.like.n.absoluteValue
+                con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
             }
             if (target != null) {
-                con.reps[target] = con.reps[target]!! + blk.immut.like.n
+                con.reps[target] = con.reps.getZ(target) + blk.immut.like.n
             }
         }
         else -> {                       // a post
-            if (blk.sign != null) {
-                con.reps[blk.sign.pub] = con.reps[blk.sign.pub]!! - 1
-                con.negs.add(blk)
-                con.zers.add(blk)
+            con.list.add(blk.hash)
+            when {
+                (this.name.startsWith("#") && blk.hash == this.genesis()) -> con.reps[this.key!!] = 30
+                (blk.sign != null) -> {
+                    con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - 1
+                    con.negs.add(blk.hash)
+                    con.zers.add(blk.hash)
+                }
             }
         }
     }

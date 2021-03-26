@@ -44,7 +44,7 @@ fun Host.chainsJoin (name: String, key: HKey?) : Chain {
         chain.genesis(),
         null
     )
-    chain.fsSaveBlock(gen, "")
+    chain.fsSaveBlock(null, gen, "")
 
     return file.readText().fromJsonToChain()
 }
