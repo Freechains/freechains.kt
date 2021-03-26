@@ -12,7 +12,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.isHidden (blk: Block) : Boolean {
+fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
     return when {
         // immutable
         (blk.hash.toHeight() == 0)     -> false       // genesis block
@@ -22,7 +22,7 @@ fun Chain.isHidden (blk: Block) : Boolean {
 
         // mutable
         else -> {
-            val (pos,neg) = this.repsPost(blk.hash)
+            val (pos,neg) = this.repsPost(con, blk.hash)
             (neg>=LK5_dislikes && LK2_factor*neg>=pos) // too many dislikes
         }
     }

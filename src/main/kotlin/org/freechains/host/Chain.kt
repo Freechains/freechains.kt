@@ -131,18 +131,7 @@ fun Chain.fsAll (): Set<Hash> {
     return File(this.path() + "/blocks/").listFiles().map { it.nameWithoutExtension }.toSet()
 }
 
-// REPUTATION
-
-fun Chain.repsPost (hash: String) : Pair<Int,Int> {
-    val (pos,neg) = this
-        .fsAll()
-        .map    { this.fsLoadBlock(it) }
-        .filter { it.immut.like != null }           // only likes
-        .filter { it.immut.like!!.hash == hash }    // only likes to this post
-        .map    { it.immut.like!!.n }
-        .partition { it > 0 }
-    return Pair(pos.sum(),-neg.sum())
-}
+// SETS
 
 fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
     return hs.map { this.allFrom(it) }.toSet().unionAll()
@@ -157,6 +146,22 @@ fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
         return (all-h).none { this.allFrom(it).contains(h) }
     }
     return all.filter { isHead(it) }.toSet()
+}
+
+// REPUTATION
+
+fun Chain.repsPost (con: Consensus, hash: String) : Pair<Int,Int> {
+    val (pos,neg) = con.list
+        .map    { this.fsLoadBlock(it) }
+        .filter { it.immut.like != null }           // only likes
+        .filter { it.immut.like!!.hash == hash }    // only likes to this post
+        .map    { it.immut.like!!.n }
+        .partition { it > 0 }
+    return Pair(pos.sum(),-neg.sum())
+}
+
+fun Consensus.repsAuthor (pub: HKey) : Int {
+    return this.reps.getZ(pub)
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -174,10 +179,6 @@ fun MutableMap<HKey,Int>.getZ (pub: HKey): Int {
         this[pub] = 0
     }
     return this[pub]!!
-}
-
-fun Consensus.repsAuthor (pub: HKey) : Int {
-    return this.reps.getZ(pub)
 }
 
 fun Chain.consensus (): Consensus {

@@ -310,7 +310,7 @@ class Daemon (loc_: Host) {
                                     val ref = cmds[3]
                                     val likes =
                                         if (ref.hashIsBlock()) {
-                                            val (pos, neg) = chain.repsPost(ref)
+                                            val (pos, neg) = chain.repsPost(con,ref)
                                             pos - neg
                                         } else {
                                             con.repsAuthor(ref)
@@ -467,7 +467,7 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = if (chain.isHidden(out)) "" else chain.fsLoadPayRaw(hash)
+                val pay = if (chain.isHidden(con,out)) "" else chain.fsLoadPayRaw(hash)
                 writer.writeLineX(pay.length.toString())
                 writer.writeBytes(pay)
                 writer.writeLineX("")
@@ -548,7 +548,7 @@ class Daemon (loc_: Host) {
         writer.writeLineX(nout.toString())                // 8
 
         for (blk in hiddens) {
-            assert_(chain.isHidden(blk)) {
+            assert_(chain.isHidden(con,blk)) {
                 "bug found: expected hidden state"
             }
         }
