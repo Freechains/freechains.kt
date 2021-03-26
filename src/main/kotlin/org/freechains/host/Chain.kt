@@ -76,6 +76,11 @@ val zeros = ByteArray(GenericHash.BYTES)
 fun String.calcHash () : String {
     return lazySodium.cryptoGenericHash(this, Key.fromBytes(zeros))
 }
+fun ByteArray.calcHash () : String {
+    val out = ByteArray(GenericHash.BYTES)
+    assert(lazySodium.cryptoGenericHash(out,GenericHash.BYTES, this,this.size.toLong(), zeros,zeros.size))
+    return out.toString(Charsets.UTF_8)
+}
 
 fun Immut.toHash () : Hash {
     fun Set<Hash>.backsToHeight () : Int {
@@ -101,7 +106,7 @@ fun Chain.fsLoadBlock (hash: Hash) : Block {
     return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
-fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?) : String {
+fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?) : ByteArray {
     val blk = this.fsLoadBlock(hash)
     val pay = this.fsLoadPayRaw(hash)
     return when {
@@ -112,8 +117,8 @@ fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?) : String {
     }
 }
 
-fun Chain.fsLoadPayRaw (hash: Hash) : String {
-    return File(this.path() + "/blocks/" + hash + ".pay").readBytes().toString(Charsets.UTF_8)
+fun Chain.fsLoadPayRaw (hash: Hash) : ByteArray {
+    return File(this.path() + "/blocks/" + hash + ".pay").readBytes()
 }
 
 fun Chain.fsExistsBlock (hash: Hash) : Boolean {
@@ -121,9 +126,9 @@ fun Chain.fsExistsBlock (hash: Hash) : Boolean {
             File(this.path() + "/blocks/" + hash + ".blk").exists()
 }
 
-fun Chain.fsSaveBlock (con: Consensus?, blk: Block, pay: String) {
+fun Chain.fsSaveBlock (con: Consensus?, blk: Block, pay: ByteArray) {
     this.blockAssert(con, blk)
-    File(this.path() + "/blocks/" + blk.hash + ".pay").writeText(pay)
+    File(this.path() + "/blocks/" + blk.hash + ".pay").writeBytes(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }
 
@@ -199,12 +204,12 @@ fun Chain.consensus (): Consensus {
 }
 
 fun Chain.negs_zers (now: Long, con: Consensus) {
-    val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-12*hour }
+    val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T12h_new }
     con.negs -= nonegs.map { it.hash }
     nonegs.forEach {
         con.reps[it.sign!!.pub] = con.reps.getZ(it.sign.pub) + 1
     }
-    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-24*hour }
+    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T24h_old }
     con.zers -= nozers.map { it.hash }
     nozers.forEach {
         con.reps[it.sign!!.pub] =con.reps.getZ(it.sign.pub) + 1

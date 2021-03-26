@@ -39,48 +39,51 @@ fun String.toPubPvt () : KeyPair {
 
 // ENCRYPT
 
-fun String.encryptShared (shared: HKey) : String {
+fun ByteArray.encryptShared (shared: HKey) : ByteArray {
     val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-    val key_ = Key.fromHexString(shared)
-    return LazySodium.toHex(nonce) + lazySodium.cryptoSecretBoxEasy(this, nonce, key_)
+    val key = Key.fromHexString(shared)
+    val out = ByteArray(this.size)
+    assert(lazySodium.cryptoSecretBoxEasy(out,this,this.size.toLong(),nonce,key.asBytes))
+    return nonce + out
+
 }
 
-fun String.encryptPublic (pub: HKey) : String {
-    val dec = this.toByteArray()
-    val enc = ByteArray(Box.SEALBYTES + dec.size)
+fun ByteArray.encryptPublic (pub: HKey) : ByteArray {
+    val out = ByteArray(Box.SEALBYTES + this.size)
     val key0 = Key.fromHexString(pub).asBytes
     val key1 = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
     assert_(lazySodium.convertPublicKeyEd25519ToCurve25519(key1, key0))
-    lazySodium.cryptoBoxSeal(enc, dec, dec.size.toLong(), key1)
-    return LazySodium.toHex(enc)
+    assert(lazySodium.cryptoBoxSeal(out, this, this.size.toLong(), key1))
+    return out
 }
 
 // DECRYPT
 
-fun String.decrypt (key: HKey) : String {
+fun ByteArray.decrypt (key: HKey) : ByteArray {
     return if (key.keyIsPrivate()) this.decryptPrivate(key) else this.decryptShared(key)
 }
 
-fun String.decryptShared (shared: HKey) : String {
+fun ByteArray.decryptShared (shared: HKey) : ByteArray {
     val idx = SecretBox.NONCEBYTES * 2
-    return lazySodium.cryptoSecretBoxOpenEasy(
-        this.substring(idx),
-        LazySodium.toBin(this.substring(0, idx)),
-        Key.fromHexString(shared)
-    )
+    val out = ByteArray(this.size-idx)
+    assert(lazySodium.cryptoSecretBoxOpenEasy(
+        out,
+        this.copyOfRange(idx,out.size),
+        out.size.toLong(),
+        this.copyOfRange(0, idx),
+        shared.toByteArray()
+    ))
+    return out
 }
 
-fun String.decryptPrivate (pvt: HKey) : String {
-    val enc = LazySodium.toBin(this)
-    val dec = ByteArray(enc.size - Box.SEALBYTES)
-
+fun ByteArray.decryptPrivate (pvt: HKey) : ByteArray {
+    val out = ByteArray(this.size - Box.SEALBYTES)
     val pub1 = Key.fromHexString(pvt.pvtToPub()).asBytes
     val pvt1 = Key.fromHexString(pvt).asBytes
     val pub2 = ByteArray(Box.CURVE25519XSALSA20POLY1305_PUBLICKEYBYTES)
     val pvt2 = ByteArray(Box.CURVE25519XSALSA20POLY1305_SECRETKEYBYTES)
     assert_(lazySodium.convertPublicKeyEd25519ToCurve25519(pub2, pub1))
     assert_(lazySodium.convertSecretKeyEd25519ToCurve25519(pvt2, pvt1))
-
-    assert_(lazySodium.cryptoBoxSealOpen(dec, enc, enc.size.toLong(), pub2, pvt2))
-    return dec.toString(Charsets.UTF_8)
+    assert_(lazySodium.cryptoBoxSealOpen(out, this, this.size.toLong(), pub2, pvt2))
+    return out
 }

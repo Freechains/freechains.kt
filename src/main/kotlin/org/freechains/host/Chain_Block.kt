@@ -30,7 +30,7 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
+fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val backs_ = when {
         (backs != null) -> backs
         (like!=null && like.n>0 && this.heads(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)

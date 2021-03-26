@@ -10,18 +10,18 @@ typealias HKey = String
 typealias Addr_Port = Pair<String,Int>
 
 const val MAJOR    = 0
-const val MINOR    = 7
-const val REVISION = 10
+const val MINOR    = 8
+const val REVISION = 0
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
-const val PORT_8330 = 8330 //8888  // TODO: back to 8330
+const val PORT_8330 = 8330 //8888
 
 const val ms   = 1.toLong()
-const val sec  = 1000* ms
-const val min  = 60* sec
-const val hour = 60* min
-const val day  = 24* hour
+const val sec  = 1000*ms
+const val min  =   60*sec
+const val hour =   60*min
+const val day  =   24*hour
 
 const val T5S_socket = 5*sec
 

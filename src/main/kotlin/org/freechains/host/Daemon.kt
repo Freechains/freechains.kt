@@ -285,7 +285,7 @@ class Daemon (loc_: Host) {
                                     val hash = cmds[4]
                                     val decrypt= if (cmds[5] == "null") null else cmds[5]
                                     try {
-                                        val ret = when (cmds[3]) {
+                                        when (cmds[3]) {
                                             "block" -> {
                                                 val blk = chain.fsLoadBlock(hash)
                                                 val blk_ = Block_Get (
@@ -293,13 +293,17 @@ class Daemon (loc_: Host) {
                                                     blk.immut.pay, blk.immut.like, blk.sign,
                                                     blk.immut.backs
                                                 )
-                                                blk_.toJson()
+                                                val ret = blk_.toJson()
+                                                writer.writeLineX(ret.length.toString())
+                                                writer.writeBytes(ret)
                                             }
-                                            "payload" -> chain.fsLoadPayCrypt(hash, decrypt)
+                                            "payload" -> {
+                                                val ret = chain.fsLoadPayCrypt(hash, decrypt)
+                                                writer.writeLineX(ret.size.toString())
+                                                writer.write(ret)
+                                            }
                                             else -> error("impossible case")
                                         }
-                                        writer.writeLineX(ret.length.toString())
-                                        writer.writeBytes(ret)
                                     } catch (e: FileNotFoundException) {
                                         writer.writeLineX("! block not found")
                                     }
@@ -336,8 +340,8 @@ class Daemon (loc_: Host) {
                                 "post" -> {
                                     val sign = cmds[3]
                                     val len = cmds[5].toInt()
-                                    val pay = reader.readNBytesX(len).toString(Charsets.UTF_8)
-                                    assert_(pay.length <= S128_pay) { "post is too large" }
+                                    val pay = reader.readNBytesX(len)
+                                    assert_(pay.size <= S128_pay) { "post is too large" }
 
                                     var ret: String
                                     try {
@@ -362,8 +366,8 @@ class Daemon (loc_: Host) {
                                     System.err.println("chain post: $ret")
                                 }
                                 "like" -> {
-                                    val pay = reader.readNBytesX(cmds[6].toInt()).toString(Charsets.UTF_8)
-                                    assert_(pay.length <= S128_pay) { "post is too large" }
+                                    val pay = reader.readNBytesX(cmds[6].toInt())
+                                    assert_(pay.size <= S128_pay) { "post is too large" }
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
@@ -467,9 +471,9 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = if (chain.isHidden(con,out)) "" else chain.fsLoadPayRaw(hash)
-                writer.writeLineX(pay.length.toString())
-                writer.writeBytes(pay)
+                val pay = if (chain.isHidden(con,out)) ByteArray(0) else chain.fsLoadPayRaw(hash)
+                writer.writeLineX(pay.size.toString())
+                writer.write(pay)
                 writer.writeLineX("")
             }
             val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
@@ -520,7 +524,7 @@ class Daemon (loc_: Host) {
                     val blk = reader.readNBytesX(len1).toString(Charsets.UTF_8).jsonToBlock().copy() // .copy() recalculates .local
                     val len2 = reader.readLineX().toInt()
                     assert_(len2 <= S128_pay) { "post is too large" }
-                    val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
+                    val pay = reader.readNBytesX(len2)
                     reader.readLineX()
 
                     // reject peers with different keys
@@ -532,7 +536,7 @@ class Daemon (loc_: Host) {
                         assert_(chain.heads(con,Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
                         chain.fsSaveBlock(con,blk,pay)
                     }
-                    if (pay=="" && blk.immut.pay.hash!="".calcHash()) {
+                    if (pay.size==0 && blk.immut.pay.hash!="".calcHash()) {
                         hiddens.add(blk)
                     } // else: payload is really an empty string
 
