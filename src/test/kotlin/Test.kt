@@ -860,7 +860,7 @@ class Tests {
             }
         }
         main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "\$xxx")).let {
-            assert_(it.equals("0 / 1"))
+            assert_(it.equals("0 / 2"))
         }
     }
 
@@ -881,7 +881,7 @@ class Tests {
 
         val r0 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "recv", "#"))
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "send", "#"))
-        assert_(r0 == r1 && r0 == "0 / 1")
+        assert_(r0 == r1 && r0 == "0 / 2")
 
         val r00 = main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0))
         val r11 = main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1))
@@ -897,8 +897,8 @@ class Tests {
 
         val x0 = main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0))
         val x1 = main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1))
-        assert_(x0.toInt() == 30)
-        assert_(x1.toInt() == 30)
+        assert_(x0.toInt() == 31)
+        assert_(x1.toInt() == 31)
     }
 
     @Test

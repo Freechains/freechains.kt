@@ -17,7 +17,7 @@ data class Chain (
     val name : String,
     val key  : HKey?    // pioneer for public or shared for private chain
 ) {
-    val hash  : String = this.name.calcHash()
+    val hash  : String = (this.name + "/" + key).calcHash()
 }
 
 fun Chain.validate () : Chain {
