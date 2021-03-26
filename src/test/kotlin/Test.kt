@@ -1711,14 +1711,10 @@ class Tests {
 
         val n = 23
         for (i in 1..n) {
-            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads")))
-            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "heads", "blocked")))
-            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "post", "inline", "Post 1")))
-            println(main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "#crdt", "reps", PUB)))
+            main_cli_assert(arrayOf(H0, S0, "chain", "#crdt", "post", "inline", "Post $n"))
         }
 
         val ret = main_cli_assert(arrayOf(H0, "chain", "#crdt", "heads"))
-        println(ret)
-        assert_(ret == "$n / $n")
+        assert_(ret.startsWith("23_"))
     }
 }
