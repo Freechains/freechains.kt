@@ -161,3 +161,13 @@ fun String.to_Addr_Port () : Addr_Port {
 fun Addr_Port.from_Addr_Port () : String {
     return "$first:$second"
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+fun<T> Set<Set<T>>.intersectAll (): Set<T> {
+    return this.fold(emptySet(), {x,y->x.intersect(y)})
+}
+
+fun<T> Set<Set<T>>.unionAll (): Set<T> {
+    return this.fold(emptySet(), {x,y->x+y})
+}
