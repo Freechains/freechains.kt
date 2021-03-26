@@ -40,8 +40,7 @@ fun Chain.heads (con: Consensus, want: Head_State): Set<Hash> {
     }
 }
 
-fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
-    val con = this.consensus()
+fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val backs_ = when {
         (backs != null) -> backs
         (like!=null && like.n>0 && this.heads(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)

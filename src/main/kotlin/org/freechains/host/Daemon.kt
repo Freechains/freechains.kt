@@ -344,6 +344,7 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
+                                                chain.consensus(),
                                                 if (sign == "anon") null else sign,
                                                 null,
                                                 pay,
@@ -368,6 +369,7 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
+                                                chain.consensus(),
                                                 cmds[5],
                                                 Like(cmds[3].toInt(), cmds[4]),
                                                 pay,
