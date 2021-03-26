@@ -172,12 +172,12 @@ class Tests {
         val n1 = chain.blockNew(PVT0, null, "1", false, null)
         val n2 = chain.blockNew(PVT0, null, "2", false, null)
         val n3 = chain.blockNew(PVT0, null, "3", false, null)
-        val all = chain.all(chain.heads(Head_State.LINKED))
+        val all = chain.allFroms(chain.heads(Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
         val rep1 = chain.repsAuthor(PUB0)
         assert(rep1 == 27)
         setNow(12*hour+100)
-        val rep2 = chain.repsAuthor(PUB0)
+        val rep2 = chain.reps(PUB0)
         assert(rep2 == 30)
     }
     @Test
@@ -185,17 +185,17 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/C04/")
         val chain = loc.chainsJoin("#xxx", PUB0)
         setNow(0)
-        assert(30 == chain.repsAuthor(PUB0))
+        assert(30 == chain.reps(PUB0))
         val n1 = chain.blockNew(PVT0, null, "1", false, null)
-        assert(29 == chain.repsAuthor(PUB0))
+        assert(29 == chain.reps(PUB0))
         setNow(12*hour+100)
-        assert(30 == chain.repsAuthor(PUB0))
+        assert(30 == chain.reps(PUB0))
         val n2 = chain.blockNew(PVT0, null, "2", false, null)
-        assert(29 == chain.repsAuthor(PUB0))
+        assert(29 == chain.reps(PUB0))
         setNow(24*hour+200)
-        assert(31 == chain.repsAuthor(PUB0))
+        assert(31 == chain.reps(PUB0))
         val n3 = chain.blockNew(PVT0, null, "3", false, null)
-        assert(30 == chain.repsAuthor(PUB0))
+        assert(30 == chain.reps(PUB0))
     }
     @Test
     fun c05_seq() {

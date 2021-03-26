@@ -7,7 +7,6 @@ import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.util.*
 import kotlin.math.absoluteValue
 
 // internal methods are private but are used in tests
@@ -73,11 +72,11 @@ fun Chain.genesis () : Hash {
 
 fun Chain.heads (state: Head_State): Set<Hash> {
     val all = this.fsAll()
-    val hs = all.filter { head -> (all-head).none { this.all(setOf(it)).contains(head) } }
+    val hs = all.filter { head -> (all-head).none { this.allFrom(it).contains(head) } }
 
     fun blockeds (): Set<Hash> {
         return hs
-            .filter { head -> (hs-head).none { this.all(setOf(it)).contains(head) } }
+            .filter { head -> (hs-head).none { this.allFrom(it).contains(head) } }
             .filter {
                 val blk = this.fsLoadBlock(it)
                 when {
@@ -103,7 +102,7 @@ fun Chain.heads (state: Head_State): Set<Hash> {
         Head_State.ALL     -> hs.toSet()
         Head_State.BLOCKED -> blockeds()
         Head_State.LINKED  -> (all-blockeds()).let { it
-            .filter { head -> (it-head).none { this.all(setOf(it)).contains(head) } }
+            .filter { head -> (it-head).none { this.allFrom(it).contains(head) } }
             .toSet()
         }
     }
@@ -184,21 +183,25 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 }
 
 fun Chain.repsAuthor (pub: HKey) : Int {
-    val (reps,_,_) = this.consensus()
+    val (reps,_,_) = this.consensus().let { println(it) ; it }
     return reps[pub].let { if (it == null) 0 else it }
 }
 
-fun Chain.all (heads: Set<Hash>): Set<Hash> {
-    return heads + heads.map { this.all(this.fsLoadBlock(it).immut.backs) }.toSet().unionAll()
+fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
+    return hs.map { this.allFrom(it) }.toSet().unionAll()
+}
+
+fun Chain.allFrom (h: Hash): Set<Hash> {
+    return setOf(h) + this.allFroms(this.fsLoadBlock(h).immut.backs)
 }
 
 fun Chain.greater (h1: Hash, h2: Hash): Int {
     fun find_heads (bs: Set<Hash>): Set<Hash> {
-        return bs.filter { head -> (bs-head).none { this.all(setOf(it)).contains(head) } }.toSet()
+        return bs.filter { head -> (bs-head).none { this.allFrom(it).contains(head) } }.toSet()
     }
 
-    val h1s = this.all(setOf(h1))
-    val h2s = this.all(setOf(h2))
+    val h1s = this.allFrom(h1)
+    val h2s = this.allFrom(h2)
     val int = h1s.intersect(h2s)
 
     // counts the reps of common authors in common blocks
@@ -246,7 +249,10 @@ fun Chain.reps (pub: String, heads: Set<Hash> = this.heads(Head_State.LINKED)) :
 }
 
 fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
-    return all.filter { this.all(setOf(it)).intersect(all-it).isEmpty() }.toSet()
+    fun isHead (h: Hash): Boolean {
+        return (all-h).none { this.allFrom(it).contains(h) }
+    }
+    return all.filter { isHead(it) }.toSet()
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -260,107 +266,112 @@ data class Consensus (
 )
 
 fun Chain.consensus (): Consensus {
-    return this.consensus_aux(
-        this.find_heads(this.fsAll()),
-        null,
-        Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf())
-    )
+    val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf())
+    println(this.fsAll())
+    println(this.find_heads(this.fsAll()))
+    this.consensus_aux(this.find_heads(this.fsAll()),null,con)
+    negs_zers(getNow(), con)
+    return con
 }
 
-fun Chain.consensus_aux (hs: Set<Hash>, nxt: Block?, cur: Consensus): Consensus {
-    val hs_ = hs.filter { this.all(setOf(it)).intersect(cur.invs).isEmpty() }.toSet()
-    return when (hs_.size) {
-        0    -> consensus_aux0(cur)
-        1    -> consensus_aux1(hs_.single(), nxt, cur)
-        else -> consensus_auxN(hs_, cur)
-    }
-}
-
-fun Chain.consensus_aux0 (cur: Consensus): Consensus {
-    assert(cur.reps.isEmpty() && cur.list.isEmpty() && cur.invs.isEmpty() && cur.negs.isEmpty() && cur.zers.isEmpty())
-    val pioneer = if (this.name.startsWith("#")) mutableMapOf(Pair(this.key!!,30)) else mutableMapOf()
-    return Consensus(pioneer, mutableListOf(this.genesis()), mutableSetOf(), mutableSetOf(), mutableSetOf())
-}
-
-fun Chain.consensus_aux1 (h: Hash, nxt: Block?, cur: Consensus): Consensus {
-    val blk = this.fsLoadBlock(h)
-    var new = consensus_aux(blk.immut.backs, blk, cur)
-
-    val nonegs = new.negs.filter { it.immut.time <= blk.immut.time-12*hour }
-    new.negs -= nonegs
+fun negs_zers (now: Long, con: Consensus) {
+    val nonegs = con.negs.filter { it.immut.time <= now-12*hour }
+    con.negs -= nonegs
     nonegs.forEach {
-        new.reps[it.sign!!.pub] = new.reps[it.sign.pub]!! + 1
+        con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
+    }
+    val nozers = con.zers.filter { it.immut.time <= now-24*hour }
+    con.zers -= nozers
+    nozers.forEach {
+        con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
+    }
+}
+
+fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?, con: Consensus) {
+    when (heads.size) {
+        0    -> consensus_aux0(con)
+        1    -> consensus_aux1(heads.single(), nxt, con)
+        else -> consensus_auxN(heads, con)
+    }
+}
+
+fun Chain.consensus_aux0 (con: Consensus) {
+    assert(con.reps.isEmpty() && con.list.isEmpty() && con.invs.isEmpty() && con.negs.isEmpty() && con.zers.isEmpty())
+    if (this.name.startsWith("#")) {
+        con.reps[this.key!!] = 30
+    }
+    con.list.add(this.genesis())
+}
+
+fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
+    if (con.list.contains(head) || this.allFrom(head).intersect(con.invs).isNotEmpty()) {
+        return // stop if reaches a node in list or node that leads to invs
     }
 
-    val nozers = new.zers.filter { it.immut.time <= blk.immut.time-24*hour }
-    new.zers -= nozers
-    nozers.forEach {
-        new.reps[it.sign!!.pub] = new.reps[it.sign.pub]!! + 1
-    }
+    val blk = this.fsLoadBlock(head)
+    consensus_aux(blk.immut.backs, blk, con)
+
+    negs_zers(blk.immut.time, con)
 
     // next block is a like to my hash?
-    val lk = (nxt!=null && nxt.immut.like!=null && cur.reps[nxt.sign!!.pub]!!>0 &&
+    val lk = (nxt!=null && nxt.immut.like!=null && con.reps[nxt.sign!!.pub]!!>0 &&
              nxt.immut.like.hash==blk.hash && nxt.immut.like.n>0)
 
-    val ok = this.fromOwner(blk) || this.name.startsWith('$') ||
-             (blk.sign!=null && new.reps[blk.sign.pub]!!>0) ||
+    val ok = head==this.genesis() || this.fromOwner(blk) || this.name.startsWith('$') ||
+             (blk.sign!=null && con.reps[blk.sign.pub]!!>0) ||
              (lk && blk.immut.like==null)
 
     when {
-        !ok -> new.invs += blk.hash     // no reps
+        !ok -> con.invs += blk.hash     // no reps
         (blk.immut.like != null) -> {   // a like
             val target = this.fsLoadBlock(blk.immut.like.hash).let {
                 if (it.sign == null) null else it.sign.pub
             }
             if (blk.sign != null) {
-                new.reps[blk.sign.pub] = new.reps[blk.sign.pub]!! - blk.immut.like.n.absoluteValue
+                con.reps[blk.sign.pub] = con.reps[blk.sign.pub]!! - blk.immut.like.n.absoluteValue
             }
             if (target != null) {
-                new.reps[target] = new.reps[target]!! + blk.immut.like.n
+                con.reps[target] = con.reps[target]!! + blk.immut.like.n
             }
         }
         else -> {                       // a post
             if (blk.sign != null) {
-                new.reps[blk.sign.pub] = new.reps[blk.sign.pub]!! - 1
-                new.negs.add(blk)
-                new.zers.add(blk)
+                con.reps[blk.sign.pub] = con.reps[blk.sign.pub]!! - 1
+                con.negs.add(blk)
+                con.zers.add(blk)
             }
         }
     }
-
-    return new
 }
 
-fun Chain.consensus_auxN (hs: Set<Hash>, cur: Consensus): Consensus {
-    val alls = hs.map { this.all(setOf(it)) }.toSet()
+fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
+    val alls = heads.map { this.allFrom(it) }.toSet()
     val coms = alls.intersectAll()
-    var new  = consensus_aux(this.find_heads(coms), null, cur)
+    consensus_aux(this.find_heads(coms), null, con)
 
-    val l = hs.toMutableList()
+    val l = heads.toMutableList()
     assert(l.size > 0)
     while (l.size > 0) {
         val max = l.maxWithOrNull { h1,h2 ->
-            val h1s = this.all(setOf(h1))
-            val h2s = this.all(setOf(h2))
+            val h1s = this.allFrom(h1)
+            val h2s = this.allFrom(h2)
             fun freps (hs: Set<Hash>): Int {
                 return hs
                     .map    { this.fsLoadBlock(it) }
                     .filter { it.sign != null }
                     .map    { it.sign!!.pub }
-                    .filter { new.reps.containsKey(it) }
+                    .filter { con.reps.containsKey(it) }
                     .toSet  ()  // all pubs that appear in blocks not in common and have reps
-                    .map    { new.reps[it]!! }
+                    .map    { con.reps[it]!! }
                     .sum    ()
             }
             val n1 = freps(h1s - h2s)
             val n2 = freps(h2s - h1s)
             if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
         }!!
-        new = this.consensus_aux(setOf(max), null, new)
-        // TODO
+        this.consensus_aux(setOf(max), null, con)
         l.remove(max)
     }
-    return new
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -376,7 +387,7 @@ fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.ALL), excluding: S
         if (!exc.contains(cur)) {
             ret += seq_order(this.fsLoadBlock(cur).immut.backs, exc) + cur
         }
-        exc += this.all(setOf(cur))
+        exc += this.allFrom(cur)
         l.remove(cur)
     }
     return ret
@@ -479,6 +490,6 @@ fun Chain.seq_invalid (list_: List<Hash>): Pair<Map<HKey,Int>,Hash?> {
 
 // all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
 fun Chain.seq_remove (rem: Hash): Set<Hash> {
-    return this.all(this.heads(Head_State.LINKED)).filter { this.all(setOf(it)).contains(rem) }.toSet()
+    return this.allFroms(this.heads(Head_State.LINKED)).filter { this.allFrom(it).contains(rem) }.toSet()
 }
 
