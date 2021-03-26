@@ -202,12 +202,12 @@ fun Chain.negs_zers (now: Long, con: Consensus) {
     val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-12*hour }
     con.negs -= nonegs.map { it.hash }
     nonegs.forEach {
-        con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
+        con.reps[it.sign!!.pub] = con.reps.getZ(it.sign.pub) + 1
     }
     val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-24*hour }
     con.zers -= nozers.map { it.hash }
     nozers.forEach {
-        con.reps[it.sign!!.pub] = con.reps[it.sign.pub]!! + 1
+        con.reps[it.sign!!.pub] =con.reps.getZ(it.sign.pub) + 1
     }
 }
 
@@ -230,7 +230,8 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
     negs_zers(blk.immut.time, con)
 
     // next block is a like to my hash?
-    val lk = (nxt!=null && nxt.immut.like!=null && con.reps[nxt.sign!!.pub]!!>0 &&
+    val lk = (nxt!=null && nxt.immut.like!=null &&
+             (this.fromOwner(nxt) || con.reps.getZ(nxt.sign!!.pub)>0) &&
              nxt.immut.like.hash==blk.hash && nxt.immut.like.n>0)
 
     val ok = head==this.genesis() || this.fromOwner(blk) || this.name.startsWith('$') ||
