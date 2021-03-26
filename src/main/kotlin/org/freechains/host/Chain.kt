@@ -70,45 +70,6 @@ fun Chain.genesis () : Hash {
     return "0_" + this.hash
 }
 
-fun Chain.heads (state: Head_State): Set<Hash> {
-    val all = this.fsAll()
-    val hs = all.filter { head -> (all-head).none { this.allFrom(it).contains(head) } }
-
-    fun blockeds (): Set<Hash> {
-        return hs
-            .filter { head -> (hs-head).none { this.allFrom(it).contains(head) } }
-            .filter {
-                val blk = this.fsLoadBlock(it)
-                when {
-                    // immutable
-                    (blk.hash.toHeight() == 0)     -> false       // genesis block
-                    this.fromOwner(blk)            -> false       // owner signature
-                    this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
-                    (blk.immut.like != null)       -> false       // a like
-
-                    // mutable
-                    else -> {
-                        val rep = if (blk.sign==null) 0 else {
-                            this.reps(blk.sign.pub, setOf(blk.hash))
-                        }
-                        (rep < 0)
-                    }
-                }
-            }
-            .toSet()
-    }
-
-    return when (state) {
-        Head_State.ALL     -> hs.toSet()
-        Head_State.BLOCKED -> blockeds()
-        Head_State.LINKED  -> (all-blockeds()).let { it
-            .filter { head -> (it-head).none { this.allFrom(it).contains(head) } }
-            .toSet()
-        }
-        else -> error("TODO")
-    }
-}
-
 // HASH
 
 val zeros = ByteArray(GenericHash.BYTES)
@@ -189,55 +150,6 @@ fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
 
 fun Chain.allFrom (h: Hash): Set<Hash> {
     return setOf(h) + this.allFroms(this.fsLoadBlock(h).immut.backs)
-}
-
-fun Chain.greater (h1: Hash, h2: Hash): Int {
-    fun find_heads (bs: Set<Hash>): Set<Hash> {
-        return bs.filter { head -> (bs-head).none { this.allFrom(it).contains(head) } }.toSet()
-    }
-
-    val h1s = this.allFrom(h1)
-    val h2s = this.allFrom(h2)
-    val int = h1s.intersect(h2s)
-
-    // counts the reps of common authors in common blocks
-    // counts = {A=2, B=5, C=1, ...}
-    val common = let {
-        val pioneer = if (this.name.startsWith("#")) setOf(this.key!!) else emptySet()
-        val authors = pioneer + int
-            .map { this.fsLoadBlock(it) }
-            .filter { it.sign!=null }
-            .map { it.sign!!.pub }
-            .toSet()
-        authors
-            .map {
-                val (reps,inv) = this.seq_invalid(this.seq_order(find_heads(int)))
-                assert(inv == null)
-                Pair(it,reps[it]!!)
-            }
-            .toMap()
-    }
-
-    // for each branch h1/h2: sum of reputation of these common authors
-    fun f (hs: Set<Hash>): Int {
-        val pubs = hs
-            .map    { this.fsLoadBlock(it) }
-            .filter { it.sign != null }
-            .map    { it.sign!!.pub }
-        return common
-            .filter { (aut,_) -> pubs.contains(aut) }
-            .map { it.value }
-            .sum()
-    }
-
-    val n1 = f(h1s - h2s)
-    val n2 = f(h2s - h1s)
-    return if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
-}
-
-fun Chain.reps (pub: String, heads: Set<Hash> = this.heads(Head_State.LINKED)) : Int {
-    val (reps,inv) = this.seq_invalid(this.seq_order(heads))
-    return if (inv != null) -1 else reps[pub]!!
 }
 
 fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
@@ -350,19 +262,16 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
     val l = heads.toMutableList()
     assert(l.size > 0)
     while (l.size > 0) {
+        fun freps (hs: Set<Hash>): Int {
+            return hs   // sum of reps of all pubs that appear in blocks not in common
+                .map    { this.fsLoadBlock(it) }
+                .filter { it.sign != null }
+                .map    { con.reps.getZ(it.sign!!.pub) }
+                .sum    ()
+        }
         val max = l.maxWithOrNull { h1,h2 ->
             val h1s = this.allFrom(h1)
             val h2s = this.allFrom(h2)
-            fun freps (hs: Set<Hash>): Int {
-                return hs
-                    .map    { this.fsLoadBlock(it) }
-                    .filter { it.sign != null }
-                    .map    { it.sign!!.pub }
-                    .filter { con.reps.containsKey(it) }
-                    .toSet  ()  // all pubs that appear in blocks not in common and have reps
-                    .map    { con.reps[it]!! }
-                    .sum    ()
-            }
             val n1 = freps(h1s - h2s)
             val n2 = freps(h2s - h1s)
             if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
@@ -371,123 +280,3 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
         l.remove(max)
     }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-
-// receive set of heads, returns total order
-fun Chain.seq_order (heads: Set<Hash> = this.heads(Head_State.ALL), excluding: Set<Hash> = setOf(this.genesis())): List<Hash> {
-    val l = heads.toMutableList()
-    assert(l.size > 0)
-    val ret = mutableListOf<Hash>()
-    var exc = excluding
-    while (l.size > 0) {
-        var cur = l.maxWithOrNull(::greater)!!
-        if (!exc.contains(cur)) {
-            ret += seq_order(this.fsLoadBlock(cur).immut.backs, exc) + cur
-        }
-        exc += this.allFrom(cur)
-        l.remove(cur)
-    }
-    return ret
-}
-
-// find first invalid block in blockchain
-fun Chain.seq_invalid (list_: List<Hash>): Pair<Map<HKey,Int>,Hash?> {
-    val now  = getNow()
-    val list = list_.map { this.fsLoadBlock(it) }
-    val negs = mutableSetOf<Block>()
-    val zers = mutableSetOf<Block>()
-    val reps = list
-        .filter { it.sign != null }
-        .map    { Pair(it.sign!!.pub,0) }
-        .toMap().toMutableMap()
-    if (this.name.startsWith("#")) {
-        reps[this.key!!] = LK30_max
-    }
-
-    fun f (): Hash? {
-        for (i in 0..list.size-1) {
-            val cur = list[i]
-
-            val nonegs = negs.filter { it.immut.time <= cur.immut.time-12*hour }
-            negs -= nonegs
-            nonegs.forEach {
-                reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-            }
-
-            val nozers = zers.filter { it.immut.time <= cur.immut.time-24*hour }
-            zers -= nozers
-            nozers.forEach {
-                reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-            }
-
-            // next block is a like to my hash?
-            val lk = (i+1 <= list.size-1) && list[i+1].let { nxt ->
-                (nxt.immut.like!=null) && reps[nxt.sign!!.pub]!!>0 && nxt.immut.like.hash==cur.hash && nxt.immut.like.n>0
-            }
-
-            // owner/private chain has infinite reputation
-            val ok = this.fromOwner(cur) || this.name.startsWith('$')
-
-            when {
-                // anonymous or no-reps author
-
-                !ok && (cur.sign==null || reps[cur.sign.pub]!!<=0) -> when {
-                    (cur.immut.like != null)  -> return cur.hash        // can't like w/o reps
-                    !lk                       -> return cur.hash        // can't post if next !lk
-                    else                      -> if (cur.sign!=null) {  // ok, but set -1
-                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
-                        negs.add(cur)
-                        zers.add(cur)
-                    }
-                }
-
-                // has reps
-
-                // normal post just decrements 1
-                (cur.immut.like == null) -> {
-                    if (cur.sign != null) {
-                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - 1
-                        negs.add(cur)
-                        zers.add(cur)
-                    }
-                }
-
-                // like also affects target
-                else -> {
-                    val target = this.fsLoadBlock(cur.immut.like.hash).let {
-                        if (it.sign == null) null else it.sign.pub
-                    }
-                    if (cur.sign != null) {
-                        reps[cur.sign.pub] = reps[cur.sign.pub]!! - cur.immut.like.n.absoluteValue
-                    }
-                    if (target != null) {
-                        reps[target] = reps[target]!! + cur.immut.like.n
-                    }
-                }
-            }
-        }
-        return null
-    }
-    val inv = f()
-
-    val nonegs = negs.filter { it.immut.time <= now-12*hour }
-    negs -= nonegs
-    nonegs.forEach {
-        reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-    }
-
-    val nozers = zers.filter { it.immut.time <= now-24*hour }
-    zers -= nozers
-    nozers.forEach {
-        reps[it.sign!!.pub] = reps[it.sign.pub]!! + 1
-    }
-
-    return Pair(reps,inv)
-}
-
-// all blocks to remove (in DAG) that lead to the invalid block (in blockchain)
-fun Chain.seq_remove (rem: Hash): Set<Hash> {
-    return this.allFroms(this.heads(Head_State.LINKED)).filter { this.allFrom(it).contains(rem) }.toSet()
-}
-

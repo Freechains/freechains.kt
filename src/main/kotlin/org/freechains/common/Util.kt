@@ -165,7 +165,7 @@ fun Addr_Port.from_Addr_Port () : String {
 ///////////////////////////////////////////////////////////////////////////////
 
 fun<T> Set<Set<T>>.intersectAll (): Set<T> {
-    return this.fold(emptySet(), {x,y->x.intersect(y)})
+    return this.fold(this.unionAll(), {x,y->x.intersect(y)})
 }
 
 fun<T> Set<Set<T>>.unionAll (): Set<T> {

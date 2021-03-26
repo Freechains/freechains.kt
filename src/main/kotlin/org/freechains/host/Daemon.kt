@@ -266,8 +266,8 @@ class Daemon (loc_: Host) {
                                 "heads" -> {
                                     val con = chain.consensus()
                                     val heads = when (cmds.size) {
-                                        3 -> chain.xxx(con,Head_State.LINKED)
-                                        4 -> { assert(cmds[3]=="blocked") ; chain.xxx(con,Head_State.BLOCKED) }
+                                        3 -> chain.heads(con,Head_State.LINKED)
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads(con,Head_State.BLOCKED) }
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
@@ -275,8 +275,7 @@ class Daemon (loc_: Host) {
                                 }
                                 "traverse" -> {
                                     val downto = cmds.drop(3)
-                                    val ret = chain
-                                        .seq_order ()
+                                    val ret = chain.consensus().list
                                         .dropWhile { downto.contains(it) }
                                         .joinToString(" ")
                                     writer.writeLineX(ret)
@@ -325,12 +324,15 @@ class Daemon (loc_: Host) {
                                 // they affect the chain in the disk, which is shared across connections
 
                                 "remove" -> {
+                                    error("TODO")
+                                    /*
                                     val hash = cmds[3]
                                     synchronized(getLock(chain.name)) {
                                         chain.blockRemove(hash)
                                     }
                                     writer.writeLineX("true")
                                     System.err.println("chain remove: $hash")
+                                     */
                                 }
                                 "post" -> {
                                     val sign = cmds[3]
@@ -423,7 +425,8 @@ class Daemon (loc_: Host) {
         var nmax    = 0
 
         // for each local head
-        val heads = chain.heads(Head_State.LINKED) + chain.heads(Head_State.BLOCKED)
+        val con = chain.consensus()
+        val heads = chain.heads(con,Head_State.LINKED) + chain.heads(con,Head_State.BLOCKED)
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
         for (head in heads) {
@@ -519,7 +522,6 @@ class Daemon (loc_: Host) {
                     assert_(len2 <= S128_pay) { "post is too large" }
                     val pay = reader.readNBytesX(len2).toString(Charsets.UTF_8)
                     reader.readLineX()
-                    assert_(chain.heads(Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {
@@ -528,6 +530,7 @@ class Daemon (loc_: Host) {
 
                     synchronized(getLock(chain.name)) {
                         val con = chain.consensus()
+                        assert_(chain.heads(con,Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
                         chain.fsSaveBlock(con,blk,pay)
                     }
                     if (pay=="" && blk.immut.pay.hash!="".calcHash()) {

@@ -30,7 +30,7 @@ fun Chain.isHidden (blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.xxx (con: Consensus, want: Head_State): Set<Hash> {
+fun Chain.heads (con: Consensus, want: Head_State): Set<Hash> {
     return when (want) {
         Head_State.BLOCKED -> con.invs.filter {
             this.fsLoadBlock(it).immut.backs.all { con.list.contains(it) }
@@ -44,8 +44,8 @@ fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs
     val con = this.consensus()
     val backs_ = when {
         (backs != null) -> backs
-        (like!=null && like.n>0 && this.xxx(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
-        else -> this.xxx(con,Head_State.LINKED)
+        (like!=null && like.n>0 && this.heads(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
+        else -> this.heads(con,Head_State.LINKED)
     }
 
     val pay_ = when {
@@ -80,12 +80,6 @@ fun Chain.blockNew (sign: HKey?, like: Like?, pay: String, crypt: Boolean, backs
     return hash
 }
 
-fun Chain.blockRemove (hash: Hash) {
-    val blk = this.fsLoadBlock(hash)
-    assert_(this.heads(Head_State.BLOCKED).contains(blk.hash)) { "can only remove blocked block" }
-    this.fsSave()
-}
-
 fun Chain.blockAssert (con: Consensus?, blk: Block) {
     val imm = blk.immut
     val now = getNow()
@@ -94,7 +88,7 @@ fun Chain.blockAssert (con: Consensus?, blk: Block) {
     for (bk in blk.immut.backs) {
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.xxx(con!!,Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.heads(con!!,Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
             "backs must be accepted"
         }
     }

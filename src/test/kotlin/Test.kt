@@ -162,8 +162,8 @@ class Tests {
         val n3 = chain.blockNew(PVT1, null, "2.2", false, null)
         //println(chain.heads)
         val con = chain.consensus()
-        assert(chain.xxx(con,Head_State.LINKED).let { it.size==1 && it.contains(n1) })
-        assert(chain.xxx(con,Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
+        assert(chain.heads(con,Head_State.LINKED).let { it.size==1 && it.contains(n1) })
+        assert(chain.heads(con,Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
     }
     @Test
     fun c03_all() {
@@ -173,9 +173,10 @@ class Tests {
         val n1 = chain.blockNew(PVT0, null, "1", false, null)
         val n2 = chain.blockNew(PVT0, null, "2", false, null)
         val n3 = chain.blockNew(PVT0, null, "3", false, null)
-        val all = chain.allFroms(chain.heads(Head_State.LINKED))
+        val con1 = chain.consensus()
+        val all = chain.allFroms(chain.heads(con1,Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
-        val rep1 = chain.consensus().repsAuthor(PUB0)
+        val rep1 = con1.repsAuthor(PUB0)
         assert(rep1 == 27)
         setNow(12*hour+100)
         val rep2 = chain.consensus().repsAuthor(PUB0)
@@ -211,8 +212,8 @@ class Tests {
         //          \-- b2
 
         val con1 = chain.consensus()
-        assert(chain.xxx(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
-        assert(chain.xxx(con1,Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
+        assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
+        assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
         assert(28 == con1.repsAuthor(PUB0))
 
         val a3 = chain.blockNew(PVT0, Like(1,b2), "a3", false, null)
@@ -221,8 +222,8 @@ class Tests {
         //          \-- b2 <- a3
 
         val con2 = chain.consensus()
-        assert(chain.xxx(con2,Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
-        assert(chain.xxx(con2,Head_State.BLOCKED).let { it.size==0 })
+        assert(chain.heads(con2,Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
+        assert(chain.heads(con2,Head_State.BLOCKED).let { it.size==0 })
         assert(27 == con2.repsAuthor(PUB0))
         assert( 0 == con2.repsAuthor(PUB1))
 
@@ -253,8 +254,8 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         val con1 = chain.consensus()
-        assert(chain.xxx(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
-        assert(chain.xxx(con1,Head_State.BLOCKED).let { it.size==0 })
+        assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
+        assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==0 })
         assert(28 == con1.repsAuthor(PUB0))
         assert( 0 == con1.repsAuthor(PUB1))
         assert( 0 == con1.repsAuthor(PUB2))
@@ -271,8 +272,8 @@ class Tests {
         val a6 = chain.blockNew(PVT0, null, "a6", false, setOf(a5,b5))
         val a7 = chain.blockNew(PVT0, null, "a7", false, setOf(a6,c5))
         val con3 = chain.consensus()
-        assert(chain.xxx(con3,Head_State.LINKED).size==1 && chain.xxx(con3,Head_State.BLOCKED).size==0)
-        assert(chain.xxx(con3,Head_State.LINKED).contains(a7))
+        assert(chain.heads(con3,Head_State.LINKED).size==1 && chain.heads(con3,Head_State.BLOCKED).size==0)
+        assert(chain.heads(con3,Head_State.LINKED).contains(a7))
         assert(25 == con3.repsAuthor(PUB0))
         assert( 0 == con3.repsAuthor(PUB1))
         assert( 0 == con3.repsAuthor(PUB2))
@@ -282,7 +283,7 @@ class Tests {
         //                            \-- b5 --/
 
         val str = con3.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        println(str)
+        //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
     }
     @Test
@@ -310,7 +311,7 @@ class Tests {
 
         val con = chain.consensus()
         val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        println(str)
+        //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
     }
     @Test
@@ -339,7 +340,7 @@ class Tests {
 
         val con = chain.consensus()
         val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        println(str)
+        //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
     }
     @Test
@@ -366,7 +367,7 @@ class Tests {
 
         val con = chain.consensus()
         val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
-        println(str)
+        //println(str)
         assert(str == ",b1,a2,c3,a4,a5,c5,b5,a6")
     }
     @Test
@@ -391,6 +392,7 @@ class Tests {
     fun c11_inv2() {
         val loc = Host_load("/tmp/freechains/tests/C11/")
         val chain = loc.chainsJoin("#xxx", PUB0)
+
         setNow(0)
         val b1 = chain.blockNew(PVT1, null,       "b1", false, null)
         val a2 = chain.blockNew(PVT0, Like(1,b1), "a2", false, null)
@@ -400,16 +402,23 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        assert(2 == chain.reps(PUB2))
-        assert(1 == chain.reps(PUB1))
+
+        val con1 = chain.consensus()
+        assert(2 == con1.repsAuthor(PUB2))
+        assert(1 == con1.repsAuthor(PUB1))
+
         setNow(25*hour)
-        assert(3 == chain.reps(PUB2))
-        assert(2 == chain.reps(PUB1))
+
+        val con2 = chain.consensus()
+        assert(3 == con2.repsAuthor(PUB2))
+        assert(2 == con2.repsAuthor(PUB1))
 
         val c5 = chain.blockNew(PVT2, null, "c5", false, setOf(a4))
         val c6 = chain.blockNew(PVT2, null, "c6", false, setOf(c5))
 
-        assert(1 == chain.reps(PUB2))
+        val con3 = chain.consensus()
+        assert(1 == con3.repsAuthor(PUB2))
+
         val c7 = chain.blockNew(PVT2, null,        "c7", false, setOf(c6))
         val b5 = chain.blockNew(PVT1, null,        "b5", false, setOf(a4))
         val a6 = chain.blockNew(PVT0, Like(-2,c3), "a6", false, setOf(b5))
@@ -418,12 +427,12 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
         //                            \-- b5 -- a6
 
-        val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val con4 = chain.consensus()
+        val str = con4.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
         println(str)
-        assert(str == ",b1,a2,c3,a4,b5,a6,c5,c6,c7")
+        assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //println(inv)
-        assert(con.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
+        assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
     }
 
     @Test
