@@ -1,5 +1,6 @@
 package org.freechains.host
 
+import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.GenericHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.common.*
@@ -79,7 +80,7 @@ fun String.calcHash () : String {
 fun ByteArray.calcHash () : String {
     val out = ByteArray(GenericHash.BYTES)
     assert(lazySodium.cryptoGenericHash(out,GenericHash.BYTES, this,this.size.toLong(), zeros,zeros.size))
-    return out.toString(Charsets.UTF_8)
+    return LazySodium.toHex(out)
 }
 
 fun Immut.toHash () : Hash {
@@ -106,7 +107,7 @@ fun Chain.fsLoadBlock (hash: Hash) : Block {
     return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
 
-fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?) : ByteArray {
+fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?): ByteArray {
     val blk = this.fsLoadBlock(hash)
     val pay = this.fsLoadPayRaw(hash)
     return when {

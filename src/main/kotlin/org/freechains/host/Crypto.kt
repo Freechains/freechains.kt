@@ -1,7 +1,6 @@
 package org.freechains.host
 
 import org.freechains.common.*
-import com.goterl.lazycode.lazysodium.LazySodium
 import com.goterl.lazycode.lazysodium.interfaces.Box
 import com.goterl.lazycode.lazysodium.interfaces.PwHash
 import com.goterl.lazycode.lazysodium.interfaces.SecretBox
@@ -41,10 +40,9 @@ fun String.toPubPvt () : KeyPair {
 
 fun ByteArray.encryptShared (shared: HKey) : ByteArray {
     val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
-    val key = Key.fromHexString(shared)
-    val out = ByteArray(this.size)
-    assert(lazySodium.cryptoSecretBoxEasy(out,this,this.size.toLong(),nonce,key.asBytes))
-    return nonce + out
+    val enc = ByteArray(SecretBox.MACBYTES + this.size)
+    assert(lazySodium.cryptoSecretBoxEasy(enc, this,this.size.toLong(), nonce, Key.fromHexString(shared).asBytes))
+    return nonce + enc
 
 }
 
@@ -64,16 +62,11 @@ fun ByteArray.decrypt (key: HKey) : ByteArray {
 }
 
 fun ByteArray.decryptShared (shared: HKey) : ByteArray {
-    val idx = SecretBox.NONCEBYTES * 2
-    val out = ByteArray(this.size-idx)
-    assert(lazySodium.cryptoSecretBoxOpenEasy(
-        out,
-        this.copyOfRange(idx,out.size),
-        out.size.toLong(),
-        this.copyOfRange(0, idx),
-        shared.toByteArray()
-    ))
-    return out
+    val nonce = this.copyOfRange(0, SecretBox.NONCEBYTES)
+    val enc = this.copyOfRange(SecretBox.NONCEBYTES,this.size)
+    val dec = ByteArray(enc.size-SecretBox.MACBYTES)
+    assert(lazySodium.cryptoSecretBoxOpenEasy(dec, enc,enc.size.toLong(), nonce, Key.fromHexString(shared).asBytes))
+    return dec
 }
 
 fun ByteArray.decryptPrivate (pvt: HKey) : ByteArray {

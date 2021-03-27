@@ -118,6 +118,22 @@ class Tests {
         val c = b.v.toByteArray(Charsets.ISO_8859_1)
         assert_(bs.toByteArray().contentToString() == c.contentToString())
     }
+    @Test
+    fun a2_shared() {
+        val str = "Alo 1234"
+        val enc = str.toByteArray().encryptShared(SHA0)
+        val dec = enc.decryptShared(SHA0).toString(Charsets.UTF_8)
+        //println(str.length.toString() + " vs " + dec.length)
+        assert(str == dec)
+    }
+    @Test
+    fun a3_pubpvt() {
+        val str = "Alo 1234"
+        val enc = str.toByteArray().encryptPublic(PUB0)
+        val dec = enc.decryptPrivate(PVT0).toString(Charsets.UTF_8)
+        //println(str.length.toString() + " vs " + dec.length)
+        assert(str == dec)
+    }
 
     @Test
     fun b1_chain() {
@@ -286,7 +302,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val str = con3.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con3.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
     }
@@ -314,7 +330,7 @@ class Tests {
         //                            \-- b5 --/
 
         val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
     }
@@ -343,7 +359,7 @@ class Tests {
         //                            \-- b5 --/
 
         val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
     }
@@ -370,7 +386,7 @@ class Tests {
         //                            \-- b5 --/
 
         val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,c5,b5,a6")
     }
@@ -387,7 +403,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4")
         assert(con.invs.isEmpty())
@@ -432,7 +448,7 @@ class Tests {
         //                            \-- b5 -- a6
 
         val con4 = chain.consensus()
-        val str = con4.list.map { chain.fsLoadPayRaw(it) }.joinToString(",")
+        val str = con4.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         println(str)
         assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //println(inv)
@@ -738,6 +754,7 @@ class Tests {
         lazySodium.cryptoBoxSealOpen(dec2, enc2, enc2.size.toLong(), pubcu, pvtcu)
         assert_(dec2.toString(Charsets.UTF_8) == "mensagem secreta")
     }
+
     @Test
     fun m03_crypto_post() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
@@ -750,14 +767,13 @@ class Tests {
     fun m04_crypto_encrypt() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
         val c1 = loc.chainsLoad("\$sym")
-        //println(c1.root)
         val n1 = c1.blockNew(c1.consensus(),null, null, B("aaa"), true, null)
-        //println(n1)
         val n2 = c1.fsLoadPayCrypt(n1, null)
-        assert_(n2.toString() == "aaa")
+        assert_(n2.toString(Charsets.UTF_8) == "aaa")
         val n3 = c1.fsLoadPayRaw(n1)
-        assert_(n3.toString() != "aaa")
+        assert_(n3.toString(Charsets.UTF_8) != "aaa")
     }
+
     @Test
     fun m05_crypto_encrypt_sym() {
         thread { main_host(arrayOf("start", "/tmp/freechains/tests/M50/")) }
