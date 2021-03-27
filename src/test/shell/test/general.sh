@@ -130,7 +130,7 @@ do
 done
 
 echo "### SLEEP ###"
-sleep 20
+sleep 30
 
 for i in $(seq 8421 8430)
 do
