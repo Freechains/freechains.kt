@@ -16,8 +16,8 @@ Usage:
     
     freechains chain <chain> genesis
     freechains chain <chain> heads [blocked]
-    freechains chain <chain> get (block | payload) <hash>
-    freechains chain <chain> post (file | inline | -) [<path_or_text>]
+    freechains chain <chain> get (block | payload) <hash> (inline | file <path>)
+    freechains chain <chain> post (inline | file | -) [<path_or_text>]
     freechains chain <chain> (like | dislike) <hash>
     freechains chain <chain> reps <hash_or_pub>
     freechains chain <chain> remove <hash>
@@ -167,7 +167,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         reader.readLineX()
                     }
                     "get" -> {
-                        assert_(cmds.size == 5) { "invalid number of arguments" }
+                        assert_(cmds.size >= 6) { "invalid number of arguments" }
                         val decrypt = opts["--decrypt"].toString() // null or pvtkey
 
                         writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $decrypt")
@@ -175,7 +175,12 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         if (len.startsWith('!')) {
                             len
                         } else {
-                            reader.readNBytesX(len.toInt()).toString(Charsets.UTF_8)
+                            val bs = reader.readNBytesX(len.toInt())
+                            when (cmds[5]) {
+                                "inline" -> bs.toString(Charsets.UTF_8)
+                                "file"   -> { File(cmds[6]).writeBytes(bs) ; "" }
+                                else     -> error("impossible case")
+                            }
                         }
                     }
                     "post" -> {
@@ -184,14 +189,13 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         val encrypt = opts.containsKey("--encrypt").toString() // null (false) or empty (true)
 
                         val pay = when (cmds[3]) {
-                            "inline" -> cmds[4]
-                            "file" -> File(cmds[4]).readBytes().toString(Charsets.UTF_8)
-                            "-" -> DataInputStream(System.`in`).readAllBytesX().toString(Charsets.UTF_8)
-                            else -> error("impossible case")
+                            "inline" -> cmds[4].toByteArray()
+                            "file"   -> File(cmds[4]).readBytes()
+                            "-"      -> DataInputStream(System.`in`).readAllBytes()
+                            else     -> error("impossible case")
                         }
-
-                        writer.writeLineX("$PRE chain $chain post $sign $encrypt ${pay.length}")
-                        writer.writeBytes(pay)
+                        writer.writeLineX("$PRE chain $chain post $sign $encrypt ${pay.size}")
+                        writer.write(pay)
 
                         reader.readLineX()
                     }

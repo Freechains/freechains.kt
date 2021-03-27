@@ -580,7 +580,7 @@ class Tests {
             }
         }
 
-        main_cli(arrayOf("chain", "#xxx", "get", "block", "0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129")).let {
+        main_cli(arrayOf("chain", "#xxx", "get", "block", "0_B5E21297B8EBEE0CFA0FA5AD30F21B8AE9AE9BBF25F2729989FE5A092B86B129", "inline")).let {
             println(it)
             assert_(!it.first && it.second.equals("! block not found"))
         }
@@ -807,16 +807,16 @@ class Tests {
         main_cli(arrayOf(H1, "chains", "join", "@$PUB0"))
         val hash = main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", "aaa", S0, "--encrypt"))
 
-        val pay = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", hash, "--decrypt=$PVT0"))
+        val pay = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", hash, "inline", "--decrypt=$PVT0"))
         assert_(pay == "aaa")
 
         main_cli(arrayOf("peer", "localhost:$PORT1", "send", "@$PUB0"))
-        val json2 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "get", "block", hash))
+        val json2 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "get", "block", hash, "inline"))
         val blk2 = json2.jsonToBlock_()
         assert_(blk2.pay.crypt)
 
         val h2 = main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", "bbbb", S1))
-        val pay2 = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", h2))
+        val pay2 = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", h2, "inline"))
         assert_(pay2 == "bbbb")
     }
     @Test
@@ -828,11 +828,11 @@ class Tests {
         main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB0"))
         val hash = main_cli_assert(arrayOf("chain", "@!$PUB0", "post", "inline", "aaa", S0, "--encrypt"))
 
-        val pay = main_cli_assert(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "--decrypt=$PVT0"))
+        val pay = main_cli_assert(arrayOf("chain", "@!$PUB0", "get", "payload", hash, "inline", "--decrypt=$PVT0"))
         assert_(pay == "aaa")
 
         main_cli(arrayOf("peer", "localhost:$PORT1", "send", "@!$PUB0"))
-        val json2 = main_cli_assert(arrayOf(H1, "chain", "@!$PUB0", "get", "block", hash))
+        val json2 = main_cli_assert(arrayOf(H1, "chain", "@!$PUB0", "get", "block", hash, "inline"))
         val blk2 = json2.jsonToBlock_()
         assert_(blk2.pay.crypt)
 
@@ -863,12 +863,12 @@ class Tests {
         File("/tmp/freechains/tests/M60y/chains/\$xxx/blocks/$hash.pay").readText().let {
             assert_(!it.equals("aaa"))
         }
-        main_cli_assert(arrayOf("chain", "\$xxx", "get", "payload", hash)).let {
+        main_cli_assert(arrayOf("chain", "\$xxx", "get", "payload", hash, "inline")).let {
             assert_(it == "aaa")
         }
 
         main_cli_assert(arrayOf("peer", "localhost:$PORT1", "send", "\$xxx")).let {
-            main_cli_assert(arrayOf(H1, "chain", "\$xxx", "get", "payload", hash)).let {
+            main_cli_assert(arrayOf(H1, "chain", "\$xxx", "get", "payload", hash, "inline")).let {
                 assert_(it == "aaa")
             }
         }
@@ -1134,7 +1134,7 @@ class Tests {
             assert_(it.startsWith("9_"))
         }
 
-        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "get", "payload", h8))
+        main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "get", "payload", h8, "inline"))
             .let {
                 assert_(it == "no sig")
             }

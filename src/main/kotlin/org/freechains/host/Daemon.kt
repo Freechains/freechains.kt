@@ -342,7 +342,6 @@ class Daemon (loc_: Host) {
                                     val len = cmds[5].toInt()
                                     val pay = reader.readNBytesX(len)
                                     assert_(pay.size <= S128_pay) { "post is too large" }
-
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {

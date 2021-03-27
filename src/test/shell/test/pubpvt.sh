@@ -48,9 +48,9 @@ h=`freechains --host=localhost:8400 --sign=$PVT --encrypt chain "@$PUB" post inl
 freechains --host=localhost:8400 peer localhost:8401 send "@$PUB"  # FAIL
 freechains --host=localhost:8400 peer localhost:8402 send "@$PUB"  # SUCCESS
 
-freechains --host=localhost:8400 --decrypt=$PVT chain "@$PUB" get payload $h > $FC/dec.pay
+freechains --host=localhost:8400 --decrypt=$PVT chain "@$PUB" get payload $h file $FC/dec.pay
 diff $FC/dec.pay <(echo 'Hello_World') || exit 1
-freechains --host=localhost:8402 chain "@$PUB" get block $h > $FC/enc.blk
+freechains --host=localhost:8402 chain "@$PUB" get block $h file $FC/enc.blk
 diff <(jq ".pay.crypt" $FC/enc.blk) <(echo 'true') || exit 1
 
 # stop hosts
