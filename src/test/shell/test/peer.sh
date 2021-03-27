@@ -17,20 +17,22 @@ S1=--sign=$PVT1
 
 H0=--host=localhost:8400
 H1=--host=localhost:8401
+P0=--port=8400
+P1=--port=8401
 
 ###############################################################################
 echo "#### 1"
 
 freechains-host start $FC/8400 --port=8400 &
 sleep 0.5
-freechains $H0 chains join "#"
+freechains $H0 chains join "#" $PUB0
 
 freechains-host start $FC/8401 --port=8401 &
 sleep 0.5
-freechains $H1 chains join "#"
+freechains $H1 chains join "#" $PUB0
 
-freechains-host $H0 now 0
-freechains-host $H1 now 0
+freechains-host $P0 now 0
+freechains-host $P1 now 0
 
 freechains $H0 $S0 chain "#" post inline zero
 freechains $H0 $S1 chain "#" post inline xxxx
@@ -41,8 +43,8 @@ freechains $H0 peer localhost:8401 send "#"
 # h0 <- zero <-- lxxxx
 #             \- xxxx
 
-freechains $H0 now 90000000
-freechains-host $H1 now 90000000
+freechains-host $P0 now 90000000
+freechains-host $P1 now 90000000
 
 echo ">>> LIKES"
 
@@ -64,8 +66,8 @@ freechains $H1 $S1 chain "#" like $haaaa --why="like aaaa"
 #             \- xxxx <-/ \ <-- laaa
 #                          aaa
 
-freechains-host $H0 now 98000000
-freechains-host $H1 now 98000000
+freechains-host $P0 now 98000000
+freechains-host $P1 now 98000000
 
 freechains $H0 peer localhost:8401 send "#"
 freechains $H1 peer localhost:8400 send "#"

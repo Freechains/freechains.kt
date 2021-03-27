@@ -113,10 +113,8 @@ echo "#### 5.1"
 
 for i in $(seq 8411 8420)
 do
-  freechains --host=localhost:8400 peer localhost:$i send "@!$PUB" &
+  freechains --host=localhost:8400 peer localhost:$i send "@!$PUB"
 done
-
-sleep 35
 
 echo "#### 5.2"
 
@@ -130,16 +128,9 @@ for i in $(seq 8411 8420)
 do
   freechains --host=localhost:$(($i+10)) peer localhost:$i recv "@!$PUB" &
 done
-sleep 10
 
-echo "#### 5.3"
-
-for i in $(seq 8421 8425)
-do
-  freechains --host=localhost:$i peer localhost:$(($i+5))  send "@!$PUB" &
-  freechains --host=localhost:$i peer localhost:$(($i+10)) send "@!$PUB" &
-done
-sleep 10
+echo "### SLEEP ###"
+sleep 20
 
 for i in $(seq 8421 8430)
 do

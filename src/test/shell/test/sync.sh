@@ -4,6 +4,7 @@ echo
 echo "=== TESTS-SYNC ==="
 echo
 
+PUB=E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369
 KEY=03F09D95821EABE32055921AFAF6D8584759A86C5E3B3126DD138372C148F47D
 FC=/tmp/freechains/sync/
 ./clean.sh
@@ -23,7 +24,7 @@ freechains --port=8400 chain "\$sync.xxx" post inline "peers localhost:8400 ADD"
 freechains --port=8400 chain "\$sync.xxx" post inline "peers localhost:8401 ADD"
 freechains --port=8400 chain "\$sync.xxx" post inline "chains #chat ADD"
 
-freechains --port=8401 chains join "#chat"
+freechains --port=8401 chains join "#chat" $PUB
 freechains --port=8401 chains join "\$family" $KEY
 freechains --port=8401 chain "#chat"    post inline "[#chat] Hello World!"
 freechains --port=8401 chain "\$family" post inline "[\$family] Hello World!"

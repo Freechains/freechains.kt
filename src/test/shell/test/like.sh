@@ -22,30 +22,29 @@ SIG1=--sign=$PVT1
 freechains-host start $FC/8400 --port=8400 &
 sleep 0.5
 freechains-host --port=8400 now 0
-freechains $H0 chains join "#"
+freechains $H0 chains join "#" $PUB1
 b1=`freechains $H0 $SIG1 chain "#" post inline pub1.1`
 b2=`freechains $H0 $SIG0 chain "#" post inline pub0.2`
 
 v0=`freechains $H0 chain "#" reps $PUB0`
-diff <(echo $v0) <(echo "-1") || exit 1
+diff <(echo $v0) <(echo "0") || exit 1
 
 freechains $H0 $SIG1 chain "#" like $b2
 
-# b0 <- b1 <- l3
-#          <- b2
+# b0 <- b1 <- b2 <- l3
 
 v1=`freechains $H0 chain "#" reps $PUB0`
 diff <(echo $v1) <(echo 0) || exit 1
 
-# fail
+# fail (but is posted anyways)
 f1=`freechains $H0 $SIG0 chain "#" like $b1`
-diff <(echo $f1) <(echo "like author must have reputation") || exit 1
+#diff <(echo $f1) <(echo "like author must have reputation") || exit 1
 
 freechains-host --port=8400 now 8000000   # 2h
 
-# fail
+# fail (but is posted anyways)
 f1=`freechains $H0 $SIG0 chain "#" like $b1`
-diff <(echo $f1) <(echo "like author must have reputation") || exit 1
+#diff <(echo $f1) <(echo "like author must have reputation") || exit 1
 
 freechains-host --port=8400 now 90000000  # 1d
 
