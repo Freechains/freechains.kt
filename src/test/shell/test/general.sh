@@ -20,10 +20,11 @@ freechains-host --port=8400 now 0
 g=`freechains --host=localhost:8400 chain "@!$PUB" genesis`
 h=`freechains --host=localhost:8400 --sign=$PVT chain "@!$PUB" post inline Hello_World`
 freechains --host=localhost:8400 chain "@!$PUB" get block "$h" file $FC/freechains-tests-get-1.out
-freechains --host=localhost:8400 chain "@!$PUB" get block 0_2D70BB6E7706706E1A70F2BB5582F43035BC85207D5D70AAD574B0054B48C391 inline > $FC/freechains-tests-get-0.out
+freechains --host=localhost:8400 chain "@!$PUB" get block 0_2D70BB6E7706706E1A70F2BB5582F43035BC85207D5D70AAD574B0054B48C391 file $FC/freechains-tests-get-0.out
 hs=`freechains --host=localhost:8400 chain "@!$PUB" heads`
 freechains --host=localhost:8400 chain "@!$PUB" get block "$g" file $FC/freechains-tests-gen.out
-freechains --host=localhost:8400 chain "@!$PUB" get block "$hs" inline > $FC/freechains-tests-heads.out
+freechains --host=localhost:8400 chain "@!$PUB" get block "$hs" file $FC/freechains-tests-heads.out
+
 diff -I local $FC/freechains-tests-gen.out   chk/freechains-tests-get-0.out || exit 1
 diff -I local $FC/freechains-tests-get-0.out chk/freechains-tests-get-0.out || exit 1
 diff -I local -I time -I hash $FC/freechains-tests-get-1.out chk/freechains-tests-get-1.out || exit 1
