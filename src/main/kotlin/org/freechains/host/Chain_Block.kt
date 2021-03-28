@@ -69,7 +69,7 @@ fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, cr
     return hash
 }
 
-fun Chain.blockAssert (con: Consensus?, blk: Block) {
+fun Chain.blockAssert (con: Consensus?, blk: Block, size: Int) {
     val imm = blk.immut
     val now = getNow()
 
@@ -109,5 +109,12 @@ fun Chain.blockAssert (con: Consensus?, blk: Block) {
                 assert_(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
             }
         }
+    }
+
+    // payload size
+    if (this.fromOwner(blk) || this.name.startsWith('$')) {
+        // ok
+    } else {
+        assert_(size <= S128_pay) { "post is too large" }
     }
 }

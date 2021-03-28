@@ -160,7 +160,7 @@ class Tests {
         try {
             val b3 = chain.fsLoadBlock(n3)
             val n = b3.copy(immut=b3.immut.copy(pay=b3.immut.pay.copy(hash="xxx")))
-            chain.blockAssert(null,n)
+            chain.blockAssert(null,n,0)
         } catch (e: Throwable) {
             ok = true
         }
@@ -172,6 +172,15 @@ class Tests {
         assert_(chain.fsExistsBlock(n2))
         assert_(chain.fsExistsBlock(n3))
         assert_(!chain.fsExistsBlock("2_........"))
+
+        val big = ".".repeat(200*1000)
+        val n4 = chain.blockNew(chain.consensus(), PVT0, null, B(big), false, null)
+        assert(n4.startsWith("3_"))
+        try {
+            chain.blockNew(chain.consensus(), null, null, B(big), false, null)
+        } catch (e: Throwable) {
+            assert(e.message == "post is too large")
+        }
     }
     @Test
     fun c02_blocked() {

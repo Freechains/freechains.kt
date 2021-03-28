@@ -128,7 +128,7 @@ fun Chain.fsExistsBlock (hash: Hash) : Boolean {
 }
 
 fun Chain.fsSaveBlock (con: Consensus?, blk: Block, pay: ByteArray) {
-    this.blockAssert(con, blk)
+    this.blockAssert(con, blk, pay.size)
     File(this.path() + "/blocks/" + blk.hash + ".pay").writeBytes(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
 }

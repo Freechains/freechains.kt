@@ -341,7 +341,6 @@ class Daemon (loc_: Host) {
                                     val sign = cmds[3]
                                     val len = cmds[5].toInt()
                                     val pay = reader.readNBytesX(len)
-                                    assert_(pay.size <= S128_pay) { "post is too large" }
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
@@ -366,7 +365,6 @@ class Daemon (loc_: Host) {
                                 }
                                 "like" -> {
                                     val pay = reader.readNBytesX(cmds[6].toInt())
-                                    assert_(pay.size <= S128_pay) { "post is too large" }
                                     var ret: String
                                     try {
                                         synchronized(getLock(chain.name)) {
