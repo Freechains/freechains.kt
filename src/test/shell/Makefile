@@ -1,5 +1,5 @@
 install:
-	cp ../../../out/artifacts/Freechains_main_jar/Freechains.main.jar /usr/local/bin/Freechains.jar
+	cp ../../../out/artifacts/Freechains_kt_main_jar/Freechains.kt.main.jar /usr/local/bin/Freechains.jar
 	cp slf4j-nop-2.0.0-alpha1.jar /usr/local/bin
 	cp freechains-cli.sh          /usr/local/bin/freechains
 	cp freechains-host.sh         /usr/local/bin/freechains-host
