@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.math.absoluteValue
+import kotlin.math.min
 
 // internal methods are private but are used in tests
 
@@ -208,12 +209,12 @@ fun Chain.negs_zers (now: Long, con: Consensus) {
     val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T12h_new }
     con.negs -= nonegs.map { it.hash }
     nonegs.forEach {
-        con.reps[it.sign!!.pub] = con.reps.getZ(it.sign.pub) + 1
+        con.reps[it.sign!!.pub] = min(LK30_max,con.reps.getZ(it.sign.pub) + 1)
     }
     val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T24h_old }
     con.zers -= nozers.map { it.hash }
     nozers.forEach {
-        con.reps[it.sign!!.pub] =con.reps.getZ(it.sign.pub) + 1
+        con.reps[it.sign!!.pub] = min(LK30_max,con.reps.getZ(it.sign.pub) + 1)
     }
 }
 
@@ -255,7 +256,7 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
                 con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
             }
             if (target != null) {
-                con.reps[target] = con.reps.getZ(target) + blk.immut.like.n
+                con.reps[target] = min(LK30_max, con.reps.getZ(target) + blk.immut.like.n)
             }
         }
         else -> {                       // a post

@@ -224,9 +224,9 @@ class Tests {
         val n2 = chain.blockNew(chain.consensus(), PVT0, null, B("2"), false, null)
         assert(29 == chain.consensus().repsAuthor(PUB0))
         setNow(24*hour+200)
-        assert(31 == chain.consensus().repsAuthor(PUB0))
-        val n3 = chain.blockNew(chain.consensus(), PVT0, null, B("3"), false, null)
         assert(30 == chain.consensus().repsAuthor(PUB0))
+        val n3 = chain.blockNew(chain.consensus(), PVT0, null, B("3"), false, null)
+        assert(29 == chain.consensus().repsAuthor(PUB0))
     }
     @Test
     fun c05_seq() {
@@ -263,7 +263,7 @@ class Tests {
 
         setNow(24*hour+200)
         val con4 = chain.consensus()
-        assert(31 == con4.repsAuthor(PUB0))
+        assert(30 == con4.repsAuthor(PUB0))
         assert( 2 == con4.repsAuthor(PUB1))
 
         val str = con2.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
@@ -921,8 +921,8 @@ class Tests {
 
         val x0 = main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0))
         val x1 = main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1))
-        assert_(x0.toInt() == 31)
-        assert_(x1.toInt() == 31)
+        assert_(x0.toInt() == 30)
+        assert_(x1.toInt() == 30)
     }
 
     @Test
