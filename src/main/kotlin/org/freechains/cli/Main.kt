@@ -14,15 +14,15 @@ Usage:
     freechains chains list
     freechains chains listen
     
-    freechains chain <chain> genesis
-    freechains chain <chain> heads [blocked]
-    freechains chain <chain> get (block | payload) <hash> (inline | file <path>)
-    freechains chain <chain> post (inline | file | -) [<path_or_text>]
-    freechains chain <chain> (like | dislike) <hash>
-    freechains chain <chain> reps <hash_or_pub>
-    freechains chain <chain> remove <hash>
-    freechains chain <chain> traverse <hashes>...
-    freechains chain <chain> listen
+    freechains chain <name> genesis
+    freechains chain <name> heads [blocked]
+    freechains chain <name> get (block | payload) <hash> [file <path>]
+    freechains chain <name> post (inline | file | -) [<path_or_text>]
+    freechains chain <name> (like | dislike) <hash>
+    freechains chain <name> reps <hash_or_pub>
+    freechains chain <name> remove <hash>
+    freechains chain <name> traverse <hashes>...
+    freechains chain <name> listen
     
     freechains peer <addr:port> ping
     freechains peer <addr:port> chains
@@ -167,7 +167,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         reader.readLineX()
                     }
                     "get" -> {
-                        assert_(cmds.size >= 6) { "invalid number of arguments" }
+                        assert_(cmds.size >= 5) { "invalid number of arguments" }
                         val decrypt = opts["--decrypt"].toString() // null or pvtkey
 
                         writer.writeLineX("$PRE chain $chain get ${cmds[3]} ${cmds[4]} $decrypt")
@@ -176,10 +176,13 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                             len
                         } else {
                             val bs = reader.readNBytesX(len.toInt())
-                            when (cmds[5]) {
-                                "inline" -> bs.toString(Charsets.UTF_8)
-                                "file"   -> { File(cmds[6]).writeBytes(bs) ; "" }
-                                else     -> error("impossible case")
+                            if (cmds.size == 5) {
+                                bs.toString(Charsets.UTF_8)
+                            } else {
+                                println(cmds)
+                                error("OK")
+                                File(cmds[6]).writeBytes(bs)
+                                ""
                             }
                         }
                     }

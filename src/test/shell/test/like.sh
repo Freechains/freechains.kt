@@ -51,7 +51,7 @@ freechains-host --port=8400 now 90000000  # 1d
 b4=`freechains $H0 $SIG1 chain "#" post inline pub1.4`
 l5=`freechains $H0 $SIG0 chain "#" like $b4`
 
-j5=`freechains $H0 chain "#" get block $l5 inline`
+j5=`freechains $H0 chain "#" get block $l5`
 d31=`jq ".like.hash" <(echo $j5)`
 d32="\"$b4\""
 diff <(echo $d31) <(echo $d32) || exit 1

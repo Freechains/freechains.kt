@@ -40,7 +40,6 @@ data class Immut (
 @Serializable
 data class Block_Get (          // only used in "freechains ... get block ...
     val hash   : Hash,
-    val local  : Long,
     val time   : Long,
     val pay    : Payload,
     val like   : Like?,
@@ -53,9 +52,7 @@ data class Block (
     val immut   : Immut,        // things to hash
     val hash    : Hash,         // hash of immut
     val sign    : Signature?
-) {
-    val local   : Long = getNow()  // used by Simul.kt to evaluate local-immut
-}
+)
 
 fun Immut.toJson (): String {
     //@OptIn(UnstableDefault::class)
