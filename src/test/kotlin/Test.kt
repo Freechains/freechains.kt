@@ -818,6 +818,8 @@ class Tests {
 
         val pay = main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", hash, "--decrypt=$PVT0"))
         assert_(pay == "aaa")
+        main_cli_assert(arrayOf("chain", "@$PUB0", "get", "payload", hash, "file", "/tmp/xxx.pay", "--decrypt=$PVT0"))
+        assert_(File("/tmp/xxx.pay").readText() == "aaa")
 
         main_cli(arrayOf("peer", "localhost:$PORT1", "send", "@$PUB0"))
         val json2 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "get", "block", hash))

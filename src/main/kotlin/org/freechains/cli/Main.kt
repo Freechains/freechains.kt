@@ -179,8 +179,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                             if (cmds.size == 5) {
                                 bs.toString(Charsets.UTF_8)
                             } else {
-                                println(cmds)
-                                error("OK")
+                                assert(cmds[5] == "file")
                                 File(cmds[6]).writeBytes(bs)
                                 ""
                             }
