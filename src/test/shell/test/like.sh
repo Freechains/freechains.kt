@@ -34,7 +34,7 @@ freechains $H0 $SIG1 chain "#" like $b2
 # b0 <- b1 <- b2 <- l3
 
 v1=`freechains $H0 chain "#" reps $PUB0`
-diff <(echo $v1) <(echo 0) || exit 1
+diff <(echo $v1) <(echo 1) || exit 1
 
 # fail (but is posted anyways)
 f1=`freechains $H0 $SIG0 chain "#" like $b1`
@@ -59,7 +59,7 @@ diff <(echo $d31) <(echo $d32) || exit 1
 freechains-host --port=8400 now 98000000  # 1d1h
 
 l5x=`freechains $H0 $SIG0 chain "#" dislike "$b4" --why="hated it"`
-j5x=`freechains $H0 chain "#" get block $l5x inline`
+j5x=`freechains $H0 chain "#" get block $l5x`
 
 d5x=`jq ".like" <(echo $j5x)`
 diff <(echo $d5x) <(echo "{ \"n\": -1, \"hash\": \"$b4\" }") || exit 1
