@@ -11,7 +11,7 @@ typealias Addr_Port = Pair<String,Int>
 
 const val MAJOR    = 0
 const val MINOR    = 8
-const val REVISION = 1
+const val REVISION = 2
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
