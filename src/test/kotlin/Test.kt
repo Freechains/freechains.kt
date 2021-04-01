@@ -206,7 +206,7 @@ class Tests {
         val all = chain.allFroms(chain.heads(con1,Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
         val rep1 = con1.repsAuthor(PUB0)
-        assert(rep1 == 27)
+        assert(rep1 == 30)
         setNow(12*hour+100)
         val rep2 = chain.consensus().repsAuthor(PUB0)
         assert(rep2 == 30)
@@ -218,15 +218,15 @@ class Tests {
         setNow(0)
         assert(30 == chain.consensus().repsAuthor(PUB0))
         val n1 = chain.blockNew(chain.consensus(), PVT0, null, B("1"), false, null)
-        assert(29 == chain.consensus().repsAuthor(PUB0))
+        assert(30 == chain.consensus().repsAuthor(PUB0))
         setNow(12*hour+100)
         assert(30 == chain.consensus().repsAuthor(PUB0))
         val n2 = chain.blockNew(chain.consensus(), PVT0, null, B("2"), false, null)
-        assert(29 == chain.consensus().repsAuthor(PUB0))
+        assert(30 == chain.consensus().repsAuthor(PUB0))
         setNow(24*hour+200)
         assert(30 == chain.consensus().repsAuthor(PUB0))
         val n3 = chain.blockNew(chain.consensus(), PVT0, null, B("3"), false, null)
-        assert(29 == chain.consensus().repsAuthor(PUB0))
+        assert(30 == chain.consensus().repsAuthor(PUB0))
     }
     @Test
     fun c05_seq() {
@@ -243,7 +243,7 @@ class Tests {
         val con1 = chain.consensus()
         assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
         assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
-        assert(28 == con1.repsAuthor(PUB0))
+        assert(30 == con1.repsAuthor(PUB0))
 
         val a3 = chain.blockNew(chain.consensus(), PVT0, Like(1,b2), B("a3"), false, null)
 
@@ -253,8 +253,8 @@ class Tests {
         val con2 = chain.consensus()
         assert(chain.heads(con2,Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
         assert(chain.heads(con2,Head_State.BLOCKED).let { it.size==0 })
-        assert(27 == con2.repsAuthor(PUB0))
-        assert( 0 == con2.repsAuthor(PUB1))
+        assert(29 == con2.repsAuthor(PUB0))
+        assert( 1 == con2.repsAuthor(PUB1))
 
         setNow(12*hour+100)
         val con3 = chain.consensus()
@@ -286,8 +286,8 @@ class Tests {
         assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
         assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==0 })
         assert(28 == con1.repsAuthor(PUB0))
-        assert( 0 == con1.repsAuthor(PUB1))
-        assert( 0 == con1.repsAuthor(PUB2))
+        assert( 1 == con1.repsAuthor(PUB1))
+        assert( 1 == con1.repsAuthor(PUB2))
 
         setNow(13*hour)
         val con2 = chain.consensus()
@@ -300,20 +300,36 @@ class Tests {
         val b5 = chain.blockNew(chain.consensus(), PVT1, null, B("b5"), false, setOf(a4))
         val a6 = chain.blockNew(chain.consensus(), PVT0, null, B("a6"), false, setOf(a5,b5))
         val a7 = chain.blockNew(chain.consensus(), PVT0, null, B("a7"), false, setOf(a6,c5))
-        val con3 = chain.consensus()
-        assert(chain.heads(con3,Head_State.LINKED).size==1 && chain.heads(con3,Head_State.BLOCKED).size==0)
-        assert(chain.heads(con3,Head_State.LINKED).contains(a7))
-        assert(25 == con3.repsAuthor(PUB0))
-        assert( 0 == con3.repsAuthor(PUB1))
-        assert( 0 == con3.repsAuthor(PUB2))
 
         //                            /----- c5 -----\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
+        val con3 = chain.consensus()
+        assert(chain.heads(con3,Head_State.LINKED).size==1 && chain.heads(con3,Head_State.BLOCKED).size==0)
+        assert(chain.heads(con3,Head_State.LINKED).contains(a7))
+        assert(28 == con3.repsAuthor(PUB0))
+        assert( 1 == con3.repsAuthor(PUB1))
+        assert( 1 == con3.repsAuthor(PUB2))
+
         val str = con3.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
+
+        setNow(25*hour)
+        val con4 = chain.consensus()
+        println(con4.repsAuthor(PUB0))
+        assert(28 == con4.repsAuthor(PUB0))
+        assert( 2 == con4.repsAuthor(PUB1))
+        assert( 2 == con4.repsAuthor(PUB2))
+
+        println("-=-=-=-=-")
+        setNow(38*hour)
+        val con5 = chain.consensus()
+        println(con5.repsAuthor(PUB0))
+        assert(29 == con5.repsAuthor(PUB0))
+        assert( 2 == con5.repsAuthor(PUB1))
+        assert( 2 == con5.repsAuthor(PUB2))
     }
     @Test
     fun c07_ord2() {
@@ -462,6 +478,56 @@ class Tests {
         assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //println(inv)
         assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
+    }
+    @Test
+    fun c12_dt12h() {
+        val loc = Host_load("/tmp/freechains/tests/C05/")
+        val chain = loc.chainsJoin("#xxx", PUB0)
+        setNow(0)
+        val a1 = chain.blockNew(chain.consensus(), PVT0, null, B("a1"), false, null)
+        val a2 = chain.blockNew(chain.consensus(), PVT0, null, B("a2"), false, null)
+
+        // gen <- a1 <- a2
+
+        val con1 = chain.consensus()
+        assert(30 == con1.repsAuthor(PUB0))
+
+        val b3 = chain.blockNew(chain.consensus(), PVT1, null, B("b3"), false, null)
+        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(1, b3), B("a4"), false, null)
+
+        // gen <- a1 <- a2 <- b3 <- a4
+
+        val con2 = chain.consensus()
+        assert(29 == con2.repsAuthor(PUB0))
+        assert( 1 == con2.repsAuthor(PUB1))
+
+        val c5 = chain.blockNew(chain.consensus(), PVT2, null, B("c5"), false, null)
+        val b6 = chain.blockNew(chain.consensus(), PVT1, Like(1, c5), B("b6"), false, null)
+
+        // gen -- a1 -- a2 -- b3 -- a4 -- c5 -- b6
+
+        val con3 = chain.consensus()
+        assert(29 == con3.repsAuthor(PUB0))
+        assert( 0 == con3.repsAuthor(PUB1))
+        assert( 0 == con3.repsAuthor(PUB2))
+
+        setNow(11*hour + 59*min)
+        val con4 = chain.consensus()
+        assert(29 == con4.repsAuthor(PUB0))
+        assert( 0 == con4.repsAuthor(PUB1))
+        assert( 0 == con4.repsAuthor(PUB2))
+
+        setNow(12*hour + 100)
+        val con5 = chain.consensus()
+        assert(29 == con5.repsAuthor(PUB0))
+        assert( 0 == con5.repsAuthor(PUB1))
+        assert( 1 == con5.repsAuthor(PUB2))
+
+        setNow(24*hour + 100)
+        val con6 = chain.consensus()
+        assert(30 == con6.repsAuthor(PUB0))
+        assert( 1 == con6.repsAuthor(PUB1))
+        assert( 2 == con6.repsAuthor(PUB2))
     }
 
     @Test

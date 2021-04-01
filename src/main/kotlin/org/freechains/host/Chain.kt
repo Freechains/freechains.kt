@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 import kotlin.math.absoluteValue
+import kotlin.math.max
 import kotlin.math.min
 
 // internal methods are private but are used in tests
@@ -187,8 +188,9 @@ data class Consensus (
     val reps: MutableMap<HKey,Int>,
     val list: MutableList<Hash>,
     val invs: MutableSet<Hash>,
-    val negs: MutableSet<Hash>,
-    val zers: MutableSet<Hash>
+    val negs: MutableSet<Hash>,         // new posts still penalized
+    val zers: MutableSet<Hash>,         // new posts not yet positive
+    val ones: MutableMap<HKey,Long>     // last time block by pub was consolidated
 )
 
 fun MutableMap<HKey,Int>.getZ (pub: HKey): Int {
@@ -199,22 +201,44 @@ fun MutableMap<HKey,Int>.getZ (pub: HKey): Int {
 }
 
 fun Chain.consensus (): Consensus {
-    val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf())
+    val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf(), mutableMapOf())
     this.consensus_aux(this.find_heads(this.fsAll()),null,con)
     negs_zers(getNow(), con)
     return con
 }
 
 fun Chain.negs_zers (now: Long, con: Consensus) {
-    val nonegs = con.negs.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T12h_new }
+    val nonegs = con.negs
+        .map { this.fsLoadBlock(it) }
+        .filter { blk ->
+            //println(">>> ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)}")
+            val tot = con.reps.values.sum()
+            val aft = con.list
+                .drop(con.list.indexOf(blk.hash))   // blocks after myself (including me)
+                .map { this.fsLoadBlock(it) }       // take their authors
+                .map { it.sign!!.pub }              // take their authors
+                .toSet()                            // remove duplicates
+                .map { con.reps[it]!! }             // take their reps
+                .sum()                              // sum everything
+            // 0% -> 0, 50% -> 1
+            val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble()/tot*2)).toInt()
+            //println("[${T12h_new}] dt=$dt // 0.5 - $aft/$tot")
+            blk.immut.time <= now-dt
+        }
     con.negs -= nonegs.map { it.hash }
     nonegs.forEach {
         con.reps[it.sign!!.pub] = min(LK30_max,con.reps.getZ(it.sign.pub) + 1)
+        //println("nonneg : +1 : ${it.sign.pub}")
     }
-    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time <= now-T24h_old }
+    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time+T24h_old <= now }
     con.zers -= nozers.map { it.hash }
     nozers.forEach {
-        con.reps[it.sign!!.pub] = min(LK30_max,con.reps.getZ(it.sign.pub) + 1)
+        val one = con.ones[it.sign!!.pub]
+        if (one==null || one+T24h_old <= it.immut.time) {
+            con.ones[it.sign.pub] = it.immut.time
+            con.reps[it.sign.pub] = min(LK30_max, con.reps.getZ(it.sign.pub) + 1)
+            //println("consol : +1 : ${it.sign.pub}")
+        }
     }
 }
 
@@ -254,9 +278,11 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
             }
             if (blk.sign != null) {
                 con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
+                //println("source : -${blk.immut.like.n.absoluteValue} : ${blk.sign.pub}")
             }
             if (target != null) {
                 con.reps[target] = min(LK30_max, con.reps.getZ(target) + blk.immut.like.n)
+                //println("target : +${blk.immut.like.n} : $target")
             }
         }
         else -> {                       // a post
@@ -265,6 +291,7 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
                 (this.name.startsWith("#") && blk.hash == this.genesis()) -> con.reps[this.key!!] = 30
                 (blk.sign != null) -> {
                     con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - 1
+                    //println("post   : -1 : ${blk.sign.pub}")
                     con.negs.add(blk.hash)
                     con.zers.add(blk.hash)
                 }
