@@ -288,7 +288,12 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
         else -> {                       // a post
             con.list.add(blk.hash)
             when {
-                (this.name.startsWith("#") && blk.hash == this.genesis()) -> con.reps[this.key!!] = 30
+                (blk.hash == this.genesis()) -> {
+                    when {
+                        this.name.startsWith("#") -> con.reps[this.key!!]     = LK30_max
+                        this.name.startsWith("@") -> con.reps[this.atKey()!!] = LK30_max
+                    }
+                }
                 (blk.sign != null) -> {
                     con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - 1
                     //println("post   : -1 : ${blk.sign.pub}")
