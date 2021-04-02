@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import java.io.File
+import java.nio.charset.Charset
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -204,6 +205,8 @@ fun Chain.consensus (): Consensus {
     val con = Consensus(mutableMapOf(), mutableListOf(), mutableSetOf(), mutableSetOf(), mutableSetOf(), mutableMapOf())
     this.consensus_aux(this.find_heads(this.fsAll()),null,con)
     negs_zers(getNow(), con)
+    //println(con.list.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
+    //println(con.list.map { it }.joinToString(","))
     return con
 }
 
@@ -325,6 +328,7 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
             val h2s = this.allFrom(h2)
             val n1 = freps(h1s - h2s)
             val n2 = freps(h2s - h1s)
+            //println(n1.toString() + " vs " + n2)
             if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
         }!!
         this.consensus_aux(setOf(max), null, con)

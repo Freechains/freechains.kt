@@ -46,6 +46,7 @@ private const val H1 = "--host=localhost:$PORT1"
 private const val H2 = "--host=localhost:$PORT2"
 private const val S0 = "--sign=$PVT0"
 private const val S1 = "--sign=$PVT1"
+private const val S2 = "--sign=$PVT2"
 
 fun B (s: String): ByteArray {
     return s.toByteArray()
@@ -72,7 +73,7 @@ class Tests {
     /*
     @Test
     fun test () {
-        thread { main_host(arrayOf("start", "/data/freechains/data/")) }
+        thread { main_host_assert(arrayOf("start", "/data/freechains/data/")) }
         Thread.sleep(100)
         main_cli_assert(arrayOf("chain", "\$sync.A2885F4570903EF5EBA941F3497B08EB9FA9A03B4284D9B27FF3E332BA7B6431", "get", "7_E5DF707ADBB9C4CB86B902C9CD2F5E85E062BFB8C3DC895FDAE9C2E796271DDE", "--decrypt=699299132C4C9AC3E7E78C5C62730AFDD68574D0DFA444D372FFBB51DF1BF1E0"))
     }
@@ -566,7 +567,6 @@ class Tests {
         // TODO: check if dst == src
         // $ diff -r /tmp/freechains/tests/dst/ /tmp/freechains/tests/src/
     }
-
     @Test
     fun f1_peers() {
         val h1 = Host_load("/tmp/freechains/tests/h1/", PORT0)
@@ -596,7 +596,7 @@ class Tests {
     @Test
     fun m00_chains() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/M0/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/M0/"))
         }
         Thread.sleep(200)
         main_host(arrayOf("path")).let {
@@ -621,11 +621,10 @@ class Tests {
             assert_(it == "true")
         }
     }
-
     @Test
     fun m01_args() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/M1/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/M1/"))
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#xxx", PUB0))
@@ -670,15 +669,14 @@ class Tests {
         assert_(main_cli_assert(arrayOf("chain", "#xxx", "heads", "blocked")).isEmpty())
 
         //org.freechains.core.cli(arrayOf("chain", "#xxx", "post", "file", "base64", "/bin/cat"))
-        main_host(arrayOf("stop"))
+        main_host_assert(arrayOf("stop"))
         // TODO: check genesis 2x, "aaa", "host"
         // $ cat /tmp/freechains/tests/M1/chains/xxx/blocks/*
     }
-
     @Test
     fun m01_blocked() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/M1B/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/M1B/"))
         }
         Thread.sleep(200)
         main_cli_assert(arrayOf("chains", "join", "#xxx", PUB0))
@@ -687,11 +685,10 @@ class Tests {
         val x = main_cli_assert(arrayOf("chain", "#xxx", "heads"))
         assert_(!x.contains(" "))
     }
-
     @Test
     fun m01_trav() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/trav/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/trav/"))
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#", PUB0))
@@ -703,11 +700,10 @@ class Tests {
             }
         }
     }
-
     @Test
     fun m01_listen() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/listen/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/listen/"))
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#", PUB0))
@@ -739,11 +735,10 @@ class Tests {
         t2.join()
         assert_(ok == 2)
     }
-
     @Test
     fun m02_crypto() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/M2/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/M2/"))
         }
         Thread.sleep(200)
         val lazySodium = LazySodiumJava(SodiumJava())
@@ -766,7 +761,7 @@ class Tests {
     @Test
     fun m02_crypto_passphrase() {
         thread {
-            main_host(arrayOf("start", "/tmp/freechains/tests/M2/"))
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/M2/"))
         }
         Thread.sleep(200)
 
@@ -829,7 +824,6 @@ class Tests {
         lazySodium.cryptoBoxSealOpen(dec2, enc2, enc2.size.toLong(), pubcu, pvtcu)
         assert_(dec2.toString(Charsets.UTF_8) == "mensagem secreta")
     }
-
     @Test
     fun m03_crypto_post() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
@@ -848,11 +842,10 @@ class Tests {
         val n3 = c1.fsLoadPayRaw(n1)
         assert_(n3.toString(Charsets.UTF_8) != "aaa")
     }
-
     @Test
     fun m05_crypto_encrypt_sym() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M50/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M51/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M50/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M51/", P1)) }
         Thread.sleep(200)
         main_cli(
                 arrayOf(
@@ -875,8 +868,8 @@ class Tests {
     }
     @Test
     fun m06_crypto_encrypt_asy() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M60/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M61/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M60/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M61/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "@$PUB0"))
         main_cli(arrayOf(H1, "chains", "join", "@$PUB0"))
@@ -898,8 +891,8 @@ class Tests {
     }
     @Test
     fun m06x_crypto_encrypt_asy() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M60x/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M61x/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M60x/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M61x/", P1)) }
         Thread.sleep(200)
         main_cli_assert(arrayOf("chains", "join", "@!$PUB0"))
         main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB0"))
@@ -919,9 +912,9 @@ class Tests {
     }
     @Test
     fun m06y_shared() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M60y/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M61y/", P1)) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M62y/", P2)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M60y/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M61y/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M62y/", P2)) }
         Thread.sleep(200)
 
         main_cli(arrayOf("chains", "join", "\$xxx")).let {
@@ -953,11 +946,10 @@ class Tests {
             assert_(it.equals("0 / 2"))
         }
     }
-
     @Test
     fun m07_genesis_fork() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M70/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M71/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M70/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M71/", P1)) }
         Thread.sleep(200)
 
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
@@ -982,18 +974,17 @@ class Tests {
         assert_(r10.toInt() == 0)
         assert_(r01.toInt() == 0)
 
-        main_host(arrayOf(H0, "now", (getNow() + 1 * day).toString()))
-        main_host(arrayOf(H1, "now", (getNow() + 1 * day).toString()))
+        main_host_assert(arrayOf(P0, "now", (getNow() + 1 * day).toString()))
+        main_host_assert(arrayOf(P1, "now", (getNow() + 1 * day).toString()))
 
         val x0 = main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0))
         val x1 = main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1))
         assert_(x0.toInt() == 30)
         assert_(x1.toInt() == 30)
     }
-
     @Test
     fun m08_likes() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M90/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M90/")) }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#chat", PUB0))
         main_cli_assert(arrayOf("chain", "#chat", "post", "inline", "h1", S0))
@@ -1014,11 +1005,11 @@ class Tests {
     }
     @Test
     fun m09_likes() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M90/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M90/")) }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "@$PUB0"))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
         val a1 = main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", "a1", S0))
         val b2 = main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", "b2", S1))
@@ -1047,13 +1038,13 @@ class Tests {
         }
         assert_("1" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB1)))
 
-        main_host(arrayOf(H0, "now", (3 * hour).toString()))
+        main_host_assert(arrayOf(P0, "now", (3 * hour).toString()))
         val a4 = main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", "a4", S0))
 
         // h0 -- a1 -- a2 -------- a4
         //         \-- b2 -- l3 --/
 
-        main_host(arrayOf(H0, "now", (1 * day + 4 * hour).toString()))
+        main_host_assert(arrayOf(P0, "now", (1 * day + 4 * hour).toString()))
 
         assert_(main_cli_assert(arrayOf("chain", "@$PUB0", "heads")).startsWith("4_"))
         assert_("30" == main_cli_assert(arrayOf("chain", "@$PUB0", "reps", PUB0)))
@@ -1096,12 +1087,12 @@ class Tests {
             assert_(it == "28")
         }
 
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M81/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M81/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf(H1, "chains", "join", "@$PUB0"))
 
         // I'm in the future, old posts will be refused
-        main_host(arrayOf(H1, "now", Instant.now().toEpochMilli().toString()))
+        main_host_assert(arrayOf(P1, "now", Instant.now().toEpochMilli().toString()))
 
         val n1 = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0"))
         assert_(n1 == "0 / 7")
@@ -1115,7 +1106,7 @@ class Tests {
         // h0 -> h11 -> h21 ------xx\
         //          \-> h22 -- l3 xx h41 -- l51 -- l62
 
-        main_host(arrayOf(H1, "now", "0"))
+        main_host_assert(arrayOf(P1, "now", "0"))
         val n2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "recv", "@$PUB0"))
         assert_(n2 == "4 / 7") { n2 }
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).split(' ').let {
@@ -1126,13 +1117,13 @@ class Tests {
         //          \-- h22 -- l3 xx h41 -- l51 -- l62
 
         // still the same
-        main_host(arrayOf(H1, "now", "${2 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${2 * hour}"))
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0")).let {
             assert_(it == "0 / 3")
         }
 
         // now ok
-        main_host(arrayOf(H1, "now", "${1 * day + 4 * hour + 100}"))
+        main_host_assert(arrayOf(P1, "now", "${1 * day + 4 * hour + 100}"))
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0")).let {
             assert_(it == "3 / 3")
         }
@@ -1177,8 +1168,8 @@ class Tests {
         }
 
         // flush after 2h
-        main_host(arrayOf(H0, "now", "${1 * day + 7 * hour}"))
-        main_host(arrayOf(H1, "now", "${1 * day + 7 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${1 * day + 7 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${1 * day + 7 * hour}"))
 
         main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads")).let { str ->
             str.split(' ').let {
@@ -1236,7 +1227,7 @@ class Tests {
             assert_(it == "26")
         }
 
-        main_host(arrayOf(H1, "now", "${1 * day + 10 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${1 * day + 10 * hour}"))
 
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "reps", PUB0)).let {
             assert_(it == "26")
@@ -1255,13 +1246,13 @@ class Tests {
     }
     @Test
     fun m10_cons() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M100/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M101/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M100/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M101/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "@$PUB0"))
         main_cli(arrayOf(H1, "chains", "join", "@$PUB0"))
-        main_host(arrayOf(H0, "now", "0"))
-        main_host(arrayOf(H1, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
+        main_host_assert(arrayOf(P1, "now", "0"))
 
         val h1 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h1", S0))
         val h2 = main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "post", "inline", "h2", S0))
@@ -1283,7 +1274,7 @@ class Tests {
         // h1 <- h2 (a) <- hx (r)
         //             \<- h3
 
-        main_host(arrayOf(H1, "now", "${3 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${3 * hour}"))
 
         val h4 = main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h4", S0))
         assert_(h4.startsWith("4_"))
@@ -1292,7 +1283,7 @@ class Tests {
         //              \-- hx (r)
 
         main_cli(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0"))
-        main_host(arrayOf(H1, "now", "${6 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${6 * hour}"))
 
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "post", "inline", "h5")).let {
             assert_(it.startsWith("5_"))
@@ -1301,8 +1292,8 @@ class Tests {
 
     @Test
     fun m11_send_after_tine() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M100/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M101/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M100/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M101/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
         main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
@@ -1318,15 +1309,15 @@ class Tests {
     }
     @Test
     fun m12_state () {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M120/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M120/")) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M121/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M121/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
-        main_host(arrayOf(H1, "now", "0"))
+        main_host_assert(arrayOf(P1, "now", "0"))
 
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "h1", S0))
         val h21 = main_cli_assert(arrayOf(H0, "chain", "#", "post", "inline", "h21"))
@@ -1374,7 +1365,7 @@ class Tests {
 
 ////////
         // all accepted
-        main_host(arrayOf(H1, "now", "${3 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${3 * hour}"))
 
         // h0 -- h1 -- h21 -- l2
         //          -- h22 -- l3
@@ -1414,10 +1405,10 @@ class Tests {
 
 ////////
 
-        main_host(arrayOf(H1, "now", "${1 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${1 * hour}"))
         val lx = main_cli_assert(arrayOf(H1, "chain", "#", "dislike", h22, S0))     // one is not enough
         val ly = main_cli_assert(arrayOf(H1, "chain", "#", "dislike", h22, S0))     // one is not enough
-        main_host(arrayOf(H1, "now", "${4 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${4 * hour}"))
         main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "send", "#"))  // errors when merging
 
         // h0 -- h1 -- h21 -- l2 -- l4 -- h5x
@@ -1435,11 +1426,11 @@ class Tests {
     }
     @Test
     fun m13_reps () {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M13/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M13/")) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "a1", S0))
         main_cli_assert(arrayOf(H0, "chain", "#", "post", "inline", "b2", S1)).let {
             main_cli(arrayOf(H0, S0, "chain", "#", "like", it))
@@ -1448,12 +1439,12 @@ class Tests {
         // h0 -- a1      /-- l3
         //         \-- b2
 
-        main_host(arrayOf(H0, "now", "${3 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${3 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "1")
         }
 
-        main_host(arrayOf(H0, "now", "${25 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${25 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "2")
         }
@@ -1467,12 +1458,12 @@ class Tests {
             assert_(it == "1")
         }
 
-        main_host(arrayOf(H0, "now", "${50 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${50 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "3")
         }
 
-        main_host(arrayOf(H0, "now", "${53 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${53 * hour}"))
         main_cli(arrayOf(H0, "chain", "#", "post", "inline", "h4", S1))
 
         // h0 <-- h1 <-- l2
@@ -1482,7 +1473,7 @@ class Tests {
             assert_(it == "2")
         }
 
-        main_host(arrayOf(H0, "now", "${78 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${78 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "4") { it }
         }
@@ -1496,7 +1487,7 @@ class Tests {
             assert_(it == "3")
         }
 
-        main_host(arrayOf(H0, "now", "${1000 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${1000 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "5")
         }
@@ -1504,11 +1495,11 @@ class Tests {
 
     @Test
     fun m14_remove() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M140/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M140/")) }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
         val h1  = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h0"))
         val h21 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h21"))
@@ -1522,19 +1513,19 @@ class Tests {
         // h0 -- h1 -- h21
         //         \-- h20 -- h30
 
-        main_host(arrayOf(H0, "now", "${3 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${3 * hour}"))
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "h40"))
 
         // h0 -- h1 -- h21
         //         \-- h20 -- h30 -- h40
 
-        main_host(arrayOf(H0, "now", "${6 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${6 * hour}"))
         val l21 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "like", h21, "--why=l21"))
 
         // h0 -- h1 -- h21 -- l21
         //         \-- h20 -- h30 -- h40
 
-        main_host(arrayOf(H0, "now", "${9 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${9 * hour}"))
 
         val h51 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h51"))
 
@@ -1546,7 +1537,7 @@ class Tests {
         // h0 -- h1 -- h21 -- l21 --------- h51 -- l60
         //         \-- h20 -- h30 -- h40 --/
 
-        main_host(arrayOf(H0, "now", "${34 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${34 * hour}"))
         val h7 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h7"))
 
         // h0 -- h1 -- h21 -- l21 --------- h51 -- l60 -- h7
@@ -1565,7 +1556,7 @@ class Tests {
             assert_(it.isEmpty())
         }
 
-        main_host(arrayOf(H0, "now", "${40 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${40 * hour}"))
 
         main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
@@ -1578,14 +1569,14 @@ class Tests {
     }
     @Test
     fun m15_rejected() {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M150/")) }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M151/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M150/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M151/", P1)) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
         main_cli(arrayOf(H1, "chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
-        main_host(arrayOf(H1, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
+        main_host_assert(arrayOf(P1, "now", "0"))
 
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "0@h1"))
         val h2 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "1@h2"))
@@ -1605,8 +1596,8 @@ class Tests {
         // HOST-0
         // h0 <- 0@h1 <- 1@h2 <- 0@l2 <- 0@l3-
 
-        main_host(arrayOf(H0, "now", "${5 * hour}"))
-        main_host(arrayOf(H1, "now", "${5 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${5 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${5 * hour}"))
 
         main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
             str.split(' ').let {
@@ -1627,8 +1618,8 @@ class Tests {
         main_cli_assert(arrayOf(H1, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
         }
-        main_host(arrayOf(H0, "now", "${25 * hour}"))
-        main_host(arrayOf(H1, "now", "${25 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${25 * hour}"))
+        main_host_assert(arrayOf(P1, "now", "${25 * hour}"))
 
         main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
             assert_(it.isEmpty())
@@ -1676,11 +1667,11 @@ class Tests {
     }
     @Test
     fun m16_likes_fronts () {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M16/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M16/")) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "0@h1"))
         val h2 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "1@h2"))
@@ -1694,7 +1685,7 @@ class Tests {
             assert_(it.isEmpty())
         }
 
-        main_host(arrayOf(H0, "now", "${3 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${3 * hour}"))
 
         // l4 dislikes h2: h2 should remain accepted b/c h2<-l3
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "0@h3"))
@@ -1713,11 +1704,11 @@ class Tests {
     }
     @Test
     fun m17_likes_day () {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M17/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M17/")) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
         main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "0@h1"))
         val h2 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "1@h2"))
@@ -1731,7 +1722,7 @@ class Tests {
             assert_(it.isEmpty())
         }
 
-        main_host(arrayOf(H0, "now", "${25 * hour}"))
+        main_host_assert(arrayOf(P0, "now", "${25 * hour}"))
 
         // l4 dislikes h2: h2 should remain accepted b/c (l3-h2 > 24h)
         main_cli(arrayOf(H0, S0, "chain", "#", "dislike", h2))
@@ -1749,11 +1740,11 @@ class Tests {
     }
     @Test
     fun m18_remove () {
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M18/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M18/")) }
         Thread.sleep(200)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
-        main_host(arrayOf(H0, "now", "0"))
+        main_host_assert(arrayOf(P0, "now", "0"))
 
         val h1 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "0@h1"))
         val h2 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "1@h2"))
@@ -1784,13 +1775,12 @@ class Tests {
             }
         }
     }
-
     @Test
     fun m19_sends () {
         val PVT = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
         val PUB = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M19-0/"))     }
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M19-1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-0/"))     }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-1/", P1)) }
         Thread.sleep(500)
         main_cli_assert(arrayOf(H0, "chains", "join", "@!$PUB"))
         main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB"))
@@ -1803,12 +1793,11 @@ class Tests {
         val ret = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@!$PUB"))
         assert_(ret == "$n / $n")
     }
-
     @Test
     fun m20_posts_20 () {
         val PUB = "300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
         val PVT = "8A0E17D9B3C29152A797D061C619CFBA829BC7325ED72831CC59C0A7148CA9F8300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
-        thread { main_host(arrayOf("start", "/tmp/freechains/tests/M20/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M20/")) }
         Thread.sleep(500)
         main_cli(arrayOf("chains", "join", "#crdt", PUB0))
 
@@ -1819,5 +1808,115 @@ class Tests {
 
         val ret = main_cli_assert(arrayOf(H0, "chain", "#crdt", "heads"))
         assert_(ret.startsWith("23_"))
+    }
+
+    @Test
+    fun n01_merge () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N01.1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N01.2/", P2)) }
+        Thread.sleep(200)
+
+        main_host_assert(arrayOf(P1, "path")).let {
+            assert(it == "//tmp/freechains/tests/N01.1//")
+        }
+
+        main_cli_assert(arrayOf(H1, "chains", "join", "#", PUB0))
+        main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0))
+        val gen = main_cli_assert(arrayOf(H2, "chain", "#", "genesis"))
+
+        val a1 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a1"))
+        val b1 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b1"))
+
+        val la = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", a1, "--why=la"))
+        val lb = main_cli_assert(arrayOf(H2, S0, "chain", "#", "like", b1, "--why=lb"))
+
+        // gen -- a1 -- la
+        //    \-- b1 -- lb
+
+        val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+        assert(s1 == "2 / 2" && r1 == "2 / 2")
+
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+        val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+        assert(v1 == v2)
+        assert(v1.endsWith(if (la > lb) lb else la))
+
+        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+    }
+    @Test
+    fun n02_merge () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N02.1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N02.2/", P2)) }
+        Thread.sleep(200)
+
+        let {
+            main_host_assert(arrayOf(P1, "now", "0"))
+            main_host_assert(arrayOf(P2, "now", "0"))
+            main_host_assert(arrayOf(P1, "now")).let {
+                assert(it.toInt() < 10)
+            }
+        }
+
+        main_cli_assert(arrayOf(H1, "chains", "join", "#", PUB0))
+        main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0))
+        val gen = main_cli_assert(arrayOf(H2, "chain", "#", "genesis"))
+
+        let {
+            val a1 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a1"))
+            val b1 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b1"))
+
+            val la = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", a1, "--why=la"))
+            val lb = main_cli_assert(arrayOf(H2, S0, "chain", "#", "like", b1, "--why=lb"))
+
+            // gen -- a1 -- la
+            //    \-- b1 -- lb
+
+            main_host_assert(arrayOf(P1, "now", "${1*day + 1*hour}"))
+            main_host_assert(arrayOf(P2, "now", "${1*day + 1*hour}"))
+            val b3 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b3"))
+
+            // gen -- a1 -- la
+            //    \-- b1 -- lb -- b3
+
+            val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+            val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+            assert(s1 == "2 / 2" && r1 == "3 / 3")
+
+            assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+            assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+        }
+
+        main_host_assert(arrayOf(P1, "now", "${2*day + 2*hour}"))
+        main_host_assert(arrayOf(P2, "now", "${2*day + 2*hour}"))
+
+        val x4 = main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "common"))
+        main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#")).let {
+            assert(it == "1 / 1")
+        }
+
+        // gen -- a1 -- la ------- x4
+        //    \-- b1 -- lb -- b3--/
+
+        assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("3" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+
+        // gen -- a1 -- la ------- x4 -- a5
+        //    \-- b1 -- lb -- b3--/  \-- b5
+
+        let {
+            val a5 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a5"))
+            val b5 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b5"))
+
+            val s2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+            val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+            assert(s2 == "1 / 1" && r2 == "1 / 1")
+
+            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+            val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+            assert(v1 == v2)
+            assert(v1.endsWith(a5))
+        }
     }
 }

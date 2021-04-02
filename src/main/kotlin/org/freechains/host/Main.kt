@@ -63,10 +63,14 @@ fun main_host (args: Array<String>) : Pair<Boolean,String> {
                         Pair(true, path)
                     }
                     "now" -> {
-                        assert_(cmds.size == 2) { "invalid number of arguments" }
-                        writer.writeLineX("$PRE host now ${cmds[1]}")
-                        assert_(reader.readLineX() == "true")
-                        Pair(true, "")
+                        assert_(cmds.size <= 2) { "invalid number of arguments" }
+                        if (cmds.size == 2) {
+                            writer.writeLineX("$PRE host now ${cmds[1]}")
+                        } else {
+                            writer.writeLineX("$PRE host now")
+                        }
+                        val now = reader.readLineX()
+                        Pair(true, now)
                     }
                     else -> Pair(false, help)
                 }

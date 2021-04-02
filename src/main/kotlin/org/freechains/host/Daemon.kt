@@ -111,9 +111,12 @@ class Daemon (loc_: Host) {
                         System.err.println("host path: ${loc.root}")
                     }
                     "now" -> {
-                        val now = cmds[2].toLong()
-                        setNow(now)
-                        writer.writeLineX("true")
+                        if (cmds.size == 3) {
+                            val tmp = cmds[2].toLong()
+                            setNow(tmp)
+                        }
+                        val now = getNow()
+                        writer.writeLineX(now.toString())
                         System.err.println("host now: $now")
                     }
                 }
