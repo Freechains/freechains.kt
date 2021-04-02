@@ -1825,25 +1825,34 @@ class Tests {
         val gen = main_cli_assert(arrayOf(H2, "chain", "#", "genesis"))
 
         val a1 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a1"))
-        val b1 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b1"))
-
         val la = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", a1, "--why=la"))
-        val lb = main_cli_assert(arrayOf(H2, S0, "chain", "#", "like", b1, "--why=lb"))
+        val b1 = main_cli_assert(arrayOf(H1, S2, "chain", "#", "post", "inline", "b1"))
+        val lb = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", b1, "--why=lb"))
 
-        // gen -- a1 -- la
-        //    \-- b1 -- lb
+        // gen -- a1 -- la -- b1 -- lb
 
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
-        assert(s1 == "2 / 2" && r1 == "2 / 2")
+        assert(s1 == "4 / 4" && r1 == "0 / 0")
+
+        val a2 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a2"))
+        val b2 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b2"))
+
+        //                            /-- a2
+        // gen -- a1 -- la -- b1 -- lb
+        //                            \-- b2
+
+        val s2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+        assert(s2 == "1 / 1" && r2 == "1 / 1")
 
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
         val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
         assert(v1 == v2)
-        assert(v1.endsWith(if (la > lb) lb else la))
+        assert(v1.endsWith(if (a2 > b2) b2 else a2))
 
-        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
-        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+        assert("0" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("0" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
     }
     @Test
     fun n02_merge_win () {
