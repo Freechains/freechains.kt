@@ -5,10 +5,9 @@ import com.goterl.lazycode.lazysodium.interfaces.GenericHash
 import com.goterl.lazycode.lazysodium.utils.Key
 import org.freechains.common.*
 import kotlinx.serialization.Serializable
-//import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.nio.charset.Charset
+import java.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -104,6 +103,10 @@ internal fun Chain.fsSave () {
         dir.mkdirs()
     }
     File(this.path() + "/" + "chain").writeText(this.toJson())
+}
+
+fun Chain.fsLoadTime (hash: Hash) : Long {
+    return Date(File(this.path() + "/blocks/" + hash + ".blk").lastModified()).toInstant().toEpochMilli()
 }
 
 fun Chain.fsLoadBlock (hash: Hash) : Block {
@@ -312,6 +315,7 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
     val alls = heads.map { this.allFrom(it) }.toSet()
     val coms = alls.intersectAll()
     consensus_aux(this.find_heads(coms), null, con)
+    val tot = con.reps.values.sum()
 
     val l = heads.toMutableList()
     assert(l.size > 0)
@@ -329,7 +333,14 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
             val n1 = freps(h1s - h2s)
             val n2 = freps(h2s - h1s)
             //println(n1.toString() + " vs " + n2)
-            if (n1 == n2) h1.compareTo(h2) else (n1 - n2)
+            when {
+                // both branches have +50% reps, the oldest/smaller-time wins (h2-h1)
+                (tot<=n1*2 && tot<=n2*2) -> (this.fsLoadTime(h2) - this.fsLoadTime(h1)).toInt()
+                // both branches have same reps, the "hashest" wins (h1-h2)
+                (n1 == n2)               -> h1.compareTo(h2)
+                // otherwise, most reps wins (n1-n2)
+                else                     -> (n1 - n2)
+            }
         }!!
         this.consensus_aux(setOf(max), null, con)
         l.remove(max)

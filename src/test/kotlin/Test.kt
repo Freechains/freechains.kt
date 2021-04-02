@@ -248,8 +248,8 @@ class Tests {
 
         val a3 = chain.blockNew(chain.consensus(), PVT0, Like(1,b2), B("a3"), false, null)
 
-        // gen <- a1 <- a2
-        //          \-- b2 <- a3
+        // gen -- a1 -- a2
+        //          \-- b2 -- a3
 
         val con2 = chain.consensus()
         assert(chain.heads(con2,Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
@@ -269,7 +269,7 @@ class Tests {
 
         val str = con2.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         println(str)
-        assert(str == ",a1,b2,a3,a2")
+        assert(str == ",a1,a2,b2,a3")  // a2 is older than b2-a3
     }
     @Test
     fun c06_ord1() {
@@ -1811,7 +1811,7 @@ class Tests {
     }
 
     @Test
-    fun n01_merge () {
+    fun n01_merge_tie () {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N01.1/", P1)) }
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N01.2/", P2)) }
         Thread.sleep(200)
@@ -1846,7 +1846,7 @@ class Tests {
         assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
     }
     @Test
-    fun n02_merge () {
+    fun n02_merge_win () {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N02.1/", P1)) }
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N02.2/", P2)) }
         Thread.sleep(200)
@@ -1855,7 +1855,7 @@ class Tests {
             main_host_assert(arrayOf(P1, "now", "0"))
             main_host_assert(arrayOf(P2, "now", "0"))
             main_host_assert(arrayOf(P1, "now")).let {
-                assert(it.toInt() < 10)
+                assert(it.toInt() < 50)
             }
         }
 
@@ -1885,11 +1885,18 @@ class Tests {
             assert(s1 == "2 / 2" && r1 == "3 / 3")
 
             assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
-            assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+            assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
         }
+
+        main_host_assert(arrayOf(P1, "now", "${1*day + 15*hour}"))
+        main_host_assert(arrayOf(P2, "now", "${1*day + 15*hour}"))
+        assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
 
         main_host_assert(arrayOf(P1, "now", "${2*day + 2*hour}"))
         main_host_assert(arrayOf(P2, "now", "${2*day + 2*hour}"))
+        assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("3" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
 
         val x4 = main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "common"))
         main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#")).let {
@@ -1918,5 +1925,31 @@ class Tests {
             assert(v1 == v2)
             assert(v1.endsWith(a5))
         }
+    }
+    @Test
+    fun n03_merge_fail () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N03.1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N03.2/", P2)) }
+        Thread.sleep(200)
+
+        main_cli_assert(arrayOf(H1, "chains", "join", "#", PUB0))
+        main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0))
+        val gen = main_cli_assert(arrayOf(H2, "chain", "#", "genesis"))
+
+        val a1 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "post", "inline", "a1"))
+        val b1 = main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "b1"))
+
+        // gen -- a1
+        //    \-- b1
+
+        val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+        assert(s1 == "1 / 1" && r1 == "1 / 1")
+
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        assert(v1 != v2)
+        assert(v1.endsWith(b1))
+        assert(v2.endsWith(a1))
     }
 }
