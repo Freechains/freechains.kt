@@ -1289,7 +1289,6 @@ class Tests {
             assert_(it.startsWith("5_"))
         }
     }
-
     @Test
     fun m11_send_after_tine() {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M100/")) }
@@ -1492,7 +1491,6 @@ class Tests {
             assert_(it == "5")
         }
     }
-
     @Test
     fun m14_remove() {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M140/")) }
@@ -1776,24 +1774,6 @@ class Tests {
         }
     }
     @Test
-    fun m19_sends () {
-        val PVT = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
-        val PUB = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
-        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-0/"))     }
-        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-1/", P1)) }
-        Thread.sleep(500)
-        main_cli_assert(arrayOf(H0, "chains", "join", "@!$PUB"))
-        main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB"))
-
-        val n = 100
-        for (i in 1..n) {
-            main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "@!$PUB", "post", "inline", "$i"))
-        }
-
-        val ret = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@!$PUB"))
-        assert_(ret == "$n / $n")
-    }
-    @Test
     fun m20_posts_20 () {
         val PUB = "300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
         val PVT = "8A0E17D9B3C29152A797D061C619CFBA829BC7325ED72831CC59C0A7148CA9F8300C0F41FA37EDD0A812F88956EB005C68967ED4F9ADA8CDE7E64C030D4A2F39"
@@ -1846,13 +1826,15 @@ class Tests {
         val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s2 == "1 / 1" && r2 == "1 / 1")
 
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        assert(v1 == v2)
-        assert(v1.endsWith(if (a2 > b2) b2 else a2))
-
         assert("0" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
         assert("0" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+        assert("0" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1)))
+        assert("0" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB2)))
+
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        assert(v1 == v2)
+        assert(v1.endsWith(if (a2 > b2) b2 else a2))
     }
     @Test
     fun n02_merge_win () {
@@ -1960,5 +1942,24 @@ class Tests {
         assert(v1 != v2)
         assert(v1.endsWith(b1))
         assert(v2.endsWith(a1))
+    }
+
+    @Test
+    fun x01_sends () {
+        val PVT = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+        val PUB = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-0/"))     }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M19-1/", P1)) }
+        Thread.sleep(500)
+        main_cli_assert(arrayOf(H0, "chains", "join", "@!$PUB"))
+        main_cli_assert(arrayOf(H1, "chains", "join", "@!$PUB"))
+
+        val n = 100
+        for (i in 1..n) {
+            main_cli_assert(arrayOf(H0, "--sign=$PVT", "chain", "@!$PUB", "post", "inline", "$i"))
+        }
+
+        val ret = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@!$PUB"))
+        assert_(ret == "$n / $n")
     }
 }

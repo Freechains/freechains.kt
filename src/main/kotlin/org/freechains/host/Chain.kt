@@ -228,6 +228,7 @@ fun Chain.negs_zers (now: Long, con: Consensus) {
                 .sum()                              // sum everything
             // 0% -> 0, 50% -> 1
             val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble()/tot*2)).toInt()
+            //println("<<< ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)} = ${blk.immut.time} <= $now-$dt")
             //println("[${T12h_new}] dt=$dt // 0.5 - $aft/$tot")
             blk.immut.time <= now-dt
         }
@@ -263,8 +264,6 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
 
     val blk = this.fsLoadBlock(head)
     consensus_aux(blk.immut.backs, blk, con)
-
-    negs_zers(blk.immut.time, con)
 
     // next block is a like to my hash?
     val lk = (nxt!=null && nxt.immut.like!=null &&
@@ -309,6 +308,9 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
             }
         }
     }
+
+    // must go last b/c the effect of this block on con.reps may affect the call
+    negs_zers(blk.immut.time, con)
 }
 
 fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
@@ -322,6 +324,7 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
     while (l.size > 0) {
         fun freps (hs: Set<Hash>): Int {
             return hs   // sum of reps of all pubs that appear in blocks not in common
+                //.let { println(it) ; println(con.reps) ; it }
                 .map    { this.fsLoadBlock(it) }
                 .filter { it.sign != null }
                 .map    { con.reps.getZ(it.sign!!.pub) }
