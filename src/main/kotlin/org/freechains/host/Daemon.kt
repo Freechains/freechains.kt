@@ -221,7 +221,7 @@ class Daemon (loc_: Host) {
                     "join" -> {
                         val name = cmds[2]
                         val chain = synchronized (getLock(name)) {
-                            loc.chainsJoin(name, if (cmds.size == 3) null else cmds[3])
+                            loc.chainsJoin(name, cmds.drop(3))
                         }
                         writer.writeLineX(chain.hash)
                         System.err.println("chains join: $name (${chain.hash})")
@@ -301,7 +301,11 @@ class Daemon (loc_: Host) {
                                                 writer.writeBytes(ret)
                                             }
                                             "payload" -> {
-                                                val ret = chain.fsLoadPayCrypt(hash, decrypt)
+                                                val ret = if (chain.isHidden(con,chain.fsLoadBlock(hash))) {
+                                                    ByteArray(0)
+                                                } else {
+                                                    chain.fsLoadPayCrypt(hash,decrypt)
+                                                }
                                                 writer.writeLineX(ret.size.toString())
                                                 writer.write(ret)
                                             }
@@ -529,7 +533,7 @@ class Daemon (loc_: Host) {
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {
-                        pay.decrypt(chain.key!!)  // throws exception if fails
+                        pay.decrypt(chain.keys[0]!!)  // throws exception if fails
                     }
 
                     synchronized(getLock(chain.name)) {

@@ -28,8 +28,8 @@ fun Host.chainsLoad (name: String) : Chain {
     return chain
 }
 
-fun Host.chainsJoin (name: String, key: HKey?) : Chain {
-    val chain = Chain(this.root, name, key).validate()
+fun Host.chainsJoin (name: String, keys: List<HKey>) : Chain {
+    val chain = Chain(this.root, name, keys).validate()
     val file = File(chain.path() + "/chain")
     assert_(!file.exists()) { "chain already exists: $chain" }
     chain.fsSave()
@@ -50,7 +50,7 @@ fun Host.chainsJoin (name: String, key: HKey?) : Chain {
 }
 
 fun Host.chainsLeave (name: String) : Boolean {
-    val chain = Chain(this.root, name, null)
+    val chain = Chain(this.root, name, emptyList())
     val file = File(chain.path())
     return file.exists() && file.deleteRecursively()
 }

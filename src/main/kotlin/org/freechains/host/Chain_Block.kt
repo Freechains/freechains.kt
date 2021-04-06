@@ -23,7 +23,7 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
         // mutable
         else -> {
             val (pos,neg) = this.repsPost(con, blk.hash)
-            (neg>=LK5_dislikes && LK2_factor*neg>=pos) // too many dislikes
+            (neg>=LK3_dislikes && neg>=pos) // too many dislikes
         }
     }
 }
@@ -38,7 +38,7 @@ fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, cr
     }
 
     val pay_ = when {
-        this.name.startsWith('$') -> pay.encryptShared(this.key!!)
+        this.name.startsWith('$') -> pay.encryptShared(this.keys[0]!!)
         crypt -> pay.encryptPublic(this.atKey()!!)
         else  -> pay
     }

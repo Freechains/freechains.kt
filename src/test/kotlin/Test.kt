@@ -139,7 +139,7 @@ class Tests {
     @Test
     fun b1_chain() {
         val h = Host_load("/tmp/freechains/tests/local/")
-        val c1 = h.chainsJoin("#uerj", PUB0)
+        val c1 = h.chainsJoin("#uerj", listOf(PUB0))
 
         val c2 = h.chainsLoad(c1.name)
         assert_(c1.hashCode().equals(c2.hashCode()))
@@ -152,7 +152,7 @@ class Tests {
     @Test
     fun c1_post() {
         val loc = Host_load("/tmp/freechains/tests/local/")
-        val chain = loc.chainsJoin("@$PUB0", null)
+        val chain = loc.chainsJoin("@$PUB0", emptyList())
         val n1 = chain.blockNew(chain.consensus(), PVT0, null, B(""), false, null)
         val n2 = chain.blockNew(chain.consensus(), PVT0, null, B(""), false, null)
         val n3 = chain.blockNew(chain.consensus(), null, null, B(""), false, null)
@@ -186,7 +186,7 @@ class Tests {
     @Test
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         val n1 = chain.blockNew(chain.consensus(), PVT0, null,   B("1"), false, null)
         val n2 = chain.blockNew(chain.consensus(), PVT1, null, B("2.1"), false, null)
         val n3 = chain.blockNew(chain.consensus(), PVT1, null, B("2.2"), false, null)
@@ -198,7 +198,7 @@ class Tests {
     @Test
     fun c03_all() {
         val loc = Host_load("/tmp/freechains/tests/C03/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val n1 = chain.blockNew(chain.consensus(), PVT0, null, B("1"), false, null)
         val n2 = chain.blockNew(chain.consensus(), PVT0, null, B("2"), false, null)
@@ -215,7 +215,7 @@ class Tests {
     @Test
     fun c04_all() {
         val loc = Host_load("/tmp/freechains/tests/C04/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         assert(30 == chain.consensus().repsAuthor(PUB0))
         val n1 = chain.blockNew(chain.consensus(), PVT0, null, B("1"), false, null)
@@ -232,7 +232,7 @@ class Tests {
     @Test
     fun c05_seq() {
         val loc = Host_load("/tmp/freechains/tests/C05/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val a1 = chain.blockNew(chain.consensus(), PVT0, null, B("a1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, null, B("a2"), false, null)
@@ -274,7 +274,7 @@ class Tests {
     @Test
     fun c06_ord1() {
         val loc = Host_load("/tmp/freechains/tests/C06/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null, B("b1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
@@ -335,7 +335,7 @@ class Tests {
     @Test
     fun c07_ord2() {
         val loc = Host_load("/tmp/freechains/tests/C07/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null,B("b1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1),B("a2"), false, null)
@@ -363,7 +363,7 @@ class Tests {
     @Test
     fun c08_ord3() {
         val loc = Host_load("/tmp/freechains/tests/C08/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null, B("b1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1),B("a2"), false, null)
@@ -392,7 +392,7 @@ class Tests {
     @Test
     fun c09_ord4() {
         val loc = Host_load("/tmp/freechains/tests/C09/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null,       B("b1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
@@ -419,7 +419,7 @@ class Tests {
     @Test
     fun c10_inv1() {
         val loc = Host_load("/tmp/freechains/tests/C10/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null,        B("b1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
@@ -437,7 +437,7 @@ class Tests {
     @Test
     fun c11_inv2() {
         val loc = Host_load("/tmp/freechains/tests/C11/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
 
         setNow(0)
         val b1 = chain.blockNew(chain.consensus(), PVT1, null,       B("b1"), false, null)
@@ -483,7 +483,7 @@ class Tests {
     @Test
     fun c12_dt12h() {
         val loc = Host_load("/tmp/freechains/tests/C12/")
-        val chain = loc.chainsJoin("#xxx", PUB0)
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
         val a1 = chain.blockNew(chain.consensus(), PVT0, null, B("a1"), false, null)
         val a2 = chain.blockNew(chain.consensus(), PVT0, null, B("a2"), false, null)
@@ -535,14 +535,14 @@ class Tests {
     fun d1_proto() {
         // SOURCE
         val src = Host_load("/tmp/freechains/tests/src/")
-        val srcChain = src.chainsJoin("@$PUB1", null)
+        val srcChain = src.chainsJoin("@$PUB1", emptyList())
         srcChain.blockNew(srcChain.consensus(), PVT1, null, B(""), true, null)
         srcChain.blockNew(srcChain.consensus(), PVT1, null, B(""), true, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
         val dst = Host_load("/tmp/freechains/tests/dst/", PORT1)
-        dst.chainsJoin("@$PUB1", null)
+        dst.chainsJoin("@$PUB1", emptyList())
         thread { Daemon(dst).daemon() }
         Thread.sleep(200)
 
@@ -570,12 +570,12 @@ class Tests {
     @Test
     fun f1_peers() {
         val h1 = Host_load("/tmp/freechains/tests/h1/", PORT0)
-        val h1Chain = h1.chainsJoin("@$PUB1", null)
+        val h1Chain = h1.chainsJoin("@$PUB1", emptyList())
         h1Chain.blockNew(h1Chain.consensus(), PVT1, null,  B(""), false, null)
         h1Chain.blockNew(h1Chain.consensus(), PVT1, null,  B(""), false, null)
 
         val h2 = Host_load("/tmp/freechains/tests/h2/", PORT1)
-        val h2Chain = h2.chainsJoin("@$PUB1", null)
+        val h2Chain = h2.chainsJoin("@$PUB1", emptyList())
         h2Chain.blockNew(h2Chain.consensus(), PVT1, null,  B(""), false, null)
         h2Chain.blockNew(h2Chain.consensus(), PVT1, null,  B(""), false, null)
 
@@ -827,9 +827,9 @@ class Tests {
     @Test
     fun m03_crypto_post() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
-        val c1 = loc.chainsJoin("\$sym", "password".toShared())
+        val c1 = loc.chainsJoin("\$sym", listOf("password".toShared()))
         c1.blockNew(c1.consensus(), null, null, B(""), true, null)
-        val c2 = loc.chainsJoin("@$PUB0", null)
+        val c2 = loc.chainsJoin("@$PUB0", emptyList())
         c2.blockNew(c2.consensus(), PVT0, null, B(""), true, null)
     }
     @Test

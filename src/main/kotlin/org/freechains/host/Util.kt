@@ -11,8 +11,7 @@ const val T12h_new    = 12*hour         // -1 post younger than 12h
 const val T24h_old    = 24*hour         // +1 post older than 24h
 
 const val LK30_max     = 30
-const val LK5_dislikes = 5
-const val LK2_factor   = 2
+const val LK3_dislikes = 3
 
 const val S128_pay = 128000             // 128 KBytes maximum size of payload
 

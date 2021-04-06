@@ -114,9 +114,12 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         reader.readLineX()
                     }
                     "join" -> {
-                        assert_(cmds.size in 3..4) { "invalid number of arguments" }
-                        val key = if (cmds.size == 3) "" else " " + cmds[3]
-                        writer.writeLineX("$PRE chains join ${cmds[2]}$key")
+                        assert_(cmds.size >= 3) { "invalid number of arguments" }
+                        if (cmds.size > 3) {
+                            writer.writeLineX("$PRE chains join " + cmds[2] + " " + cmds.drop(3).joinToString(" "))
+                        } else {
+                            writer.writeLineX("$PRE chains join " + cmds[2])
+                        }
                         reader.readLineX()
                     }
                     "listen" -> {

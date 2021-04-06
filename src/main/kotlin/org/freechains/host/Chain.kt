@@ -18,9 +18,9 @@ import kotlin.math.min
 data class Chain (
     var root : String,
     val name : String,
-    val key  : HKey?    // pioneer for public or shared for private chain
+    val keys : List<HKey> // multiple pioneers for public / single shared for private chain / empty otherwise
 ) {
-    val hash  : String = (this.name + "/" + key).calcHash()
+    val hash  : String = (this.name + "/" + keys).calcHash()
 }
 
 fun Chain.validate () : Chain {
@@ -30,13 +30,13 @@ fun Chain.validate () : Chain {
         '@' -> this.name.drop( if (this.name.drop(1).first() == '!') 2 else 1)
         else -> null
     }
-    assert_(rest != null && rest.all { it.isLetterOrDigit() || it == '.' }) {
+    assert_(rest != null && rest.all { it.isLetterOrDigit() || it=='_' || it=='-' || it=='.' }) {
         "invalid chain name: $this"
     }
     when (this.name.first()) {
-        '$'  -> assert_(this.key != null) { "expected shared key" }
-        '#'  -> assert_(this.key != null) { "expected public key" }
-        else -> assert_(this.key == null) { "unexpected key" }
+        '$'  -> assert_(this.keys.size == 1) { "expected shared key" }
+        '#'  -> assert_(this.keys.size >= 1) { "expected public key" }
+        else -> assert_(this.keys.size == 0) { "unexpected key" }
     }
     return this
 }
@@ -118,7 +118,7 @@ fun Chain.fsLoadPayCrypt (hash: Hash, pubpvt: HKey?): ByteArray {
     val pay = this.fsLoadPayRaw(hash)
     return when {
         !blk.immut.pay.crypt -> pay
-        this.name.startsWith('$') -> pay.decrypt(this.key!!)
+        this.name.startsWith('$') -> pay.decrypt(this.keys[0]!!)
         (pubpvt == null)     -> pay
         else                 -> pay.decrypt(pubpvt)
     }
@@ -295,7 +295,7 @@ fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
             when {
                 (blk.hash == this.genesis()) -> {
                     when {
-                        this.name.startsWith("#") -> con.reps[this.key!!]     = LK30_max
+                        this.name.startsWith("#") -> this.keys.forEach { con.reps[it] = LK30_max/this.keys.size }
                         this.name.startsWith("@") -> con.reps[this.atKey()!!] = LK30_max
                     }
                 }
