@@ -9,7 +9,7 @@ val help = """
 freechains $VERSION
 
 Usage:
-    freechains chains join  <chain> [<key>]
+    freechains chains join  <chain> [<key>...]
     freechains chains leave <chain>
     freechains chains list
     freechains chains listen

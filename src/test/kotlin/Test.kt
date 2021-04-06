@@ -530,6 +530,14 @@ class Tests {
         assert( 1 == con6.repsAuthor(PUB1))
         assert( 2 == con6.repsAuthor(PUB2))
     }
+    @Test
+    fun c13_pioneers() {
+        val loc = Host_load("/tmp/freechains/tests/C13/")
+        val chain = loc.chainsJoin("#xxx", listOf(PUB0,PUB1))
+        val con = chain.consensus()
+        assert(15 == con.repsAuthor(PUB0))
+        assert(15 == con.repsAuthor(PUB1))
+    }
 
     @Test
     fun d1_proto() {
@@ -1489,6 +1497,21 @@ class Tests {
         main_host_assert(arrayOf(P0, "now", "${1000 * hour}"))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
             assert_(it == "5")
+        }
+    }
+    @Test
+    fun m13_reps_pioneers () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M13_ps/")) }
+        Thread.sleep(200)
+        main_cli(arrayOf(H0, "chains", "join", "#", PUB0, PUB1, PUB2))
+        main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0)).let {
+            assert_(it == "10")
+        }
+        main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB1)).let {
+            assert_(it == "10")
+        }
+        main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB2)).let {
+            assert_(it == "10")
         }
     }
     @Test
