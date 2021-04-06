@@ -1503,7 +1503,7 @@ class Tests {
     fun m13_reps_pioneers () {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M13_ps/")) }
         Thread.sleep(200)
-        main_cli(arrayOf(H0, "chains", "join", "#", PUB0, PUB1, PUB2))
+        main_cli_assert(arrayOf(H0, "chains", "join", "#", PUB0, PUB1, PUB2))
         main_cli_assert(arrayOf(H0, "chain", "#", "reps", PUB0)).let {
             assert_(it == "10")
         }

@@ -101,7 +101,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                 }
             }
             "chains" -> {
-                assert_(cmds.size in 2..4) { "invalid number of arguments" }
+                assert_(cmds.size >= 2) { "invalid number of arguments" }
                 when (cmds[1]) {
                     "list" -> {
                         assert_(cmds.size == 2) { "invalid number of arguments" }
