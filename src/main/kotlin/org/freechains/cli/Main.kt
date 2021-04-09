@@ -20,7 +20,6 @@ Usage:
     freechains chain <name> post (inline | file | -) [<path_or_text>]
     freechains chain <name> (like | dislike) <hash>
     freechains chain <name> reps <hash_or_pub>
-    freechains chain <name> remove <hash>
     freechains chain <name> traverse <hashes>...
     freechains chain <name> listen
     
@@ -217,12 +216,6 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                     }
                     "like" -> like("1")
                     "dislike" -> like("-1")
-                    "remove" -> {
-                        assert_(cmds.size == 4) { "invalid number of arguments" }
-                        writer.writeLineX("$PRE chain $chain remove ${cmds[3]}")
-                        assert_(reader.readLineX() == "true")
-                        ""
-                    }
                     "listen" -> {
                         assert_(cmds.size == 3) { "invalid number of arguments" }
                         writer.writeLineX("$PRE chain $chain listen")

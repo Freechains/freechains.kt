@@ -333,17 +333,6 @@ class Daemon (loc_: Host) {
                                 // all others need "synchronized"
                                 // they affect the chain in the disk, which is shared across connections
 
-                                "remove" -> {
-                                    error("TODO")
-                                    /*
-                                    val hash = cmds[3]
-                                    synchronized(getLock(chain.name)) {
-                                        chain.blockRemove(hash)
-                                    }
-                                    writer.writeLineX("true")
-                                    System.err.println("chain remove: $hash")
-                                     */
-                                }
                                 "post" -> {
                                     val sign = cmds[3]
                                     val len = cmds[5].toInt()
