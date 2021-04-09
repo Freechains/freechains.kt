@@ -20,6 +20,7 @@ import org.junit.jupiter.api.TestMethodOrder
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.lang.Exception
 import java.net.Socket
 import java.time.Instant
 import java.util.*
@@ -137,7 +138,19 @@ class Tests {
     }
 
     @Test
-    fun b1_chain() {
+    fun b1_host() {
+        Host_load("/tmp/xxx.${getNow()}/")
+        var ok = false
+        try {
+            Host_load("/")
+        } catch (e: Exception){
+            ok = true
+            assert(e.message!!.contains("(Permission denied)"))
+        }
+        assert(ok)
+    }
+    @Test
+    fun b2_chain() {
         val h = Host_load("/tmp/freechains/tests/local/")
         val c1 = h.chainsJoin("#uerj", listOf(PUB0))
 
@@ -603,6 +616,13 @@ class Tests {
 
     @Test
     fun m00_chains() {
+        var err = Pair(true,"")
+        thread {
+            err = main_host(arrayOf("start", "/"))
+        }
+        Thread.sleep(200)
+        assert(!err.first && err.second.contains("/timestamp.txt (Permission denied)"))
+
         thread {
             main_host_assert(arrayOf("start", "/tmp/freechains/tests/M0/"))
         }

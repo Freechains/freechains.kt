@@ -16,6 +16,7 @@ fun Host_load (dir: String, port: Int = PORT_8330) : Host {
             it.mkdirs()
         }
     }
+    File(loc.root + "/timestamp.txt").writeText(getNow().toString())
     return loc
 }
 
