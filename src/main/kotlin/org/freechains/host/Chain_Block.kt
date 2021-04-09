@@ -19,6 +19,11 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
         this.fromOwner(blk)            -> false       // owner signature
         this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
         (blk.immut.like != null)       -> false       // a like
+        con.list.any {
+            val blk2 = this.fsLoadBlock(it)
+            val lk2 = blk2.immut.like
+            (lk2!=null && lk2.hash==blk.hash && blk.sign!=null && blk.sign.pub==blk2.sign!!.pub)
+        }                              -> true        // dislike from itself
 
         // mutable
         else -> {
@@ -102,11 +107,10 @@ fun Chain.blockAssert (con: Consensus?, blk: Block, size: Int) {
 
     if (imm.like != null) {
         assert_(blk.sign != null) { "like must be signed" }
-        // may receive out of order // may point to rejected post
-        //assert_(this.fsExistsBlock(imm.like.hash)) { "like must have valid target" }
         if (this.fsExistsBlock(imm.like.hash)) {
             this.fsLoadBlock(imm.like.hash).let {
-                assert_(!it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
+                // can dislike, but not like itself (could give +inf to all posts)
+                assert_(imm.like.n<0 || !it.isFrom(blk.sign!!.pub)) { "like must not target itself" }
             }
         }
     }

@@ -533,7 +533,7 @@ class Daemon (loc_: Host) {
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {
-                        pay.decrypt(chain.keys[0]!!)  // throws exception if fails
+                        pay.decrypt(chain.keys[0])  // throws exception if fails
                     }
 
                     synchronized(getLock(chain.name)) {

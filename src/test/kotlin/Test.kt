@@ -1536,76 +1536,34 @@ class Tests {
     }
     @Test
     fun m14_remove() {
-        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M140/")) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M14/")) }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#", PUB0))
 
-        main_host_assert(arrayOf(P0, "now", "0"))
+        main_host_assert(arrayOf("now", "0"))
 
-        val h1  = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h0"))
-        val h21 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h21"))
-        val h20 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h20"))
+        val b1 = main_cli_assert(arrayOf(S1, "chain", "#", "post", "inline", "b1"))
+        val l2 = main_cli_assert(arrayOf(S0, "chain", "#", "like", b1))
 
-        // h0 -- h1 -- h21
-        //         \-- h20
+        // gen -- b1 -- l2
 
-        main_cli_assert(arrayOf(H0, S0, "chain", "#", "post", "inline", "h30"))
-
-        // h0 -- h1 -- h21
-        //         \-- h20 -- h30
-
-        main_host_assert(arrayOf(P0, "now", "${3 * hour}"))
-        main_cli(arrayOf(H0, S0, "chain", "#", "post", "inline", "h40"))
-
-        // h0 -- h1 -- h21
-        //         \-- h20 -- h30 -- h40
-
-        main_host_assert(arrayOf(P0, "now", "${6 * hour}"))
-        val l21 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "like", h21, "--why=l21"))
-
-        // h0 -- h1 -- h21 -- l21
-        //         \-- h20 -- h30 -- h40
-
-        main_host_assert(arrayOf(P0, "now", "${9 * hour}"))
-
-        val h51 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h51"))
-
-        // h0 -- h1 -- h21 -- l21 --------- h51
-        //         \-- h20 -- h30 -- h40 --/
-
-        val l60 = main_cli_assert(arrayOf(H0, S0, "chain", "#", "like", h51, "--why=l60"))
-
-        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60
-        //         \-- h20 -- h30 -- h40 --/
-
-        main_host_assert(arrayOf(P0, "now", "${34 * hour}"))
-        val h7 = main_cli_assert(arrayOf(H0, S1, "chain", "#", "post", "inline", "h7"))
-
-        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60 -- h7
-        //         \-- h20 -- h30 -- h40 --/
-
-        // removes h21 (wont remove anything)
-        val lx = main_cli_assert(arrayOf(H0, S0, "chain", "#", "dislike", h21, "--why=dislike"))
-
-        // h0 -- h1 -- h21 -- l21 --------- h51 -- l60 -- h7 -- lx
-        //         \-- h20 -- h30 -- h40 --/
-
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let {
-            assert_(!it.contains("2_"))
+        main_host_assert(arrayOf("now", "${1*day+100}"))
+        main_cli_assert(arrayOf("chain", "#", "reps", PUB1)).let {
+            assert_(it == "2")
         }
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads", "blocked")).let {
-            assert_(it.isEmpty())
+        main_cli_assert(arrayOf("chain", "#", "get", "payload", b1)).let {
+            assert_(it == "b1")
         }
 
-        main_host_assert(arrayOf(P0, "now", "${40 * hour}"))
+        val l3 = main_cli_assert(arrayOf(S1, "chain", "#", "dislike", b1))
 
-        main_cli_assert(arrayOf(H0, "chain", "#", "heads")).let { str ->
-            str.split(' ').let {
-                assert_(it.size == 1) { it.size }
-                it.forEach {
-                    assert_(it.startsWith("8_"))
-                }
-            }
+        // gen -- b1 -- l2 -- l3
+
+        main_cli_assert(arrayOf("chain", "#", "reps", PUB1)).let {
+            assert_(it == "0")
+        }
+        main_cli_assert(arrayOf("chain", "#", "get", "payload", b1)).let {
+            assert_(it == "")
         }
     }
     @Test
