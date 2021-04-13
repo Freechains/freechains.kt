@@ -189,15 +189,46 @@ fun Chain.heads (con: Consensus, want: Head_State): Set<Hash> {
 //////////////////////////////////////////////////////////////////////////////
 
 data class Consensus (
+    val reps: Map<HKey,Int>,
+    val list: List<Hash>,
+    val invs: Set<Hash>,
+    val negs: Set<Hash>,         // new posts still penalized
+    val zers: Set<Hash>,         // new posts not yet positive
+    val ones: Map<HKey,Long>     // last time block by pub was consolidated
+)
+
+data class XConsensus (
     val reps: MutableMap<HKey,Int>,
     val list: MutableList<Hash>,
     val invs: MutableSet<Hash>,
-    val negs: MutableSet<Hash>,         // new posts still penalized
-    val zers: MutableSet<Hash>,         // new posts not yet positive
-    val ones: MutableMap<HKey,Long>     // last time block by pub was consolidated
+    val negs: MutableSet<Hash>,
+    val zers: MutableSet<Hash>,
+    val ones: MutableMap<HKey,Long>
 )
 
-fun MutableMap<HKey,Int>.getZ (pub: HKey): Int {
+fun Consensus.toMutable (): XConsensus {
+    return XConsensus (
+        this.reps.toMutableMap(),
+        this.list.toMutableList(),
+        this.invs.toMutableSet(),
+        this.negs.toMutableSet(),
+        this.zers.toMutableSet(),
+        this.ones.toMutableMap()
+    )
+}
+
+fun XConsensus.toValue (): Consensus {
+    return Consensus(this.reps, this.list, this.invs, this.negs, this.zers, this.ones)
+}
+
+fun Map<HKey,Int>.getZ (pub: HKey): Int {
+    if (!this.containsKey(pub)) {
+        return 0
+    }
+    return this[pub]!!
+}
+
+fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
     if (!this.containsKey(pub)) {
         this[pub] = 0
     }
@@ -210,10 +241,12 @@ fun Chain.consensus (): Consensus {
     negs_zers(getNow(), con)
     //println(con.list.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     //println(con.list.map { it }.joinToString(","))
-    return con
+    return con2
 }
 
-fun Chain.negs_zers (now: Long, con: Consensus) {
+fun Chain.negs_zers (now: Long, con: Consensus): Consensus {
+    val x = con.toMutable()
+
     val nonegs = con.negs
         .map { this.fsLoadBlock(it) }
         .filter { blk ->
@@ -232,102 +265,110 @@ fun Chain.negs_zers (now: Long, con: Consensus) {
             //println("[${T12h_new}] dt=$dt // 0.5 - $aft/$tot")
             blk.immut.time <= now-dt
         }
-    con.negs -= nonegs.map { it.hash }
+    x.negs -= nonegs.map { it.hash }
     nonegs.forEach {
-        con.reps[it.sign!!.pub] = min(LK30_max,con.reps.getZ(it.sign.pub) + 1)
+        x.reps[it.sign!!.pub] = min(LK30_max,x.reps.getXZ(it.sign.pub) + 1)
         //println("nonneg : +1 : ${it.sign.pub}")
     }
-    val nozers = con.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time+T24h_old <= now }
-    con.zers -= nozers.map { it.hash }
+
+    val nozers = x.zers.map { this.fsLoadBlock(it) }.filter { it.immut.time+T24h_old <= now }
+    x.zers -= nozers.map { it.hash }
     nozers.forEach {
-        val one = con.ones[it.sign!!.pub]
+        val one = x.ones[it.sign!!.pub]
         if (one==null || one+T24h_old <= it.immut.time) {
-            con.ones[it.sign.pub] = it.immut.time
-            con.reps[it.sign.pub] = min(LK30_max, con.reps.getZ(it.sign.pub) + 1)
+            x.ones[it.sign.pub] = it.immut.time
+            x.reps[it.sign.pub] = min(LK30_max, x.reps.getXZ(it.sign.pub) + 1)
             //println("consol : +1 : ${it.sign.pub}")
         }
     }
+
+    return x.toValue()
 }
 
-fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?, con: Consensus) {
-    when (heads.size) {
-        0    -> {}
+fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?, con: Consensus): Consensus {
+    //val fst = cache.filter { heads.equals(it) }
+    //if (fst.size > 0) {
+    //    con = fst[0]!!.copy()
+    //}
+    return when (heads.size) {
+        0    -> return con
         1    -> consensus_aux1(heads.single(), nxt, con)
         else -> consensus_auxN(heads, con)
     }
 }
 
-fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus) {
+fun Chain.consensus_aux1 (head: Hash, nxt: Block?, con: Consensus): Consensus {
     if (con.list.contains(head) || this.allFrom(head).intersect(con.invs).isNotEmpty()) {
-        return // stop if reaches a node in list or node that leads to invs
+        return con // stop if reaches a node in list or node that leads to invs
     }
 
     val blk = this.fsLoadBlock(head)
-    consensus_aux(blk.immut.backs, blk, con)
+    val con1 = consensus_aux(blk.immut.backs, blk, con)
+    val x1 = con1.toMutable()
 
     // next block is a like to my hash?
     val lk = (nxt!=null && nxt.immut.like!=null &&
-             (this.fromOwner(nxt) || con.reps.getZ(nxt.sign!!.pub)>0) &&
+             (this.fromOwner(nxt) || x1.reps.getXZ(nxt.sign!!.pub)>0) &&
              nxt.immut.like.hash==blk.hash && nxt.immut.like.n>0)
 
     val ok = head==this.genesis() || this.fromOwner(blk) || this.name.startsWith('$') ||
-             (blk.sign!=null && con.reps.getZ(blk.sign.pub)>0) ||
+             (blk.sign!=null && x1.reps.getXZ(blk.sign.pub)>0) ||
              (lk && blk.immut.like==null)
 
     when {
-        !ok -> con.invs += blk.hash     // no reps
+        !ok -> x1.invs += blk.hash     // no reps
         (blk.immut.like != null) -> {   // a like
-            con.list.add(blk.hash)
+            x1.list.add(blk.hash)
             val target = this.fsLoadBlock(blk.immut.like.hash).let {
                 if (it.sign == null) null else it.sign.pub
             }
             if (blk.sign != null) {
-                con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
+                x1.reps[blk.sign.pub] = x1.reps.getXZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
                 //println("source : -${blk.immut.like.n.absoluteValue} : ${blk.sign.pub}")
             }
             if (target != null) {
-                con.reps[target] = min(LK30_max, con.reps.getZ(target) + blk.immut.like.n)
+                x1.reps[target] = min(LK30_max, x1.reps.getXZ(target) + blk.immut.like.n)
                 //println("target : +${blk.immut.like.n} : $target")
             }
         }
         else -> {                       // a post
-            con.list.add(blk.hash)
+            x1.list.add(blk.hash)
             when {
                 (blk.hash == this.genesis()) -> {
                     when {
-                        this.name.startsWith("#") -> this.keys.forEach { con.reps[it] = LK30_max/this.keys.size }
-                        this.name.startsWith("@") -> con.reps[this.atKey()!!] = LK30_max
+                        this.name.startsWith("#") -> this.keys.forEach { x1.reps[it] = LK30_max/this.keys.size }
+                        this.name.startsWith("@") -> x1.reps[this.atKey()!!] = LK30_max
                     }
                 }
                 (blk.sign != null) -> {
-                    con.reps[blk.sign.pub] = con.reps.getZ(blk.sign.pub) - 1
+                    x1.reps[blk.sign.pub] = x1.reps.getXZ(blk.sign.pub) - 1
                     //println("post   : -1 : ${blk.sign.pub}")
-                    con.negs.add(blk.hash)
-                    con.zers.add(blk.hash)
+                    x1.negs.add(blk.hash)
+                    x1.zers.add(blk.hash)
                 }
             }
         }
     }
 
     // must go last b/c the effect of this block on con.reps may affect the call
-    negs_zers(blk.immut.time, con)
+    return negs_zers(blk.immut.time, x1.toValue())
 }
 
-fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
+fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus): Consensus {
     val alls = heads.map { this.allFrom(it) }.toSet()
     val coms = alls.intersectAll()
-    consensus_aux(this.find_heads(coms), null, con)
-    val tot = con.reps.values.sum()
+    var con1 = consensus_aux(this.find_heads(coms), null, con)
+    val tot = con1.reps.values.sum()
 
     val l = heads.toMutableList()
     assert(l.size > 0)
     while (l.size > 0) {
         fun freps (hs: Set<Hash>): Int {
             return hs   // sum of reps of all pubs that appear in blocks not in common
-                //.let { println(it) ; println(con.reps) ; it }
+                //.let { println(it) ; println(con1.reps) ; it }
                 .map    { this.fsLoadBlock(it) }
                 .filter { it.sign != null }
-                .map    { con.reps.getZ(it.sign!!.pub) }
+                .map    { con1.reps.getZ(it.sign!!.pub) }
                 .sum    ()
         }
         val max = l.maxWithOrNull { h1,h2 ->
@@ -345,7 +386,8 @@ fun Chain.consensus_auxN (heads: Set<Hash>, con: Consensus) {
                 else                     -> (n1 - n2)
             }
         }!!
-        this.consensus_aux(setOf(max), null, con)
+        con1 = this.consensus_aux(setOf(max), null, con1)
         l.remove(max)
     }
+    return con1
 }

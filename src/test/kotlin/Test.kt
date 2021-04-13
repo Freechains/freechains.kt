@@ -327,8 +327,10 @@ class Tests {
         assert( 1 == con3.repsAuthor(PUB2))
 
         val str = con3.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        //println(str)
+        println("oioioioi")
+        println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
+                     //,b1,a2,c3,a4,c5,a5,b5,a6,a7
 
         setNow(25*hour)
         val con4 = chain.consensus()
@@ -1999,5 +2001,20 @@ class Tests {
 
         val ret = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@!$PUB"))
         assert_(ret == "$n / $n")
+    }
+    @Test
+    fun x02_cons() {
+        thread {
+            main_host_assert(arrayOf("start", "/tmp/freechains/tests/X02/"))
+        }
+        Thread.sleep(200)
+        main_cli(arrayOf("chains", "join", "#xxx", PUB0))
+        var old = getNow()
+        for (i in 0..1) {
+            main_cli(arrayOf("chain", "#xxx", "post", "inline", i.toString(), S0))
+            var now = getNow()
+            println(now-old)
+            old = now
+        }
     }
 }
