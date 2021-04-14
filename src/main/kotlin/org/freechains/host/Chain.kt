@@ -285,11 +285,11 @@ fun Chain.negs_zers (now: Long, con: Consensus): Consensus {
 
 fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?): Consensus {
     val fst = synchronized (cache) {
-        cache.filterKeys { heads.equals(it.first) && (nxt==null && it.second==null) || (nxt!=null && nxt.hash==it.second) }.values
+        cache.filterKeys { heads.equals(it.first) && ((nxt==null && it.second==null) || (nxt!=null && nxt.hash==it.second)) }.values
     }
     if (fst.size > 0) {
         assert(fst.size == 1)
-        //return fst.elementAt(0)
+        return fst.elementAt(0) // TODO: comment this line to pass tests n02/n03
     }
     //println("NO: " + heads)
     val ret = when (heads.size) {
@@ -297,12 +297,13 @@ fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?): Consensus {
         1    -> consensus_aux1(heads.single(), nxt)
         else -> consensus_auxN(heads)
     }
+    /*
     if (fst.size > 0) {
         assert(fst.size == 1)
-        //val old = fst.elementAt(0)
-        //assert(old.copy(invs=emptySet(),reps=old.reps.filterValues{it!=0}).toString() == ret.copy(invs=emptySet(),reps=ret.reps.filterValues{it!=0}).toString()) { println(heads) ; println(old) ; println(ret) }
-        //assert(old.toString() == ret.toString()) { println(heads) ; println(old) ; println(ret) }
+        val old = fst.elementAt(0)
+        assert(old.toString() == ret.toString()) { println(heads) ; println(old) ; println(ret) }
     }
+     */
     synchronized (cache) {
         cache[Pair(heads,if (nxt==null) null else nxt.hash)] = ret
     }
