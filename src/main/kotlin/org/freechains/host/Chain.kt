@@ -305,6 +305,12 @@ fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?): Consensus {
     }
      */
     synchronized (cache) {
+        if (cache.size > N500_cache) {
+            for (v in cache) {
+                cache.remove(v)     // TODO: removing random value from cache
+                break
+            }
+        }
         cache[Pair(heads,if (nxt==null) null else nxt.hash)] = ret
     }
     return ret

@@ -16,6 +16,7 @@ const val LK3_dislikes = 3
 const val S128_pay = 128000             // 128 KBytes maximum size of payload
 
 const val N16_blockeds = 16             // hold at most 16 blocked blocks locally
+const val N500_cache = 500              // hold at most 500 consensus memoizations
 
 internal var NOW : Long? = null
 
