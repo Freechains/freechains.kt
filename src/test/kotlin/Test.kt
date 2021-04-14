@@ -203,7 +203,6 @@ class Tests {
         val n1 = chain.blockNew(chain.consensus(), PVT0, null,   B("1"), false, null)
         val n2 = chain.blockNew(chain.consensus(), PVT1, null, B("2.1"), false, null)
         val n3 = chain.blockNew(chain.consensus(), PVT1, null, B("2.2"), false, null)
-        //println(chain.heads)
         val con = chain.consensus()
         assert(chain.heads(con,Head_State.LINKED).let { it.size==1 && it.contains(n1) })
         assert(chain.heads(con,Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
@@ -447,7 +446,7 @@ class Tests {
         val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4")
-        assert(con.invs.isEmpty())
+        //assert(con.invs.isEmpty())
     }
     @Test
     fun c11_inv2() {
@@ -493,7 +492,7 @@ class Tests {
         println(str)
         assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //println(inv)
-        assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
+        //assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
     }
     @Test
     fun c12_dt12h() {
@@ -2010,7 +2009,7 @@ class Tests {
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#xxx", PUB0))
         var old = getNow()
-        for (i in 0..1) {
+        for (i in 0..1000) {
             main_cli(arrayOf("chain", "#xxx", "post", "inline", i.toString(), S0))
             var now = getNow()
             println(now-old)

@@ -485,7 +485,7 @@ class Daemon (loc_: Host) {
         // - answers if contains each host
         // - receives all
 
-        val (chain,con) = this.chainsLoadSync(chain_)
+        var (chain,con) = this.chainsLoadSync(chain_)
         var nmax = 0
         var nmin = 0
 
@@ -526,6 +526,7 @@ class Daemon (loc_: Host) {
                     }
 
                     synchronized(getLock(chain.name)) {
+                        con = chain.consensus()
                         assert_(chain.heads(con,Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
                         chain.fsSaveBlock(con,blk,pay)
                     }
