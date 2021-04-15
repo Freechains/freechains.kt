@@ -5,3 +5,4 @@ install:
 	cp freechains-host.sh         /usr/local/bin/freechains-host
 	#cp freechains-sync.sh         /usr/local/bin/freechains-sync
 	ls -l /usr/local/bin/[Ff]reechains*
+	freechains --version
