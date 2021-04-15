@@ -231,7 +231,7 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
     return this[pub]!!
 }
 
-var cache: HashMap<Pair<Set<Hash>,Hash?>,Consensus> = hashMapOf()
+var cache: HashMap<Set<Hash>,Consensus> = hashMapOf()
 
 fun Chain.consensus (): Consensus {
     //cache = hashMapOf()
@@ -284,34 +284,32 @@ fun Chain.negs_zers (now: Long, con: Consensus): Consensus {
 }
 
 fun Chain.consensus_aux (heads: Set<Hash>, nxt: Block?): Consensus {
-    val fst = synchronized (cache) {
-        cache.filterKeys { heads.equals(it.first) && ((nxt==null && it.second==null) || (nxt!=null && nxt.hash==it.second)) }.values
-    }
-    if (fst.size > 0) {
-        assert(fst.size == 1)
-        return fst.elementAt(0) // TODO: comment this line to pass tests n02/n03
+    val nxt_is_not_like = (nxt!=null && nxt.immut.like==null)
+    if (nxt_is_not_like) { // can't hold likes to blocked posts b/c their cache value flip
+        val fst = synchronized(cache) {
+            cache.filterKeys { heads.equals(it) }.values
+        }
+        if (fst.size > 0) {
+            assert(fst.size == 1)
+            return fst.elementAt(0) // TODO: comment this line to pass tests n02/n03
+        }
     }
     //println("NO: " + heads)
     val ret = when (heads.size) {
-        0    -> Consensus(mapOf(), listOf(), setOf(), setOf(), mapOf())
-        1    -> consensus_aux1(heads.single(), nxt)
+        0 -> Consensus(mapOf(), listOf(), setOf(), setOf(), mapOf())
+        1 -> consensus_aux1(heads.single(), nxt)
         else -> consensus_auxN(heads)
     }
-    /*
-    if (fst.size > 0) {
-        assert(fst.size == 1)
-        val old = fst.elementAt(0)
-        assert(old.toString() == ret.toString()) { println(heads) ; println(old) ; println(ret) }
-    }
-     */
-    synchronized (cache) {
-        if (cache.size > N500_cache) {
-            for (v in cache) {
-                cache.remove(v)     // TODO: removing random value from cache
-                break
+    if (nxt_is_not_like) {
+        synchronized (cache) {
+            if (cache.size > N500_cache) {
+                for (v in cache) {
+                    cache.remove(v)     // TODO: removing random value from cache
+                    break
+                }
             }
+            cache[heads] = ret
         }
-        cache[Pair(heads,if (nxt==null) null else nxt.hash)] = ret
     }
     return ret
 }
