@@ -23,7 +23,7 @@ freechains-host start $FC/8400 --port=8400 &
 sleep 0.5
 freechains-host --port=8400 now 0
 freechains $H0 chains join "#" $PUB1
-b1=`freechains $H0 $SIG1 chain "#" post inline pub1.1`
+a1=`freechains $H0 $SIG1 chain "#" post inline pub1.1`
 b2=`freechains $H0 $SIG0 chain "#" post inline pub0.2`
 
 v0=`freechains $H0 chain "#" reps $PUB0`
@@ -31,40 +31,44 @@ diff <(echo $v0) <(echo "0") || exit 1
 
 freechains $H0 $SIG1 chain "#" like $b2
 
-# b0 <- b1 <- b2 <- l3
+# gen <- a1 <- b2 <- l3b2
 
 v1=`freechains $H0 chain "#" reps $PUB0`
 diff <(echo $v1) <(echo 1) || exit 1
 
-# fail (but is posted anyways)
-f1=`freechains $H0 $SIG0 chain "#" like $b1`
-#diff <(echo $f1) <(echo "like author must have reputation") || exit 1
+f1=`freechains $H0 $SIG0 chain "#" like $a1`
+
+# gen <- a1 <- b2 <- l3b2 <- l4a1
 
 freechains-host --port=8400 now 8000000   # 2h
 
 # fail (but is posted anyways)
-f1=`freechains $H0 $SIG0 chain "#" like $b1`
+f1=`freechains $H0 $SIG0 chain "#" like $a1`
 #diff <(echo $f1) <(echo "like author must have reputation") || exit 1
 
 freechains-host --port=8400 now 90000000  # 1d
 
-b4=`freechains $H0 $SIG1 chain "#" post inline pub1.4`
-l5=`freechains $H0 $SIG0 chain "#" like $b4`
+b5=`freechains $H0 $SIG1 chain "#" post inline pub1.4`
+l6=`freechains $H0 $SIG0 chain "#" like $b5`
 
-j5=`freechains $H0 chain "#" get block $l5`
+# gen <- a1 <- b2 <- l3b2 <- l4a1 <- b5 <- l6b5
+
+j5=`freechains $H0 chain "#" get block $l6`
 d31=`jq ".like.hash" <(echo $j5)`
-d32="\"$b4\""
+d32="\"$b5\""
 diff <(echo $d31) <(echo $d32) || exit 1
 
 freechains-host --port=8400 now 98000000  # 1d1h
 
-l5x=`freechains $H0 $SIG0 chain "#" dislike "$b4" --why="hated it"`
+l5x=`freechains $H0 $SIG1 chain "#" dislike "$b5" --why="hated it"`
 j5x=`freechains $H0 chain "#" get block $l5x`
 
-d5x=`jq ".like" <(echo $j5x)`
-diff <(echo $d5x) <(echo "{ \"n\": -1, \"hash\": \"$b4\" }") || exit 1
+# gen <- a1 <- b2 <- l3b2 <- l4a1 <- b5 <- l6b5 <- l7b5
 
-v2=`freechains $H0 chain "#" reps $b4`
+d5x=`jq ".like" <(echo $j5x)`
+diff <(echo $d5x) <(echo "{ \"n\": -1, \"hash\": \"$b5\" }") || exit 1
+
+v2=`freechains $H0 chain "#" reps $b5`
 diff <(echo $v2) <(echo "0") || exit 1
 
 ###############################################################################
