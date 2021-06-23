@@ -11,7 +11,7 @@ typealias Addr_Port = Pair<String,Int>
 
 const val MAJOR    = 0
 const val MINOR    = 8
-const val REVISION = 4
+const val REVISION = 5
 const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
@@ -26,13 +26,6 @@ const val day  =   24*hour
 const val T5S_socket = 5*sec
 
 ///////////////////////////////////////////////////////////////////////////////
-
-fun String.listSplit () : List<String> {
-    return when (this.isEmpty()) {
-        true  -> emptyList()
-        false -> this.split(' ')
-    }
-}
 
 fun Socket_5s (addr: String, port: Int) : Socket {
     val s = Socket(addr,port)

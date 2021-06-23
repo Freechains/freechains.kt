@@ -375,11 +375,10 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
     val alls = heads.map { this.allFrom(it) }.toSet()
     val coms = alls.intersectAll()
     var con = consensus_aux(this.find_heads(coms), null)
-    val tot = con.reps.values.sum()
 
     val subs = heads.map { this.consensus_aux1(it,null) }.toMutableList()
     while (subs.size > 0) {
-        fun freps (hs: Set<Hash>): Int {
+        fun auths (hs: Set<Hash>): Int {
             return hs   // sum of reps of all pubs that appear in blocks not in common
                 //.let { println(it) ; println(con1.reps) ; it }
                 .map    { this.fsLoadBlock(it) }
@@ -392,23 +391,39 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
             val h2  = con2.list.last()
             val h1s = con1.list.toSet()
             val h2s = con2.list.toSet()
-            val n1 = freps(h1s - h2s)
-            val n2 = freps(h2s - h1s)
+            val ints = h1s.intersect(h2s)
+            val h1s_h2s = h1s - h2s
+            val h2s_h1s = h2s - h1s
+            val a1 = auths(h1s_h2s)
+            val a2 = auths(h2s_h1s)
+            val week_avg = let {
+                val pasts = ints.map { this.fsLoadBlock(it).immut.time }        // time of all blocks in the intersection
+                val news = pasts.filter { it >= pasts.maxOrNull()!! - 28*day }  // time of all blocks in the past 28 days
+                //println("news = ${news.count()}")
+                val dt = news.maxOrNull()!! - news.minOrNull()!!                // interval between newest-oldest times
+                max(7, (news.count() / 4))  // week average of posts in the last 28 days
+            }
+            val t1 = this.fsLoadTime(h1)
+            val t2 = this.fsLoadTime(h2)
+            //println("avg = $week_avg")
             //println(n1.toString() + " vs " + n2)
             when {
-                // both branches have +50% reps, the oldest/smaller-time wins (h2-h1)
-                (tot<=n1*2 && tot<=n2*2) -> (this.fsLoadTime(h2) - this.fsLoadTime(h1)).toInt()
-                // both branches have same reps, the "hashest" wins (h1-h2)
-                (n1 == n2)               -> h1.compareTo(h2)
+                // both branches have 7 days of posts, the oldest (smaller time) wins (h2-h1)
+                (h1s_h2s.count()>=week_avg && t1<t2) ->  1
+                (h2s_h1s.count()>=week_avg && t2<t1) -> -1
+                // both branches have same reps, the "hashest" wins (h1 vs h2)
+                (a1 == a2)               -> h1.compareTo(h2)
                 // otherwise, most reps wins (n1-n2)
-                else                     -> (n1 - n2)
+                else                     -> (a1 - a2)
             }
         }!!
         val l = max.list - con.list
         for (i in 0..(l.size-1)) {
+            //println(l[i])
             con = this.consensus_one(con, this.fsLoadBlock(l[i]), if (i==l.size-1) null else this.fsLoadBlock(l[i+1]))
         }
         subs.remove(max)
     }
+    //println(con.list)
     return con
 }
