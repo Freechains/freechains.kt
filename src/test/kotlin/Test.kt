@@ -1124,7 +1124,7 @@ class Tests {
         main_host_assert(arrayOf(P1, "now", Instant.now().toEpochMilli().toString()))
 
         val n1 = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0"))
-        assert_(n1 == "0 / 7")
+        assert_(n1 == "7 / 7")
 
         main_cli_assert(arrayOf(H0, "chain", "@$PUB0", "heads")).split(' ').let {
             assert_(it.size == 1)
@@ -1137,9 +1137,9 @@ class Tests {
 
         main_host_assert(arrayOf(P1, "now", "0"))
         val n2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT0", "recv", "@$PUB0"))
-        assert_(n2 == "4 / 7") { n2 }
+        assert_(n2 == "0 / 0") { n2 }
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).split(' ').let {
-            assert_(it.size==2 && it.contains(a2) && it.contains(l3))
+            assert_(it.size==1 && it.contains(l6))
         }
 
         // h0 -- h11 -- h21 ------xx\
@@ -1148,13 +1148,13 @@ class Tests {
         // still the same
         main_host_assert(arrayOf(P1, "now", "${2 * hour}"))
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0")).let {
-            assert_(it == "0 / 3")
+            assert_(it == "0 / 0")
         }
 
         // now ok
         main_host_assert(arrayOf(P1, "now", "${1 * day + 4 * hour + 100}"))
         main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@$PUB0")).let {
-            assert_(it == "3 / 3")
+            assert_(it == "0 / 0")
         }
         main_cli_assert(arrayOf(H1, "chain", "@$PUB0", "heads")).let {
             assert_(it.startsWith("6_"))
