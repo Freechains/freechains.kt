@@ -83,6 +83,22 @@ fun main_catch_ (
     }
 }
 
+fun Array<String>.cmds_opts () : Pair<List<String>,Map<String,String?>> {
+    val cmds = this.filter { !it.startsWith("--") }
+    val opts = this
+        .filter { it.startsWith("--") }
+        .map {
+            if (it.contains('=')) {
+                val (k,v) = Regex("(--.*)=(.*)").find(it)!!.destructured
+                Pair(k,v)
+            } else {
+                Pair(it, null)
+            }
+        }
+        .toMap()
+    return Pair(cmds,opts)
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 fun DataInputStream.readLineX () : String {
@@ -189,24 +205,6 @@ fun DataInputStream.readNBytesX(len: Int): ByteArray {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-fun Array<String>.cmds_opts () : Pair<List<String>,Map<String,String?>> {
-    val cmds = this.filter { !it.startsWith("--") }
-    val opts = this
-            .filter { it.startsWith("--") }
-            .map {
-                if (it.contains('=')) {
-                    val (k,v) = Regex("(--.*)=(.*)").find(it)!!.destructured
-                    Pair(k,v)
-                } else {
-                    Pair(it, null)
-                }
-            }
-            .toMap()
-    return Pair(cmds,opts)
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
 fun String.to_Addr_Port () : Addr_Port {
     val lst = this.split(":")
     return when (lst.size) {
@@ -221,13 +219,3 @@ fun Addr_Port.from_Addr_Port () : String {
     return "$first:$second"
 }
 */
-
-///////////////////////////////////////////////////////////////////////////////
-
-fun<T> Set<Set<T>>.intersectAll (): Set<T> {
-    return this.fold(this.unionAll(), {x,y->x.intersect(y)})
-}
-
-fun<T> Set<Set<T>>.unionAll (): Set<T> {
-    return this.fold(emptySet(), {x,y->x+y})
-}

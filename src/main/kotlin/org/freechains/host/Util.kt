@@ -47,3 +47,13 @@ fun String.nowToTime () : Long {
 fun String.pvtToPub () : String {
     return this.substring(this.length/2)
 }
+
+///////////////////////////////////////////////////////////////////////////////
+
+fun<T> Set<Set<T>>.intersectAll (): Set<T> {
+    return this.fold(this.unionAll(), {x,y->x.intersect(y)})
+}
+
+fun<T> Set<Set<T>>.unionAll (): Set<T> {
+    return this.fold(emptySet(), {x,y->x+y})
+}
