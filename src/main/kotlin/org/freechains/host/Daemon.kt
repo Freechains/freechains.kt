@@ -516,7 +516,11 @@ class Daemon (loc_: Host) {
                     val len1 = reader.readLineX().toInt() // 6
                     val blk = reader.readNBytesX(len1).toString(Charsets.UTF_8).jsonToBlock().copy() // .copy() recalculates .local
                     val len2 = reader.readLineX().toInt()
-                    assert_(len2 <= S128_pay) { "post is too large" }
+                    if (chain.fromOwner(blk) || chain.name.startsWith('$')) {
+                        // ok
+                    } else {
+                        assert_(len2 <= S128_pay) { "post is too large" }
+                    }
                     val pay = reader.readNBytesX(len2)
                     reader.readLineX()
 

@@ -616,6 +616,26 @@ class Tests {
     }
 
     @Test
+    fun g01_128() {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/G01/")) }
+        Thread.sleep(200)
+
+        main_cli(arrayOf("chains", "join", "#chat", PUB0))
+        main_cli_assert(arrayOf("chain", "#chat", "post", "inline", ".".repeat(S128_pay), S0))
+        main_cli(arrayOf("chain", "#chat", "post", "inline", ".".repeat(S128_pay+1), S0))
+            .let { assert_(!it.first && it.second.equals("! post is too large")) }
+
+        main_cli_assert(arrayOf("chains", "join", "@$PUB0"))
+        main_cli_assert(arrayOf("chain", "@$PUB0", "post", "inline", ".".repeat(S128_pay+1), S0))
+        main_cli(arrayOf("chain", "@$PUB0", "post", "inline", ".".repeat(S128_pay+1), S1))
+            .let { assert_(!it.first && it.second.equals("! post is too large")) }
+
+        main_cli_assert(arrayOf(H0, "chains", "join", "\$xxx", "password".toShared()))
+        main_cli_assert(arrayOf("chain", "\$xxx", "post", "inline", ".".repeat(S128_pay+1), S0))
+        main_cli_assert(arrayOf("chain", "\$xxx", "post", "inline", ".".repeat(S128_pay+1), S1))
+    }
+
+    @Test
     fun m00_chains() {
         var err = Pair(true,"")
         thread {
