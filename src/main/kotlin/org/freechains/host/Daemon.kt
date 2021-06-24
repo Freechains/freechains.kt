@@ -1,7 +1,7 @@
 package org.freechains.host
 
 import org.freechains.common.*
-import com.goterl.lazycode.lazysodium.exceptions.SodiumException
+import com.goterl.lazysodium.exceptions.SodiumException
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.FileNotFoundException

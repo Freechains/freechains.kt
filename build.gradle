@@ -17,7 +17,9 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
     //implementation "org.jetbrains.kotlinx:kotlinx-serialization-runtime:0.20.0"
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-core:1.0.0-RC"
-    implementation "com.goterl.lazycode:lazysodium-java:4.2.6"
+    //implementation "com.goterl.lazycode:lazysodium-java:4.2.6"
+    //implementation "com.goterl:lazysodium-java:5.0.2"
+    implementation "com.goterl:lazysodium-java:5.0.1"
     implementation "net.java.dev.jna:jna:5.5.0"
 
     testImplementation (

@@ -1,8 +1,8 @@
 package org.freechains.host
 
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.interfaces.GenericHash
-import com.goterl.lazycode.lazysodium.utils.Key
+import com.goterl.lazysodium.LazySodium
+import com.goterl.lazysodium.interfaces.GenericHash
+import com.goterl.lazysodium.utils.Key
 import org.freechains.common.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json

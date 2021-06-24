@@ -19,10 +19,25 @@ const val PORT_8330 = 8330 //8888
 
 ///////////////////////////////////////////////////////////////////////////////
 
+const val ms   = 1.toLong()
+const val sec  = 1000*ms
+const val min  =   60*sec
+const val hour =   60*min
+const val day  =   24*hour
+
+///////////////////////////////////////////////////////////////////////////////
+
 inline fun assert_ (value: Boolean, lazyMessage: () -> Any = {"Assertion failed"}) {
     if (!value) {
         val message = lazyMessage()
         throw AssertionError(message)
+    }
+}
+
+fun String.listSplit () : List<String> {
+    return when (this.isEmpty()) {
+        true  -> emptyList()
+        false -> this.split(' ')
     }
 }
 
@@ -133,12 +148,12 @@ fun DataInputStream.readNBytesX (len: Int): ByteArray {
 fun DataInputStream.readAllBytesX (): ByteArray {
     return this.readAllBytes()
 }
+*/
 
 //@Throws(IOException::class)
 fun DataInputStream.readAllBytesX(): ByteArray {
     return this.readNBytesX(2147483647)
 }
-*/
 
 //@Throws(IOException::class)
 fun DataInputStream.readNBytesX(len: Int): ByteArray {

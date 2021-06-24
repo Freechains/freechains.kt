@@ -1,10 +1,10 @@
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.LazySodiumJava
-import com.goterl.lazycode.lazysodium.SodiumJava
-import com.goterl.lazycode.lazysodium.interfaces.Box
-import com.goterl.lazycode.lazysodium.interfaces.SecretBox
-import com.goterl.lazycode.lazysodium.utils.Key
-import com.goterl.lazycode.lazysodium.utils.KeyPair
+import com.goterl.lazysodium.LazySodium
+import com.goterl.lazysodium.LazySodiumJava
+import com.goterl.lazysodium.SodiumJava
+import com.goterl.lazysodium.interfaces.Box
+import com.goterl.lazysodium.interfaces.SecretBox
+import com.goterl.lazysodium.utils.Key
+import com.goterl.lazysodium.utils.KeyPair
 import kotlinx.serialization.Serializable
 //import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json

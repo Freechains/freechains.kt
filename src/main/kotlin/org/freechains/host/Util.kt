@@ -1,5 +1,6 @@
 package org.freechains.host
 
+import org.freechains.common.*
 import java.time.Instant
 
 typealias HKey = String
@@ -7,12 +8,6 @@ typealias HKey = String
 internal var NOW : Long? = null
 
 ///////////////////////////////////////////////////////////////////////////////
-
-const val ms   = 1.toLong()
-const val sec  = 1000*ms
-const val min  =   60*sec
-const val hour =   60*min
-const val day  =   24*hour
 
 const val T30M_future = 30*min          // refuse posts +30m in the future
 const val T12h_new    = 12*hour         // -1 post younger than 12h

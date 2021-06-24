@@ -1,9 +1,9 @@
 package org.freechains.host
 
 import org.freechains.common.*
-import com.goterl.lazycode.lazysodium.LazySodium
-import com.goterl.lazycode.lazysodium.interfaces.Sign
-import com.goterl.lazycode.lazysodium.utils.Key
+import com.goterl.lazysodium.LazySodium
+import com.goterl.lazysodium.interfaces.Sign
+import com.goterl.lazysodium.utils.Key
 import kotlin.math.max
 
 fun Chain.fromOwner (blk: Block) : Boolean {

@@ -196,7 +196,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
                         val pay = when (cmds[3]) {
                             "inline" -> cmds[4].toByteArray()
                             "file"   -> File(cmds[4]).readBytes()
-                            "-"      -> DataInputStream(System.`in`).readAllBytes()
+                            "-"      -> DataInputStream(System.`in`).readAllBytesX()
                             else     -> error("impossible case")
                         }
                         writer.writeLineX("$PRE chain $chain post $sign $encrypt ${pay.size}")
