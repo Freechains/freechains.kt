@@ -124,7 +124,7 @@ class Daemon (loc_: Host) {
                     val remote = cmds[1]
                     fun peer(): Pair<DataInputStream, DataOutputStream> {
                         val s = remote.to_Addr_Port().let {
-                            Socket_5s(it.first, it.second)
+                            Socket(it.first, it.second)
                         }
                         val r = DataInputStream(s.getInputStream()!!)
                         val w = DataOutputStream(s.getOutputStream()!!)

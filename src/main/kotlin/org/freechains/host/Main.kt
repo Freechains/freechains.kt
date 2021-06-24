@@ -3,6 +3,7 @@ package org.freechains.host
 import org.freechains.common.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
+import java.net.Socket
 
 val help = """
 freechains-host $VERSION
@@ -46,7 +47,7 @@ fun main_host (args: Array<String>) : Pair<Boolean,String> {
                 Pair(true, "")
             }
             else -> {
-                val socket = Socket_5s("localhost", port)
+                val socket = Socket("localhost", port)
                 val writer = DataOutputStream(socket.getOutputStream()!!)
                 val reader = DataInputStream(socket.getInputStream()!!)
                 val ret = when (cmds[0]) {

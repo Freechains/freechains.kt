@@ -4,6 +4,7 @@ import org.freechains.common.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.File
+import java.net.Socket
 
 val help = """
 freechains $VERSION
@@ -58,7 +59,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
     return main_catch_("freechains", VERSION, help, args) { cmds,opts ->
         val (addr, port_) = (opts["--host"] ?: "localhost:$PORT_8330").to_Addr_Port()
         val port = opts["--port"]?.toInt() ?: port_
-        val socket = Socket_5s(addr, port)
+        val socket = Socket(addr, port)
         val writer = DataOutputStream(socket.getOutputStream()!!)
         val reader = DataInputStream(socket.getInputStream()!!)
 

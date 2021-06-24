@@ -4,9 +4,9 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.net.*
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.system.exitProcess
 
-typealias HKey = String
 typealias Addr_Port = Pair<String,Int>
 
 const val MAJOR    = 0
@@ -17,21 +17,7 @@ const val PRE      = "FC $VERSION"
 
 const val PORT_8330 = 8330 //8888
 
-const val ms   = 1.toLong()
-const val sec  = 1000*ms
-const val min  =   60*sec
-const val hour =   60*min
-const val day  =   24*hour
-
-const val T5S_socket = 5*sec
-
 ///////////////////////////////////////////////////////////////////////////////
-
-fun Socket_5s (addr: String, port: Int) : Socket {
-    val s = Socket(addr,port)
-    //s.soTimeout = T5S_socket.toInt()
-    return s
-}
 
 inline fun assert_ (value: Boolean, lazyMessage: () -> Any = {"Assertion failed"}) {
     if (!value) {
@@ -122,6 +108,85 @@ fun DataOutputStream.writeLineX (v: String) {
     this.writeByte('\n'.toInt())
 }
 
+
+/*
+fun DataInputStream.readNBytesX (len: Int): ByteArray {
+    return this.readNBytes(len)
+}
+
+fun DataInputStream.readAllBytesX (): ByteArray {
+    return this.readAllBytes()
+}
+
+//@Throws(IOException::class)
+fun DataInputStream.readAllBytesX(): ByteArray {
+    return this.readNBytesX(2147483647)
+}
+*/
+
+//@Throws(IOException::class)
+fun DataInputStream.readNBytesX(len: Int): ByteArray {
+    return if (len < 0) {
+        throw IllegalArgumentException("len < 0")
+    } else {
+        var bufs: MutableList<ByteArray?>? = null
+        var result: ByteArray? = null
+        var total = 0
+        var remaining = len
+        var n: Int = 0
+        do {
+            val buf = ByteArray(Math.min(remaining, 8192))
+            var nread: Int
+            nread = 0
+            while (this.read(
+                    buf,
+                    nread,
+                    Math.min(buf.size - nread, remaining)
+                ).also({ n = it }) > 0
+            ) {
+                nread += n
+                remaining -= n
+            }
+            if (nread > 0) {
+                if (2147483639 - total < nread) {
+                    throw OutOfMemoryError("Required array size too large")
+                }
+                total += nread
+                if (result == null) {
+                    result = buf
+                } else {
+                    if (bufs == null) {
+                        bufs = ArrayList()
+                        bufs.add(result)
+                    }
+                    bufs.add(buf)
+                }
+            }
+        } while (n >= 0 && remaining > 0)
+        if (bufs == null) {
+            if (result == null) {
+                ByteArray(0)
+            } else {
+                if (result.size == total) result else Arrays.copyOf(result, total)
+            }
+        } else {
+            result = ByteArray(total)
+            var offset = 0
+            remaining = total
+            var count: Int
+            val var12: Iterator<*> = bufs.iterator()
+            while (var12.hasNext()) {
+                val b = var12.next() as ByteArray
+                count = Math.min(b.size, remaining)
+                System.arraycopy(b, 0, result, offset, count)
+                offset += count
+                remaining -= count
+            }
+            result
+        }
+    }
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 fun Array<String>.cmds_opts () : Pair<List<String>,Map<String,String?>> {
@@ -151,9 +216,11 @@ fun String.to_Addr_Port () : Addr_Port {
     }
 }
 
+/*
 fun Addr_Port.from_Addr_Port () : String {
     return "$first:$second"
 }
+*/
 
 ///////////////////////////////////////////////////////////////////////////////
 

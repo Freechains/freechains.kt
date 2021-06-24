@@ -400,7 +400,7 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
                 val pasts = ints.map { this.fsLoadBlock(it).immut.time }        // time of all blocks in the intersection
                 val news = pasts.filter { it >= pasts.maxOrNull()!! - 28*day }  // time of all blocks in the past 28 days
                 //println("news = ${news.count()}")
-                val dt = news.maxOrNull()!! - news.minOrNull()!!                // interval between newest-oldest times
+                //val dt = news.maxOrNull()!! - news.minOrNull()!!                // interval between newest-oldest times
                 max(7, (news.count() / 4))  // week average of posts in the last 28 days
             }
             val t1 = this.fsLoadTime(h1)

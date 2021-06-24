@@ -43,7 +43,7 @@ fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, cr
     }
 
     val pay_ = when {
-        this.name.startsWith('$') -> pay.encryptShared(this.keys[0]!!)
+        this.name.startsWith('$') -> pay.encryptShared(this.keys[0])
         crypt -> pay.encryptPublic(this.atKey()!!)
         else  -> pay
     }
@@ -91,7 +91,7 @@ fun Chain.blockAssert (con: Consensus?, blk: Block, size: Int) {
         assert_(blk.hash == this.genesis()) { "invalid genesis" }
     } else {
         assert_(blk.hash == imm.toHash()) { "hash must verify" }
-        assert_(imm.time >= now - T120D_past) { "too old" }
+        //assert_(imm.time >= now - T120D_past) { "too old" }
         if (this.name.startsWith("@!")) {
             assert_(this.fromOwner(blk)) { "must be from owner" }
         }

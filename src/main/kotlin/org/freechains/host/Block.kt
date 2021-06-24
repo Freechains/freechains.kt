@@ -1,9 +1,7 @@
 package org.freechains.host
 
 import kotlinx.serialization.Serializable
-//import kotlinx.serialization.UnstableDefault
 import kotlinx.serialization.json.Json
-import org.freechains.common.HKey
 
 typealias Hash = String
 
