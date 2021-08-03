@@ -9,7 +9,7 @@ data class Host (
 )
 
 fun Host_load (dir: String, port: Int = PORT_8330) : Host {
-    assert_(dir.startsWith("/")) { "path must be absolute" }
+    assert_(dir.startsWith("/") || dir.drop(1).startsWith(":\\")) { "path must be absolute" }
     val loc = Host(fsRoot + dir + "/", port)
     File(loc.root).let {
         if (!it.exists()) {

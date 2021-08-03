@@ -412,9 +412,9 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
                 (h1s_h2s.count()>=week_avg && t1<t2) ->  1
                 (h2s_h1s.count()>=week_avg && t2<t1) -> -1
                 // both branches have same reps, the "hashest" wins (h1 vs h2)
-                (a1 == a2)               -> h1.compareTo(h2)
+                (a1 == a2) -> h1.compareTo(h2)
                 // otherwise, most reps wins (n1-n2)
-                else                     -> (a1 - a2)
+                else -> (a1 - a2)
             }
         }!!
         val l = max.list - con.list
