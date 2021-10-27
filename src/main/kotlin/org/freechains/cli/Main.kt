@@ -21,7 +21,7 @@ Usage:
     freechains chain <name> post (inline | file | -) [<path_or_text>]
     freechains chain <name> (like | dislike) <hash>
     freechains chain <name> reps <hash_or_pub>
-    freechains chain <name> traverse <hashes>...
+    freechains chain <name> consensus
     freechains chain <name> listen
     
     freechains peer <addr:port> ping
@@ -204,10 +204,9 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
 
                         reader.readLineX()
                     }
-                    "traverse" -> {
-                        assert_(cmds.size >= 4) { "invalid number of arguments" }
-                        val downto = cmds.drop(2).joinToString(" ")
-                        writer.writeLineX("$PRE chain $chain traverse $downto")
+                    "consensus" -> {
+                        assert_(cmds.size == 3) { "invalid number of arguments" }
+                        writer.writeLineX("$PRE chain $chain consensus")
                         reader.readLineX()
                     }
                     "reps" -> {

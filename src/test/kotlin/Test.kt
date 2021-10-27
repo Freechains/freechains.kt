@@ -743,9 +743,10 @@ class Tests {
         main_cli(arrayOf("chains", "join", "#", PUB0))
         val gen = main_cli_assert(arrayOf("chain", "#", "genesis"))
         main_cli(arrayOf("chain", "#", "post", "inline", "aaa", S0))
-        main_cli_assert(arrayOf("chain", "#", "traverse", gen)).let {
+        main_cli(arrayOf("chain", "#", "post", "inline", "bbb", S0))
+        main_cli_assert(arrayOf("chain", "#", "consensus")).let {
             it.split(" ").let {
-                assert_(it.size == 1 && it[0].startsWith("1_"))
+                assert_(it.size==3 && it[1].startsWith("1_"))
             }
         }
     }
@@ -782,7 +783,7 @@ class Tests {
         main_cli(arrayOf("chain", "#", "post", "inline", "aaa", S0))
         t1.join()
         t2.join()
-        assert_(ok == 2)
+        assert_(ok == 2) { ok }
     }
     @Test
     fun m02_crypto() {
@@ -1890,8 +1891,8 @@ class Tests {
         assert("0" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1)))
         assert("0" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB2)))
 
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
         assert(v1.endsWith(if (a2 > b2) b2 else a2))
     }
@@ -1976,8 +1977,8 @@ class Tests {
             val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
             assert(s2 == "1 / 1" && r2 == "1 / 1")
 
-            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-            val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+            val v2 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
             assert(v1 == v2)
             assert(v1.endsWith(a5))
         }
@@ -2017,8 +2018,8 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "6 / 6" && r1 == "6 / 6")
 
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         //println(v1)
         assert(v1 == v2)
     }
@@ -2059,12 +2060,12 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "7 / 7" && r1 == "7 / 7")
 
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         //println(v1)
         assert(v1 != v2)
-        assert(v1.startsWith(As[0]))
-        assert(v2.startsWith(Bs[0]))
+        assert(v1.contains(As[0]))
+        assert(v2.contains(Bs[0]))
     }
     @Test
     fun n05_merge_ok () {
@@ -2088,8 +2089,8 @@ class Tests {
         //println(s1) ; println(r1)
         assert(s1 == "2 / 2" && r1 == "1 / 1")
 
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
         assert(v1.endsWith(c1))
         assert(v2.endsWith(c1))
@@ -2114,8 +2115,8 @@ class Tests {
             val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
             val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
             assert(s1 == "$n / $n" && r1 == "$n / $n")
-            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-            val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+            val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
             //println("DAY=$i, n=$n, nxt=${4*i}")
             assert(v1 == v2)
             main_host_assert(arrayOf(P1, "now", (now + 4*i*day).toString()))
@@ -2129,8 +2130,8 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         assert(s1 == "10 / 10" && r1 == "10 / 10")
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
     }
     @Test
@@ -2153,8 +2154,8 @@ class Tests {
             val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
             val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
             assert(s1 == "$n / $n" && r1 == "$n / $n")
-            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-            val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+            val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+            val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
             //println("DAY=$i, n=$n, nxt=${4*i}")
             assert(v1 == v2)
             main_host_assert(arrayOf(P1, "now", (now + 4*i*day).toString()))
@@ -2168,8 +2169,8 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         assert(s1 == "11 / 11" && r1 == "11 / 11")
-        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
-        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
+        val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         //println(v1)
         //println(v2)
         assert(v1 != v2)

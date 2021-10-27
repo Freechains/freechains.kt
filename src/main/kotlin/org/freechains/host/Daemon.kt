@@ -276,13 +276,10 @@ class Daemon (loc_: Host) {
                                     writer.writeLineX(heads)
                                     System.err.println("chain heads: $heads")
                                 }
-                                "traverse" -> {
-                                    val downto = cmds.drop(3)
-                                    val ret = con.list
-                                        .dropWhile { downto.contains(it) }
-                                        .joinToString(" ")
+                                "consensus" -> {
+                                    val ret = con.list.joinToString(" ")
                                     writer.writeLineX(ret)
-                                    System.err.println("chain traverse: $ret")
+                                    System.err.println("chain consensus: $ret")
                                 }
                                 "get" -> {
                                     val hash = cmds[4]
