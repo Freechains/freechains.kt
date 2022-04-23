@@ -465,6 +465,7 @@ class Daemon (loc_: Host) {
                 writer.writeLineX(pay.size.toString())
                 writer.write(pay)
                 writer.writeLineX("")
+                reader.readLineX()                          // 6,5
             }
             val nin2 = reader.readLineX().toInt()    // 7: how many blocks again
             assert_(nin >= nin2)
@@ -520,6 +521,7 @@ class Daemon (loc_: Host) {
                     }
                     val pay = reader.readNBytesX(len2)
                     reader.readLineX()
+                    writer.writeLineX("")               // 6,5
 
                     // reject peers with different keys
                     if (chain.name.startsWith('$')) {
