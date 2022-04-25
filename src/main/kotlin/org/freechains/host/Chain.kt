@@ -235,8 +235,10 @@ var cache: HashMap<Set<Hash>,Consensus> = hashMapOf()
 
 fun Chain.consensus (): Consensus {
     //cache = hashMapOf()
+    val now = getNow() XXX
     val con1 = this.consensus_aux(this.find_heads(this.fsAll()),null)
     val con2 = negs_zers(getNow(), con1)
+    println(getNow()-now) XXX
     //println(con.list.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     //println(con.list.map { it }.joinToString(","))
     return con2

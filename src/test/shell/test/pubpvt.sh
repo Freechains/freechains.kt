@@ -10,7 +10,7 @@ FC=/tmp/freechains
 # 8400 (public and private keys)
 freechains-host start $FC/8400 --port=8400 &
 sleep 0.5
-KEYS=`freechains --host=localhost:8400 crypto pubpvt correct`
+KEYS=`freechains --host=localhost:8400 keys pubpvt correct`
 PUB=`echo $KEYS | cut -d ' ' -f 1`
 PVT=`echo $KEYS | cut -d ' ' -f 2`
 freechains --host=localhost:8400 chains join "@$PUB"

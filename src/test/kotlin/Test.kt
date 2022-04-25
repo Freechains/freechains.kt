@@ -797,8 +797,8 @@ class Tests {
         val sk: Key = kp.secretKey
         assert_(lazySodium.cryptoSignKeypair(pk.asBytes, sk.asBytes))
         //println("TSTTST: ${pk.asHexString} // ${sk.asHexString}")
-        main_cli(arrayOf("crypto", "shared", "senha secreta"))
-        main_cli(arrayOf("crypto", "pubpvt", "senha secreta"))
+        main_cli(arrayOf("keys", "shared", "senha secreta"))
+        main_cli(arrayOf("keys", "pubpvt", "senha secreta"))
 
         val msg = "mensagem secreta"
         val nonce = lazySodium.nonce(SecretBox.NONCEBYTES)
@@ -815,14 +815,14 @@ class Tests {
         }
         Thread.sleep(200)
 
-        val s0 = main_cli_assert(arrayOf("crypto", "shared", "senha"))
-        val s1 = main_cli_assert(arrayOf("crypto", "shared", "senha secreta"))
-        val s2 = main_cli_assert(arrayOf("crypto", "shared", "senha super secreta"))
+        val s0 = main_cli_assert(arrayOf("keys", "shared", "senha"))
+        val s1 = main_cli_assert(arrayOf("keys", "shared", "senha secreta"))
+        val s2 = main_cli_assert(arrayOf("keys", "shared", "senha super secreta"))
         assert_(s0 != s1 && s1 != s2)
 
-        val k0 = main_cli_assert(arrayOf("crypto", "pubpvt", "senha"))
-        val k1 = main_cli_assert(arrayOf("crypto", "pubpvt", "senha secreta"))
-        val k2 = main_cli_assert(arrayOf("crypto", "pubpvt", "senha super secreta"))
+        val k0 = main_cli_assert(arrayOf("keys", "pubpvt", "senha"))
+        val k1 = main_cli_assert(arrayOf("keys", "pubpvt", "senha secreta"))
+        val k2 = main_cli_assert(arrayOf("keys", "pubpvt", "senha super secreta"))
         assert_(k0 != k1 && k1 != k2)
     }
     @Test

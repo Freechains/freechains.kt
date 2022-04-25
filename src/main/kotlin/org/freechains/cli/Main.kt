@@ -28,7 +28,7 @@ Usage:
     freechains peer <addr:port> chains
     freechains peer <addr:port> (send | recv) <chain>
 
-    freechains crypto (shared | pubpvt) <passphrase>
+    freechains keys (shared | pubpvt) <passphrase>
     
 Options:
     --help              [none]            displays this help
@@ -66,9 +66,9 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
         //println("+++ $cmds")
         @Suppress("UNREACHABLE_CODE")
         val ret: String = when (cmds[0]) {
-            "crypto" -> {
+            "keys" -> {
                 assert_(cmds.size == 3) { "invalid number of arguments" }
-                writer.writeLineX("$PRE crypto ${cmds[1]}")
+                writer.writeLineX("$PRE keys ${cmds[1]}")
                 assert_(!cmds[2].contains('\n')) { "invalid password" }
                 writer.writeLineX(cmds[2])
                 reader.readLineX()

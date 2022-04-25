@@ -203,7 +203,7 @@ class Daemon (loc_: Host) {
                         }
                     }
                 }
-                "crypto" -> when (cmds[1]) {
+                "keys" -> when (cmds[1]) {
                     "shared" -> {
                         val pass = reader.readLineX()
                         writer.writeLineX(pass.toShared())
