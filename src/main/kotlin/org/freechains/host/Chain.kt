@@ -244,6 +244,7 @@ fun Chain.consensus (): Consensus {
     return con2
 }
 
+internal
 fun Chain.negs_zers (now: Long, con: Consensus): Consensus {
     val x = con.toMutable()
 
@@ -375,7 +376,7 @@ fun Chain.consensus_one (con: Consensus, blk: Block, nxt: Block?): Consensus {
 
 fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
     val alls = heads.map { this.allFrom(it) }.toSet()
-    val coms = alls.intersectAll()
+    val coms = alls.intersectAll()  // common blocks from received heads
     var con = consensus_aux(this.find_heads(coms), null)
 
     val subs = heads.map { this.consensus_aux1(it,null) }.toMutableList()
