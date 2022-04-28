@@ -442,7 +442,7 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
 
 ///////////
 
-fun Chain.con (): List<Hash> {
+fun Chain.con (olds: List<Hash>?): List<Hash> {
     val fronts = this.allFronts()
     val sts:  MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
@@ -452,13 +452,39 @@ fun Chain.con (): List<Hash> {
     val ones: MutableMap<HKey,Long> = mutableMapOf()    // last time block by pub was consolidated
 
     while (!sts.isEmpty()) {
+        // week average of posts in the last 28 days (counting from latest block in cons)
+        val week_avg = let {
+            val ts = cons
+                .map { it.immut.time }                   // time of past blocks in cons
+                .let { all ->
+                    val last = all.maxOrNull()           // latest block in cons
+                    all.dropWhile { it < last!!-28*day } // only blocks in the past 28 days
+                }
+            max(7, (ts.count() / 4))                 // 7 posts/week minimum
+        }
+
         val nxt: Block = sts                    // find node with more reps inside sts
             .map {                              // get all reps
                 val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
                 Pair(it, rep)
             }
             .sortedWith (                       // sort by highest rep or hash
-                compareByDescending<Pair<Block,Int>>{it.second}.thenByDescending{it.first.hash}
+                compareByDescending<Pair<Block,Int>> { 0 }
+                    .thenByDescending { (blk,_) ->
+                        if (olds == null) 1 else {
+                            val nxts = olds.dropWhile { blk.hash != it }.count()
+                            if (nxts >= week_avg) {
+                                val xs = olds.takeWhile { blk.hash != it }
+                                val ys = cons.takeWhile { blk != it }.map { it.hash }
+                                assert(xs == ys) { "bug found: if blk is above week_avg, olds/cons must be the same" }
+                                1
+                            } else {
+                                0
+                            }
+                        }
+                    }
+                    .thenByDescending { it.second }
+                    .thenByDescending { it.first.hash }
             )
             .first()                            // get highest
             .first                              // get block (ignore reps)
