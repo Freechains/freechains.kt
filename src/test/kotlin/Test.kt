@@ -157,7 +157,7 @@ class Tests {
         val c2 = h.chainsLoad(c1.name)
         assert_(c1.hashCode().equals(c2.hashCode()))
 
-        val hash = c2.blockNew(c2.consensus(), null, null, B(""), false, null)
+        val hash = c2.blockNew(null, null, B(""), false, null)
         val blk2 = c2.fsLoadBlock(hash)
         assert_(c2.fsLoadBlock(hash).hashCode().equals(blk2.hashCode()))
     }
@@ -166,15 +166,17 @@ class Tests {
     fun c1_post() {
         val loc = Host_load("/tmp/freechains/tests/local/")
         val chain = loc.chainsJoin("@$PUB0", emptyList())
-        val n1 = chain.blockNew(chain.consensus(), PVT0, null, B(""), false, null)
-        val n2 = chain.blockNew(chain.consensus(), PVT0, null, B(""), false, null)
-        val n3 = chain.blockNew(chain.consensus(), null, null, B(""), false, null)
+        val n1 = chain.blockNew(PVT0, null, B(""), false, null)
+        chain.consensus()
+        val n2 = chain.blockNew(PVT0, null, B(""), false, null)
+        chain.consensus()
+        val n3 = chain.blockNew(null, null, B(""), false, null)
 
         var ok = false
         try {
             val b3 = chain.fsLoadBlock(n3)
             val n = b3.copy(immut=b3.immut.copy(pay=b3.immut.pay.copy(hash="xxx")))
-            chain.blockAssert(null,n,0)
+            chain.blockAssert(n, 0)
         } catch (e: Throwable) {
             ok = true
         }
@@ -188,10 +190,12 @@ class Tests {
         assert_(!chain.fsExistsBlock("2_........"))
 
         val big = ".".repeat(200*1000)
-        val n4 = chain.blockNew(chain.consensus(), PVT0, null, B(big), false, null)
+        chain.consensus()
+        val n4 = chain.blockNew(PVT0, null, B(big), false, null)
         assert(n4.startsWith("3_"))
         try {
-            chain.blockNew(chain.consensus(), null, null, B(big), false, null)
+            chain.consensus()
+            chain.blockNew(null, null, B(big), false, null)
         } catch (e: Throwable) {
             assert(e.message == "post is too large")
         }
@@ -200,28 +204,33 @@ class Tests {
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
-        val n1 = chain.blockNew(chain.consensus(), PVT0, null,   B("1"), false, null)
-        val n2 = chain.blockNew(chain.consensus(), PVT1, null, B("2.1"), false, null)
-        val n3 = chain.blockNew(chain.consensus(), PVT1, null, B("2.2"), false, null)
-        val con = chain.consensus()
-        assert(chain.heads(con,Head_State.LINKED).let { it.size==1 && it.contains(n1) })
-        assert(chain.heads(con,Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
+        val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
+        chain.consensus()
+        val n2 = chain.blockNew(PVT1, null, B("2.1"), false, null)
+        chain.consensus()
+        val n3 = chain.blockNew(PVT1, null, B("2.2"), false, null)
+        chain.consensus()
+        assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
     }
     @Test
     fun c03_all() {
         val loc = Host_load("/tmp/freechains/tests/C03/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val n1 = chain.blockNew(chain.consensus(), PVT0, null, B("1"), false, null)
-        val n2 = chain.blockNew(chain.consensus(), PVT0, null, B("2"), false, null)
-        val n3 = chain.blockNew(chain.consensus(), PVT0, null, B("3"), false, null)
-        val con1 = chain.consensus()
-        val all = chain.allFroms(chain.heads(con1,Head_State.LINKED))
+        val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
+        chain.consensus()
+        val n2 = chain.blockNew(PVT0, null, B("2"), false, null)
+        chain.consensus()
+        val n3 = chain.blockNew(PVT0, null, B("3"), false, null)
+        chain.consensus()
+        val all = chain.allFroms(chain.heads(Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
-        val rep1 = con1.repsAuthor(PUB0)
+        val rep1 = chain.reps.getZ(PUB0)
         assert(rep1 == 30)
         setNow(12*hour+100)
-        val rep2 = chain.consensus().repsAuthor(PUB0)
+        chain.consensus()
+        val rep2 = chain.reps.getZ(PUB0)
         assert(rep2 == 30)
     }
     @Test
@@ -229,204 +238,252 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/C04/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
-        val n1 = chain.blockNew(chain.consensus(), PVT0, null, B("1"), false, null)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
+        val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
         setNow(12*hour+100)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
-        val n2 = chain.blockNew(chain.consensus(), PVT0, null, B("2"), false, null)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
+        val n2 = chain.blockNew(PVT0, null, B("2"), false, null)
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
         setNow(24*hour+200)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
-        val n3 = chain.blockNew(chain.consensus(), PVT0, null, B("3"), false, null)
-        assert(30 == chain.consensus().repsAuthor(PUB0))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
+        val n3 = chain.blockNew(PVT0, null, B("3"), false, null)
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
     }
     @Test
     fun c05_seq() {
         val loc = Host_load("/tmp/freechains/tests/C05/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val a1 = chain.blockNew(chain.consensus(), PVT0, null, B("a1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, null, B("a2"), false, null)
-        val b2 = chain.blockNew(chain.consensus(), PVT1, null, B("b2"), false, setOf(a1))
+        chain.consensus()
+        val a1 = chain.blockNew(PVT0, null, B("a1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, null, B("a2"), false, null)
+        chain.consensus()
+        val b2 = chain.blockNew(PVT1, null, B("b2"), false, setOf(a1))
 
-        // gen <- a1 <- a2
-        //          \-- b2
+        // gen <- a1 <- a2      // PVT0
+        //          \-- b2      // PVT1
 
-        val con1 = chain.consensus()
-        assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
-        assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
-        assert(30 == con1.repsAuthor(PUB0))
+        chain.consensus()
+        assert(chain.heads(Head_State.LINKED).let  { it.size==1 && it.contains(a2) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==1 && it.contains(b2) })
+        assert(30 == chain.reps.getZ(PUB0))
 
-        val a3 = chain.blockNew(chain.consensus(), PVT0, Like(1,b2), B("a3"), false, null)
+        chain.consensus()
+        val a3 = chain.blockNew(PVT0, Like(1,b2), B("a3"), false, null)
 
         // gen -- a1 -- a2
         //          \-- b2 -- a3
 
-        val con2 = chain.consensus()
-        assert(chain.heads(con2,Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
-        assert(chain.heads(con2,Head_State.BLOCKED).let { it.size==0 })
-        assert(29 == con2.repsAuthor(PUB0))
-        assert( 1 == con2.repsAuthor(PUB1))
+        chain.consensus()
+        assert(chain.heads(Head_State.LINKED).let  { it.size==2 && it.contains(a3) && it.contains(a2)})
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==0 })
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
 
         setNow(12*hour+100)
-        val con3 = chain.consensus()
-        assert(29 == con3.repsAuthor(PUB0))
-        assert( 1 == con3.repsAuthor(PUB1))
+        chain.consensus()
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
 
         setNow(24*hour+200)
-        val con4 = chain.consensus()
-        assert(30 == con4.repsAuthor(PUB0))
-        assert( 2 == con4.repsAuthor(PUB1))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
+        assert( 2 == chain.reps.getZ(PUB1))
 
-        val str = con2.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        //println(str)
-        //assert(str == ",a1,a2,b2,a3")  // a2 is older than b2-a3
-        assert(str == ",a1,b2,a3,a2")
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        println(str)
+        assert(str == ",a1,a2,b2,a3")  // a2>b2
+        //assert(str == ",a1,b2,a3,a2")
     }
     @Test
     fun c06_ord1() {
         val loc = Host_load("/tmp/freechains/tests/C06/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null, B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null, B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(1,c3), B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(1,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        val con1 = chain.consensus()
-        assert(chain.heads(con1,Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
-        assert(chain.heads(con1,Head_State.BLOCKED).let { it.size==0 })
-        assert(28 == con1.repsAuthor(PUB0))
-        assert( 1 == con1.repsAuthor(PUB1))
-        assert( 1 == con1.repsAuthor(PUB2))
+        chain.consensus()
+        assert(chain.heads(Head_State.LINKED).let  { it.size==1 && it.contains(a4) })
+        assert(chain.heads(Head_State.BLOCKED).let { it.size==0 })
+        assert(28 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
+        assert( 1 == chain.reps.getZ(PUB2))
 
         setNow(13*hour)
-        val con2 = chain.consensus()
-        assert(28 == con2.repsAuthor(PUB0))
-        assert( 1 == con2.repsAuthor(PUB1))
-        assert( 1 == con2.repsAuthor(PUB2))
+        chain.consensus()
+        assert(28 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
+        assert( 1 == chain.reps.getZ(PUB2))
 
-        val a5 = chain.blockNew(chain.consensus(), PVT0, null, B("a5"), false, setOf(a4))
-        val c5 = chain.blockNew(chain.consensus(), PVT2, null, B("c5"), false, setOf(a4))
-        val b5 = chain.blockNew(chain.consensus(), PVT1, null, B("b5"), false, setOf(a4))
-        val a6 = chain.blockNew(chain.consensus(), PVT0, null, B("a6"), false, setOf(a5,b5))
-        val a7 = chain.blockNew(chain.consensus(), PVT0, null, B("a7"), false, setOf(a6,c5))
+        chain.consensus()
+        val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
+        chain.consensus()
+        val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
+        chain.consensus()
+        val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+        chain.consensus()
+        val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
+        chain.consensus()
+        val a7 = chain.blockNew(PVT0, null, B("a7"), false, setOf(a6,c5))
 
         //                            /----- c5 -----\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val con3 = chain.consensus()
-        assert(chain.heads(con3,Head_State.LINKED).size==1 && chain.heads(con3,Head_State.BLOCKED).size==0)
-        assert(chain.heads(con3,Head_State.LINKED).contains(a7))
-        assert(28 == con3.repsAuthor(PUB0))
-        assert( 1 == con3.repsAuthor(PUB1))
-        assert( 1 == con3.repsAuthor(PUB2))
+        chain.consensus()
+        assert(chain.heads(Head_State.LINKED).size==1 && chain.heads(Head_State.BLOCKED).size==0)
+        assert(chain.heads(Head_State.LINKED).contains(a7))
+        assert(28 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
+        assert( 1 == chain.reps.getZ(PUB2))
 
-        val str = con3.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
                      //,b1,a2,c3,a4,c5,a5,b5,a6,a7
 
         setNow(25*hour)
-        val con4 = chain.consensus()
+        chain.consensus()
         //println(con4.repsAuthor(PUB0))
-        assert(28 == con4.repsAuthor(PUB0))
-        assert( 2 == con4.repsAuthor(PUB1))
-        assert( 2 == con4.repsAuthor(PUB2))
+        assert(28 == chain.reps.getZ(PUB0))
+        assert( 2 == chain.reps.getZ(PUB1))
+        assert( 2 == chain.reps.getZ(PUB2))
 
         //println("-=-=-=-=-")
         setNow(38*hour)
-        val con5 = chain.consensus()
+        chain.consensus()
         //println(con5.repsAuthor(PUB0))
-        assert(29 == con5.repsAuthor(PUB0))
-        assert( 2 == con5.repsAuthor(PUB1))
-        assert( 2 == con5.repsAuthor(PUB2))
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 2 == chain.reps.getZ(PUB1))
+        assert( 2 == chain.reps.getZ(PUB2))
     }
     @Test
     fun c07_ord2() {
         val loc = Host_load("/tmp/freechains/tests/C07/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null,B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1),B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null, B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(1,c3),B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(1,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(chain.consensus(), PVT0, null, B("a5"), false, setOf(a4))
-        val b5 = chain.blockNew(chain.consensus(), PVT1, null, B("b5"), false, setOf(a4))
-        val a6 = chain.blockNew(chain.consensus(), PVT0, null, B("a6"), false, setOf(a5,b5))
-        val c6 = chain.blockNew(chain.consensus(), PVT2, null, B("c6"), false, setOf(a5))
-        val a7 = chain.blockNew(chain.consensus(), PVT0, null, B("a7"), false, setOf(a6,c6))
+        chain.consensus()
+        val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
+        chain.consensus()
+        val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+        chain.consensus()
+        val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
+        chain.consensus()
+        val c6 = chain.blockNew(PVT2, null, B("c6"), false, setOf(a5))
+        chain.consensus()
+        val a7 = chain.blockNew(PVT0, null, B("a7"), false, setOf(a6,c6))
 
         //                                  /-- c6 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        chain.consensus()
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
-        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
+        //assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
+        assert(str == ",b1,a2,c3,a4,a5,c6,b5,a6,a7")
     }
     @Test
     fun c08_ord3() {
         val loc = Host_load("/tmp/freechains/tests/C08/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null, B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1),B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null, B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(2,c3),B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(2,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(chain.consensus(), PVT0, null,B("a5"), false, setOf(a4))
-        val b5 = chain.blockNew(chain.consensus(), PVT1, null,B("b5"), false, setOf(a4))
-        val c5 = chain.blockNew(chain.consensus(), PVT2, null,B("c5"), false, setOf(a4))
-        val c6 = chain.blockNew(chain.consensus(), PVT2, null,B("c6"), false, setOf(a5,c5))
-        val a6 = chain.blockNew(chain.consensus(), PVT0, null,B("a6"), false, setOf(a5,b5))
-        val a7 = chain.blockNew(chain.consensus(), PVT0, null,B("a7"), false, setOf(a6,c6))
+        chain.consensus()
+        val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
+        chain.consensus()
+        val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+        chain.consensus()
+        val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
+        chain.consensus()
+        val c6 = chain.blockNew(PVT2, null, B("c6"), false, setOf(a5,c5))
+        chain.consensus()
+        val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
+        chain.consensus()
+        val a7 = chain.blockNew(PVT0, null, B("a7"), false, setOf(a6,c6))
 
         //                            /-- c5 -/ c6 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6 <- a7
         //                            \-- b5 --/
 
-        val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        chain.consensus()
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
-        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
+        //assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
+        assert(str == ",b1,a2,c3,a4,a5,c5,c6,b5,a6,a7")
     }
     @Test
     fun c09_ord4() {
         val loc = Host_load("/tmp/freechains/tests/C09/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null,       B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null,       B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(2,c3), B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(2,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        val a5 = chain.blockNew(chain.consensus(), PVT0, null, B("a5"), false, setOf(a4))
-        val b5 = chain.blockNew(chain.consensus(), PVT1, null, B("b5"), false, setOf(a4))
-        val c5 = chain.blockNew(chain.consensus(), PVT2, null, B("c5"), false, setOf(a4))
-        val a6 = chain.blockNew(chain.consensus(), PVT0, null, B("a6"), false, setOf(a5,b5,c5))
+        chain.consensus()
+        val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
+        chain.consensus()
+        val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+        chain.consensus()
+        val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
+        chain.consensus()
+        val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5,c5))
 
         //                            /-- c5 --\
         // gen <- b1 <- a2 <- c3 <- a4 <- a5 <- a6
         //                            \-- b5 --/
 
-        val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        chain.consensus()
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,c5,b5,a6")
     }
@@ -435,15 +492,19 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/C10/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null,        B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null,        B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(2,c3), B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(2,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
-        val con = chain.consensus()
-        val str = con.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        chain.consensus()
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4")
         //assert(con.invs.isEmpty())
@@ -454,42 +515,52 @@ class Tests {
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
 
         setNow(0)
-        val b1 = chain.blockNew(chain.consensus(), PVT1, null,       B("b1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, Like(1,b1), B("a2"), false, null)
-        val c3 = chain.blockNew(chain.consensus(), PVT2, null,       B("c3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(2,c3), B("a4"), false, null)
+        chain.consensus()
+        val b1 = chain.blockNew(PVT1, null, B("b1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, Like(1,b1), B("a2"), false, null)
+        chain.consensus()
+        val c3 = chain.blockNew(PVT2, null, B("c3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(2,c3), B("a4"), false, null)
 
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
 
-        val con1 = chain.consensus()
-        assert(2 == con1.repsAuthor(PUB2))
-        assert(1 == con1.repsAuthor(PUB1))
+        chain.consensus()
+        assert(2 == chain.reps.getZ(PUB2))
+        assert(1 == chain.reps.getZ(PUB1))
 
         setNow(25*hour)
 
-        val con2 = chain.consensus()
-        assert(3 == con2.repsAuthor(PUB2))
-        assert(2 == con2.repsAuthor(PUB1))
+        chain.consensus()
+        assert(3 == chain.reps.getZ(PUB2))
+        assert(2 == chain.reps.getZ(PUB1))
 
-        val c5 = chain.blockNew(chain.consensus(), PVT2, null, B("c5"), false, setOf(a4))
-        val c6 = chain.blockNew(chain.consensus(), PVT2, null, B("c6"), false, setOf(c5))
+        chain.consensus()
+        val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
+        chain.consensus()
+        val c6 = chain.blockNew(PVT2, null, B("c6"), false, setOf(c5))
 
-        val con3 = chain.consensus()
-        assert(1 == con3.repsAuthor(PUB2))
+        chain.consensus()
+        assert(1 == chain.reps.getZ(PUB2))
 
-        val c7 = chain.blockNew(chain.consensus(), PVT2, null,        B("c7"), false, setOf(c6))
-        val b5 = chain.blockNew(chain.consensus(), PVT1, null,        B("b5"), false, setOf(a4))
-        val a6 = chain.blockNew(chain.consensus(), PVT0, Like(-2,c3), B("a6"), false, setOf(b5))
+        chain.consensus()
+        val c7 = chain.blockNew(PVT2, null, B("c7"), false, setOf(c6))
+        chain.consensus()
+        val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+        chain.consensus()
+        val a6 = chain.blockNew(PVT0, Like(-2,c3), B("a6"), false, setOf(b5))
 
         //                            /-- c5 -- c6 -- c7
         // gen <- b1 <- a2 <- c3 <- a4
         //                            \-- b5 -- a6
 
-        val con4 = chain.consensus()
-        val str = con4.list.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        //println(str)
+        chain.consensus()
+        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        println(str)
+        //assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //println(inv)
         //assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
@@ -499,58 +570,64 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/C12/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        val a1 = chain.blockNew(chain.consensus(), PVT0, null, B("a1"), false, null)
-        val a2 = chain.blockNew(chain.consensus(), PVT0, null, B("a2"), false, null)
+        chain.consensus()
+        val a1 = chain.blockNew(PVT0, null, B("a1"), false, null)
+        chain.consensus()
+        val a2 = chain.blockNew(PVT0, null, B("a2"), false, null)
 
         // gen <- a1 <- a2
 
-        val con1 = chain.consensus()
-        assert(30 == con1.repsAuthor(PUB0))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
 
-        val b3 = chain.blockNew(chain.consensus(), PVT1, null, B("b3"), false, null)
-        val a4 = chain.blockNew(chain.consensus(), PVT0, Like(1, b3), B("a4"), false, null)
+        chain.consensus()
+        val b3 = chain.blockNew(PVT1, null, B("b3"), false, null)
+        chain.consensus()
+        val a4 = chain.blockNew(PVT0, Like(1, b3), B("a4"), false, null)
 
         // gen <- a1 <- a2 <- b3 <- a4
 
-        val con2 = chain.consensus()
-        assert(29 == con2.repsAuthor(PUB0))
-        assert( 1 == con2.repsAuthor(PUB1))
+        chain.consensus()
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
 
-        val c5 = chain.blockNew(chain.consensus(), PVT2, null, B("c5"), false, null)
-        val b6 = chain.blockNew(chain.consensus(), PVT1, Like(1, c5), B("b6"), false, null)
+        chain.consensus()
+        val c5 = chain.blockNew(PVT2, null, B("c5"), false, null)
+        chain.consensus()
+        val b6 = chain.blockNew(PVT1, Like(1, c5), B("b6"), false, null)
 
         // gen -- a1 -- a2 -- b3 -- a4 -- c5 -- b6
 
-        val con3 = chain.consensus()
-        assert(29 == con3.repsAuthor(PUB0))
-        assert( 0 == con3.repsAuthor(PUB1))
-        assert( 0 == con3.repsAuthor(PUB2))
+        chain.consensus()
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 0 == chain.reps.getZ(PUB1))
+        assert( 0 == chain.reps.getZ(PUB2))
 
         setNow(11*hour + 59*min)
-        val con4 = chain.consensus()
-        assert(29 == con4.repsAuthor(PUB0))
-        assert( 0 == con4.repsAuthor(PUB1))
-        assert( 0 == con4.repsAuthor(PUB2))
+        chain.consensus()
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 0 == chain.reps.getZ(PUB1))
+        assert( 0 == chain.reps.getZ(PUB2))
 
         setNow(12*hour + 100)
-        val con5 = chain.consensus()
-        assert(29 == con5.repsAuthor(PUB0))
-        assert( 0 == con5.repsAuthor(PUB1))
-        assert( 1 == con5.repsAuthor(PUB2))
+        chain.consensus()
+        assert(29 == chain.reps.getZ(PUB0))
+        assert( 0 == chain.reps.getZ(PUB1))
+        assert( 1 == chain.reps.getZ(PUB2))
 
         setNow(24*hour + 100)
-        val con6 = chain.consensus()
-        assert(30 == con6.repsAuthor(PUB0))
-        assert( 1 == con6.repsAuthor(PUB1))
-        assert( 2 == con6.repsAuthor(PUB2))
+        chain.consensus()
+        assert(30 == chain.reps.getZ(PUB0))
+        assert( 1 == chain.reps.getZ(PUB1))
+        assert( 2 == chain.reps.getZ(PUB2))
     }
     @Test
     fun c13_pioneers() {
         val loc = Host_load("/tmp/freechains/tests/C13/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0,PUB1))
         val con = chain.consensus()
-        assert(15 == con.repsAuthor(PUB0))
-        assert(15 == con.repsAuthor(PUB1))
+        assert(15 == chain.reps.getZ(PUB0))
+        assert(15 == chain.reps.getZ(PUB1))
     }
 
     @Test
@@ -558,8 +635,10 @@ class Tests {
         // SOURCE
         val src = Host_load("/tmp/freechains/tests/src/")
         val srcChain = src.chainsJoin("@$PUB1", emptyList())
-        srcChain.blockNew(srcChain.consensus(), PVT1, null, B(""), true, null)
-        srcChain.blockNew(srcChain.consensus(), PVT1, null, B(""), true, null)
+        srcChain.consensus()
+        srcChain.blockNew(PVT1, null, B(""), true, null)
+        srcChain.consensus()
+        srcChain.blockNew(PVT1, null, B(""), true, null)
         thread { Daemon(src).daemon() }
 
         // DESTINY
@@ -593,13 +672,17 @@ class Tests {
     fun f1_peers() {
         val h1 = Host_load("/tmp/freechains/tests/h1/", PORT0)
         val h1Chain = h1.chainsJoin("@$PUB1", emptyList())
-        h1Chain.blockNew(h1Chain.consensus(), PVT1, null,  B(""), false, null)
-        h1Chain.blockNew(h1Chain.consensus(), PVT1, null,  B(""), false, null)
+        h1Chain.consensus()
+        h1Chain.blockNew(PVT1, null, B(""), false, null)
+        h1Chain.consensus()
+        h1Chain.blockNew(PVT1, null, B(""), false, null)
 
         val h2 = Host_load("/tmp/freechains/tests/h2/", PORT1)
         val h2Chain = h2.chainsJoin("@$PUB1", emptyList())
-        h2Chain.blockNew(h2Chain.consensus(), PVT1, null,  B(""), false, null)
-        h2Chain.blockNew(h2Chain.consensus(), PVT1, null,  B(""), false, null)
+        h2Chain.consensus()
+        h2Chain.blockNew(PVT1, null, B(""), false, null)
+        h2Chain.consensus()
+        h2Chain.blockNew(PVT1, null, B(""), false, null)
 
         Thread.sleep(200)
         thread { Daemon(h1).daemon() }
@@ -741,12 +824,14 @@ class Tests {
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#", PUB0))
-        val gen = main_cli_assert(arrayOf("chain", "#", "genesis"))
+        main_cli_assert(arrayOf("chain", "#", "genesis"))
         main_cli(arrayOf("chain", "#", "post", "inline", "aaa", S0))
         main_cli(arrayOf("chain", "#", "post", "inline", "bbb", S0))
         main_cli_assert(arrayOf("chain", "#", "consensus")).let {
             it.split(" ").let {
-                assert_(it.size==3 && it[1].startsWith("1_"))
+                assert_(it.size==3 && it[1].startsWith("1_")) {
+                    it
+                }
             }
         }
     }
@@ -878,15 +963,15 @@ class Tests {
     fun m03_crypto_post() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
         val c1 = loc.chainsJoin("\$sym", listOf("password".toShared()))
-        c1.blockNew(c1.consensus(), null, null, B(""), true, null)
+        c1.blockNew(null, null, B(""), true, null)
         val c2 = loc.chainsJoin("@$PUB0", emptyList())
-        c2.blockNew(c2.consensus(), PVT0, null, B(""), true, null)
+        c2.blockNew(PVT0, null, B(""), true, null)
     }
     @Test
     fun m04_crypto_encrypt() {
         val loc = Host_load("/tmp/freechains/tests/M2/")
         val c1 = loc.chainsLoad("\$sym")
-        val n1 = c1.blockNew(c1.consensus(),null, null, B("aaa"), true, null)
+        val n1 = c1.blockNew(null, null, B("aaa"), true, null)
         val n2 = c1.fsLoadPayCrypt(n1, null)
         assert_(n2.toString(Charsets.UTF_8) == "aaa")
         val n3 = c1.fsLoadPayRaw(n1)
@@ -1875,12 +1960,17 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "4 / 4" && r1 == "0 / 0")
 
+        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
+        assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+        assert("1" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1)))
+        assert("1" == main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB2)))
+
         val a2 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a2"))
         val b2 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "b2"))
 
-        //                            /-- a2
+        //                            /-- a2    // H1
         // gen -- a1 -- la -- b1 -- lb
-        //                            \-- b2
+        //                            \-- b2    // H2
 
         val s2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
@@ -2053,8 +2143,8 @@ class Tests {
                 main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "b7"))
         )
 
-        // gen -- a1 ... a7
-        //    \-- b1 ... b7
+        // gen -- a1 ... a7     // H1
+        //    \-- b1 ... b7     // H2
 
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
@@ -2062,7 +2152,6 @@ class Tests {
 
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        //println(v1)
         assert(v1 != v2)
         assert(v1.contains(As[0]))
         assert(v2.contains(Bs[0]))

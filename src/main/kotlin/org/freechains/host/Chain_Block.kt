@@ -12,14 +12,14 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
+fun Chain.isHidden (blk: Block) : Boolean {
     return when {
         // immutable
         (blk.hash.toHeight() == 0)     -> false       // genesis block
         this.fromOwner(blk)            -> false       // owner signature
         this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
         (blk.immut.like != null)       -> false       // a like
-        con.list.any {
+        this.cons.any {
             val blk2 = this.fsLoadBlock(it)
             val lk2 = blk2.immut.like
             (lk2!=null && lk2.hash==blk.hash && blk.sign!=null && blk.sign.pub==blk2.sign!!.pub)
@@ -27,7 +27,7 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
 
         // mutable
         else -> {
-            val (pos,neg) = this.repsPost(con, blk.hash)
+            val (pos,neg) = this.repsPost(blk.hash)
             (neg>=LK3_dislikes && neg>=pos) // too many dislikes
         }
     }
@@ -35,11 +35,11 @@ fun Chain.isHidden (con: Consensus, blk: Block) : Boolean {
 
 // NEW
 
-fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, backs: Set<Hash>?) : Hash {
+fun Chain.blockNew (sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, backs: Set<Hash>?) : Hash {
     val backs_ = when {
         (backs != null) -> backs
-        (like!=null && like.n>0 && this.heads(con,Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
-        else -> this.heads(con,Head_State.LINKED)
+        (like!=null && like.n>0 && this.heads(Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
+        else -> this.heads(Head_State.LINKED)
     }
 
     val pay_ = when {
@@ -70,11 +70,11 @@ fun Chain.blockNew (con: Consensus, sign: HKey?, like: Like?, pay: ByteArray, cr
         Signature(sig_hash, sign.pvtToPub())
     }
 
-    this.fsSaveBlock(con, Block(imm, hash, signature),pay_)
+    this.fsSaveBlock(Block(imm, hash, signature), pay_)
     return hash
 }
 
-fun Chain.blockAssert (con: Consensus?, blk: Block, size: Int) {
+fun Chain.blockAssert (blk: Block, size: Int) {
     val imm = blk.immut
     val now = getNow()
 
@@ -82,7 +82,7 @@ fun Chain.blockAssert (con: Consensus?, blk: Block, size: Int) {
     for (bk in blk.immut.backs) {
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.heads(con!!,Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.heads(Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
             "backs must be accepted"
         }
     }

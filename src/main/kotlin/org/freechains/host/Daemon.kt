@@ -269,8 +269,8 @@ class Daemon (loc_: Host) {
                                 }
                                 "heads" -> {
                                     val heads = when (cmds.size) {
-                                        3 -> chain.heads(con,Head_State.LINKED)
-                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads(con,Head_State.BLOCKED) }
+                                        3 -> chain.heads(Head_State.LINKED)
+                                        4 -> { assert(cmds[3]=="blocked") ; chain.heads(Head_State.BLOCKED) }
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
@@ -298,7 +298,7 @@ class Daemon (loc_: Host) {
                                                 writer.writeBytes(ret)
                                             }
                                             "payload" -> {
-                                                val ret = if (chain.isHidden(con,chain.fsLoadBlock(hash))) {
+                                                val ret = if (chain.isHidden(chain.fsLoadBlock(hash))) {
                                                     ByteArray(0)
                                                 } else {
                                                     chain.fsLoadPayCrypt(hash,decrypt)
@@ -318,10 +318,10 @@ class Daemon (loc_: Host) {
                                     val ref = cmds[3]
                                     val likes =
                                         if (ref.hashIsBlock()) {
-                                            val (pos, neg) = chain.repsPost(con,ref)
+                                            val (pos, neg) = chain.repsPost(ref)
                                             pos - neg
                                         } else {
-                                            con.repsAuthor(ref)
+                                            chain.reps.getZ(ref)
                                         }
                                     writer.writeLineX(likes.toString())
                                     System.err.println("chain reps: $likes")
@@ -338,7 +338,6 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                con,
                                                 if (sign == "anon") null else sign,
                                                 null,
                                                 pay,
@@ -362,7 +361,6 @@ class Daemon (loc_: Host) {
                                     try {
                                         synchronized(getLock(chain.name)) {
                                             ret = chain.blockNew (
-                                                con,
                                                 cmds[5],
                                                 Like(cmds[3].toInt(), cmds[4]),
                                                 pay,
@@ -414,13 +412,13 @@ class Daemon (loc_: Host) {
         //   - pushes into toSend
         // - sends toSend
 
-        val (chain,con) = this.chainsLoadSync(chain_)
+        val chain = this.chainsLoadSync(chain_)
         val visited = HashSet<Hash>()
         var nmin    = 0
         var nmax    = 0
 
         // for each local head
-        val heads = chain.heads(con,Head_State.LINKED) + chain.heads(con,Head_State.BLOCKED)
+        val heads = chain.heads(Head_State.LINKED) + chain.heads(Head_State.BLOCKED)
         val nout = heads.size
         writer.writeLineX(nout.toString())                              // 1
         for (head in heads) {
@@ -461,7 +459,7 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = if (chain.isHidden(con,out)) ByteArray(0) else chain.fsLoadPayRaw(hash)
+                val pay = if (chain.isHidden(out)) ByteArray(0) else chain.fsLoadPayRaw(hash)
                 writer.writeLineX(pay.size.toString())
                 writer.write(pay)
                 writer.writeLineX("")
@@ -483,7 +481,7 @@ class Daemon (loc_: Host) {
         // - answers if contains each host
         // - receives all
 
-        var (chain,con) = this.chainsLoadSync(chain_)
+        var chain = this.chainsLoadSync(chain_)
         var nmax = 0
         var nmin = 0
 
@@ -529,9 +527,8 @@ class Daemon (loc_: Host) {
                     }
 
                     synchronized(getLock(chain.name)) {
-                        con = chain.consensus()
-                        assert_(chain.heads(con,Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
-                        chain.fsSaveBlock(con,blk,pay)
+                        assert_(chain.heads(Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
+                        chain.fsSaveBlock(blk,pay)
                     }
                     if (pay.size==0 && blk.immut.pay.hash!="".calcHash()) {
                         hiddens.add(blk)
@@ -549,7 +546,7 @@ class Daemon (loc_: Host) {
         writer.writeLineX(nout.toString())                // 8
 
         for (blk in hiddens) {
-            assert_(chain.isHidden(con,blk)) {
+            assert_(chain.isHidden(blk)) {
                 "bug found: expected hidden state"
             }
         }
