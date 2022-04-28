@@ -278,8 +278,8 @@ class Daemon (loc_: Host) {
                                 }
                                 "consensus" -> {
                                     val ret = con.list.joinToString(" ")
-                                    writer.writeLineX("...") //(ret)
-                                    System.err.println("chain consensus: $ret")
+                                    writer.writeLineX(ret)
+                                    System.err.println("chain consensus: ...")
                                 }
                                 "get" -> {
                                     val hash = cmds[4]
