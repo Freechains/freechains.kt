@@ -446,7 +446,7 @@ fun Chain.con (): List<Hash> {
     val fronts = this.allFronts()
     val sts:  MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
-    val cons: MutableList<Hash>     = mutableListOf()
+    val cons: MutableList<Block>    = mutableListOf()
     val negs: MutableSet<Block>     = mutableSetOf()    // new posts still penalized
     val zers: MutableSet<Block>     = mutableSetOf()    // new posts not yet consolidated
     val ones: MutableMap<HKey,Long> = mutableMapOf()    // last time block by pub was consolidated
@@ -464,7 +464,7 @@ fun Chain.con (): List<Hash> {
             .first                              // get block (ignore reps)
 
         sts.remove(nxt)     // rem it from sts
-        cons.add(nxt.hash)  // add it to consensus list
+        cons.add(nxt)       // add it to consensus list
 
         // set reps, negs, zers
         when {
@@ -505,12 +505,11 @@ fun Chain.con (): List<Hash> {
                 //println(">>> ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)}")
                 val tot = reps.values.sum()
                 val aft = cons
-                    .drop(cons.indexOf(blk.hash))       // blocks after myself (including me)
-                    .map { this.fsLoadBlock(it) }       // take their authors
-                    .map { it.sign!!.pub }              // take their authors
-                    .toSet()                            // remove duplicates
-                    .map { reps[it]!! }                 // take their reps
-                    .sum()                              // sum everything
+                    .drop(cons.indexOf(blk))    // blocks after myself (including me)
+                    .map { it.sign!!.pub }      // take their authors
+                    .toSet()                    // remove duplicates
+                    .map { reps[it]!! }         // take their reps
+                    .sum()                      // sum everything
                 // 0% -> 0, 50% -> 1
                 val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble()/tot*2)).toInt()
                 //println("<<< ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)} = ${blk.immut.time} <= $now-$dt")
@@ -538,7 +537,7 @@ fun Chain.con (): List<Hash> {
         sts.addAll (
             fronts[nxt.hash]!!
                 .map    { this.fsLoadBlock(it) }
-                .filter { (it.immut.backs.toSet() - cons.toSet()).isEmpty() }   // (2)
+                .filter { (it.immut.backs.toSet() - cons.map{it.hash}.toSet()).isEmpty() }   // (2)
                 .filter { blk ->                                                // (1)
                     // block in sequence is a like to my hash?
                     val islk = fronts[blk.hash]!!               // take my fronts
@@ -566,5 +565,5 @@ fun Chain.con (): List<Hash> {
         )
     }
 
-    return cons.toList()
+    return cons.map {it.hash}
 }
