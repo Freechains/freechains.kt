@@ -357,7 +357,7 @@ class Tests {
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
-                     //,b1,a2,c3,a4,c5,a5,b5,a6,a7
+        //assert(str == ",b1,a2,c3,a4,c5,a5,b5,a6,a7")
 
         setNow(25*hour)
         chain.consensus()
@@ -559,9 +559,10 @@ class Tests {
 
         chain.consensus()
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        println(str)
+        //println(str)
         //assert(str == ",b1,a2,c3,a4,b5,a6,c5")
-        assert(str == ",b1,a2,c3,a4,b5,a6,c5")
+        //assert(str == ",b1,a2,c3,a4,b5,a6,c5")
+        assert(str == ",b1,a2,c3,a4,c5,c6,b5,a6,c7")
         //println(inv)
         //assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
     }

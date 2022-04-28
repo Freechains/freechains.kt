@@ -20,10 +20,11 @@ class Daemon (loc_: Host) {
         return (loc.root+chain).intern()
     }
 
-    private fun chainsLoadSync (name: String) : Pair<Chain,Consensus> {
+    private fun chainsLoadSync (name: String) : Chain {
         return synchronized(this.getLock(name)) {
-            val chain = loc.chainsLoad(name)
-            Pair(chain, chain.consensus())
+            val chain = loc.chainsLoad(name)    // TODO: remove synchronized??? check git history
+            chain.consensus()
+            chain
         }
     }
 
@@ -260,7 +261,7 @@ class Daemon (loc_: Host) {
                             }
                         }
                         else -> {
-                            val (chain,con) = this.chainsLoadSync(name)
+                            val chain = this.chainsLoadSync(name)
                             when (cmds[2]) {
                                 "genesis" -> {
                                     val hash = chain.genesis()
@@ -277,7 +278,7 @@ class Daemon (loc_: Host) {
                                     System.err.println("chain heads: $heads")
                                 }
                                 "consensus" -> {
-                                    val ret = con.list.joinToString(" ")
+                                    val ret = chain.cons.joinToString(" ")
                                     writer.writeLineX(ret)
                                     System.err.println("chain consensus: ...")
                                 }

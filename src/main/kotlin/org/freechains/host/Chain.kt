@@ -107,10 +107,6 @@ internal fun Chain.fsSave () {
     File(this.path() + "/" + "chain").writeText(this.toJson())
 }
 
-fun Chain.fsLoadTime (hash: Hash) : Long {
-    return Date(File(this.path() + "/blocks/" + hash + ".blk").lastModified()).toInstant().toEpochMilli()
-}
-
 fun Chain.fsLoadBlock (hash: Hash) : Block {
     return File(this.path() + "/blocks/" + hash + ".blk").readText().jsonToBlock()
 }
@@ -139,8 +135,7 @@ fun Chain.fsSaveBlock (blk: Block, pay: ByteArray) {
     this.blockAssert(blk, pay.size)
     File(this.path() + "/blocks/" + blk.hash + ".pay").writeBytes(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-    this.consensus()
-    this.fsSave()
+    this.consensus(blk.immut.time)
 }
 
 fun Chain.fsAll (): Set<Hash> {
@@ -210,7 +205,7 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
     return this[pub]!!
 }
 
-fun Chain.consensus () {
+fun Chain.consensus (now: Long = getNow()) {
     val fronts = this.allFronts()
     val sts:  MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
@@ -280,6 +275,8 @@ fun Chain.consensus () {
                         if (nxts >= week_avg) {
                             val xs = olds.takeWhile { blk.hash != it }
                             val ys = cons.takeWhile { blk != it }.map { it.hash }
+                            //println(xs)
+                            //println(ys)
                             assert(xs == ys) { "bug found: if blk is above week_avg, olds/cons must be the same" }
                             1
                         } else {
@@ -360,7 +357,8 @@ fun Chain.consensus () {
         )
     }
 
-    negs_zers(getNow())
+    negs_zers(now)
     this.cons = cons.map {it.hash}
     this.reps = reps.toMap()
+    this.fsSave()
 }
