@@ -7,7 +7,6 @@ import org.freechains.common.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
-import java.util.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -207,7 +206,7 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
 
 fun Chain.consensus (now: Long = getNow()) {
     val fronts = this.allFronts()
-    val sts:  MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
+    val pnds:  MutableSet<Block>    = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
     val cons: MutableList<Block>    = mutableListOf()
     val negs: MutableSet<Block>     = mutableSetOf()    // new posts still penalized
@@ -250,7 +249,7 @@ fun Chain.consensus (now: Long = getNow()) {
         }
     }
 
-    while (!sts.isEmpty()) {
+    while (!pnds.isEmpty()) {
         // week average of posts in the last 28 days (counting from latest block in cons)
         val week_avg = let {
             val ts = cons
@@ -262,7 +261,7 @@ fun Chain.consensus (now: Long = getNow()) {
             max(7, (ts.count() / 4))                 // 7 posts/week minimum
         }
 
-        val nxt: Block = sts                    // find node with more reps inside sts
+        val nxt: Block = pnds                    // find node with more reps inside sts
             .map {                              // get all reps
                 val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
                 Pair(it, rep)
@@ -289,7 +288,7 @@ fun Chain.consensus (now: Long = getNow()) {
             .first()                            // get highest
             .first                              // get block (ignore reps)
 
-        sts.remove(nxt)     // rem it from sts
+        pnds.remove(nxt)     // rem it from sts
         cons.add(nxt)       // add it to consensus list
 
         // set reps, negs, zers
@@ -326,7 +325,7 @@ fun Chain.consensus (now: Long = getNow()) {
         negs_zers(nxt.immut.time)// nxt may affect previous blks in negs/zers
 
         // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
-        sts.addAll (
+        pnds.addAll (
             fronts[nxt.hash]!!
                 .map    { this.fsLoadBlock(it) }
                 .filter { (it.immut.backs.toSet() - cons.map{it.hash}.toSet()).isEmpty() }   // (2)
