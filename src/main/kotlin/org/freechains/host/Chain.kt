@@ -158,6 +158,15 @@ fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
     return all - backs
 }
 
+fun Chain.allFronts (): MutableMap<Hash,List<Hash>> {
+    val all = this.fsAll()
+    val ret: MutableMap<Hash,List<Hash>> = mutableMapOf()
+    for (h in all) {
+        ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }
+    }
+    return ret
+}
+
 // REPUTATION
 
 fun Chain.repsPost (con: Consensus, hash: String) : Pair<Int,Int> {
@@ -429,4 +438,133 @@ fun Chain.consensus_auxN (heads: Set<Hash>): Consensus {
     }
     //println(con.list)
     return con
+}
+
+///////////
+
+fun Chain.con (): List<Hash> {
+    val fronts = this.allFronts()
+    val sts:  MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
+    val reps: MutableMap<HKey,Int>  = mutableMapOf()
+    val cons: MutableList<Hash>     = mutableListOf()
+    val negs: MutableSet<Block>     = mutableSetOf()    // new posts still penalized
+    val zers: MutableSet<Block>     = mutableSetOf()    // new posts not yet consolidated
+    val ones: MutableMap<HKey,Long> = mutableMapOf()    // last time block by pub was consolidated
+
+    while (!sts.isEmpty()) {
+        val nxt: Block = sts                    // find node with more reps inside sts
+            .map {                              // get all reps
+                val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
+                Pair(it, rep)
+            }
+            .sortedWith (                       // sort by highest rep or hash
+                compareByDescending<Pair<Block,Int>>{it.second}.thenByDescending{it.first.hash}
+            )
+            .first()                            // get highest
+            .first                              // get block (ignore reps)
+
+        sts.remove(nxt)     // rem it from sts
+        cons.add(nxt.hash)  // add it to consensus list
+
+        // set reps, negs, zers
+        when {
+            // genesis block: set pioneers reps
+            (nxt.hash == this.genesis()) -> {
+                when {
+                    this.name.startsWith("#") -> this.keys.forEach { reps[it] = LK30_max/this.keys.size }
+                    this.name.startsWith("@") -> reps[this.atKey()!!] = LK30_max
+                }
+            }
+
+            // a like: dec reps from author, inc reps to target
+            (nxt.immut.like != null) -> {
+                if (nxt.sign != null) {
+                    reps[nxt.sign.pub] = reps.getXZ(nxt.sign.pub) - nxt.immut.like.n.absoluteValue
+                }
+                val target = this.fsLoadBlock(nxt.immut.like.hash).let {
+                    if (it.sign == null) null else it.sign.pub
+                }
+                if (target != null) {
+                    reps[target] = min(LK30_max, reps.getXZ(target) + nxt.immut.like.n)
+                }
+            }
+
+            // a signed post: dec reps from author
+            (nxt.sign != null) -> {
+                reps[nxt.sign.pub] = reps.getXZ(nxt.sign.pub) - 1
+                negs.add(nxt)
+                zers.add(nxt)
+            }
+        }
+
+        // nxt may affect previous blks in negs/zers
+        //negs_zers(nxt.immut.time, xcon.toValue())
+        val now = nxt.immut.time
+        val nonegs = negs
+            .filter { blk ->
+                //println(">>> ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)}")
+                val tot = reps.values.sum()
+                val aft = cons
+                    .drop(cons.indexOf(blk.hash))       // blocks after myself (including me)
+                    .map { this.fsLoadBlock(it) }       // take their authors
+                    .map { it.sign!!.pub }              // take their authors
+                    .toSet()                            // remove duplicates
+                    .map { reps[it]!! }                 // take their reps
+                    .sum()                              // sum everything
+                // 0% -> 0, 50% -> 1
+                val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble()/tot*2)).toInt()
+                //println("<<< ${this.fsLoadPayRaw(blk.hash).toString(Charsets.UTF_8)} = ${blk.immut.time} <= $now-$dt")
+                //println("[${T12h_new}] dt=$dt // 0.5 - $aft/$tot")
+                blk.immut.time <= now-dt
+            }
+        negs.removeAll(nonegs)
+        nonegs.forEach {
+            reps[it.sign!!.pub] = min(LK30_max,reps.getXZ(it.sign.pub) + 1)
+            //println("nonneg : +1 : ${it.sign.pub}")
+        }
+
+        val nozers = zers.filter { it.immut.time+T24h_old <= now }
+        zers.removeAll(nozers)
+        nozers.forEach {
+            val one = ones[it.sign!!.pub]
+            if (one==null || one+T24h_old <= it.immut.time) {
+                ones[it.sign.pub] = it.immut.time
+                reps[it.sign.pub] = min(LK30_max, reps.getXZ(it.sign.pub) + 1)
+                //println("consol : +1 : ${it.sign.pub}")
+            }
+        }
+
+        // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
+        sts.addAll (
+            fronts[nxt.hash]!!
+                .map    { this.fsLoadBlock(it) }
+                .filter { (it.immut.backs.toSet() - cons.toSet()).isEmpty() }   // (2)
+                .filter { blk ->                                                // (1)
+                    // block in sequence is a like to my hash?
+                    val islk = fronts[blk.hash]!!               // take my fronts
+                        .map { this.fsLoadBlock(it) }
+                        .any {                                  // (it should be only one, no?)
+                            (it.immut.like != null)             // must be a like
+                         && (it.immut.like.hash == blk.hash)    // to myself
+                         && (it.immut.like.n > 0)               // positive
+                         && (this.fromOwner(it) ||              // either from owner
+                             reps.getZ(it.sign!!.pub)>0)        //  or from someone with reps
+                        }
+
+                    if (blk.sign != null) {
+                        println(blk.hash)
+                        println(reps.getZ(blk.sign.pub))
+                    }
+
+                    val ok = (blk.hash == this.genesis())       // genesis is always accepted
+                          || this.fromOwner(blk)                // owner in identity chain
+                          || this.name.startsWith('$')    // private chain
+                          || (islk && blk.immut.like==null)     // liked in next block
+                          || (blk.sign!=null && reps.getZ(blk.sign.pub)>0)  // has reps
+                    ok
+                }
+        )
+    }
+
+    return cons.toList()
 }
