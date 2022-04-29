@@ -213,6 +213,14 @@ class Tests {
         assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
         assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
     }
+
+    fun Chain.allFrom (h: Hash): Set<Hash> {
+        return setOf(h) + this.allFroms(this.fsLoadBlock(h).immut.backs)
+    }
+    fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
+        return hs.map { this.allFrom(it) }.toSet().unionAll()
+    }
+
     @Test
     fun c03_all() {
         val loc = Host_load("/tmp/freechains/tests/C03/")
@@ -224,6 +232,7 @@ class Tests {
         chain.consensus()
         val n3 = chain.blockNew(PVT0, null, B("3"), false, null)
         chain.consensus()
+
         val all = chain.allFroms(chain.heads(Head_State.LINKED))
         assert(all.size==4 && all.contains(n3))
         val rep1 = chain.reps.getZ(PUB0)

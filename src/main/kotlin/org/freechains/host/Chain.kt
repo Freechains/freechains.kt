@@ -141,30 +141,6 @@ fun Chain.fsAll (): Set<Hash> {
     return File(this.path() + "/blocks/").listFiles().map { it.nameWithoutExtension }.toSet()
 }
 
-// SETS
-
-fun Chain.allFroms (hs: Set<Hash>): Set<Hash> {
-    return hs.map { this.allFrom(it) }.toSet().unionAll()
-}
-
-fun Chain.allFrom (h: Hash): Set<Hash> {
-    return setOf(h) + this.allFroms(this.fsLoadBlock(h).immut.backs)
-}
-
-fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
-    val backs = all.map { this.fsLoadBlock(it) }.map { it.immut.backs }.toSet().unionAll()
-    return all - backs
-}
-
-fun Chain.allFronts (): Map<Hash,Set<Hash>> {
-    val all = this.fsAll()
-    val ret: MutableMap<Hash,Set<Hash>> = mutableMapOf()
-    for (h in all) {
-        ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
-    }
-    return ret.toMap()
-}
-
 // REPUTATION
 
 fun Chain.repsPost (hash: String) : Pair<Int,Int> {
@@ -178,6 +154,11 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
 }
 
 fun Chain.heads (want: Head_State): Set<Hash> {
+    fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
+        val backs = all.map { this.fsLoadBlock(it) }.map { it.immut.backs }.toSet().unionAll()
+        return all - backs
+    }
+
     val blockeds = (this.fsAll() - this.cons)
         .filter { this.fsLoadBlock(it).immut.backs.all { this.cons.contains(it) } }
         .toSet()
@@ -205,7 +186,16 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
 }
 
 fun Chain.consensus (now: Long = getNow()) {
-    val fronts: Map<Hash,Set<Hash>> = this.allFronts()
+    fun Chain.mapFronts (): Map<Hash,Set<Hash>> {
+        val all = this.fsAll()
+        val ret: MutableMap<Hash,Set<Hash>> = mutableMapOf()
+        for (h in all) {
+            ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
+        }
+        return ret.toMap()
+    }
+
+    val fronts: Map<Hash,Set<Hash>> = this.mapFronts()
     val pnds:  MutableSet<Block>    = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
     val cons: MutableList<Block>    = mutableListOf()
@@ -249,9 +239,10 @@ fun Chain.consensus (now: Long = getNow()) {
         }
     }
 
-    fun xxx (h: Hash): Set<Hash> {
-        return setOf(h) + fronts[h]!!.map { xxx(it) }.flatten().toSet()
+    fun Hash.allFronts (): Set<Hash> {
+        return setOf(this) + fronts[this]!!.map { it.allFronts() }.flatten().toSet()
     }
+
     fun auths (hs: Set<Hash>): Int {
         return hs   // sum of reps of all pubs that appear in blocks not in common
             //.let { println(it) ; println(con1.reps) ; it }
@@ -275,8 +266,8 @@ fun Chain.consensus (now: Long = getNow()) {
 
         val nxt: Block = pnds                           // find node with more reps inside pnds
             .maxWithOrNull { blk1, blk2 ->
-                val h1s = xxx(blk1.hash)                // all nodes after blk1
-                val h2s = xxx(blk2.hash)
+                val h1s = blk1.hash.allFronts()                // all nodes after blk1
+                val h2s = blk2.hash.allFronts()
                 val h1s_h2s = h1s - h2s                 // all nodes in blk1, not in blk2
                 val h2s_h1s = h2s - h1s
                 val a1 = auths(h1s_h2s)                 // reps authors sum in blk1, not in blk2
