@@ -156,13 +156,13 @@ fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
     return all - backs
 }
 
-fun Chain.allFronts (): MutableMap<Hash,List<Hash>> {
+fun Chain.allFronts (): Map<Hash,Set<Hash>> {
     val all = this.fsAll()
-    val ret: MutableMap<Hash,List<Hash>> = mutableMapOf()
+    val ret: MutableMap<Hash,Set<Hash>> = mutableMapOf()
     for (h in all) {
-        ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }
+        ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
     }
-    return ret
+    return ret.toMap()
 }
 
 // REPUTATION
@@ -205,7 +205,7 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
 }
 
 fun Chain.consensus (now: Long = getNow()) {
-    val fronts = this.allFronts()
+    val fronts: Map<Hash,Set<Hash>> = this.allFronts()
     val pnds:  MutableSet<Block>    = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
     val cons: MutableList<Block>    = mutableListOf()
@@ -249,6 +249,18 @@ fun Chain.consensus (now: Long = getNow()) {
         }
     }
 
+    fun xxx (h: Hash): Set<Hash> {
+        return setOf(h) + fronts[h]!!.map { xxx(it) }.flatten().toSet()
+    }
+    fun auths (hs: Set<Hash>): Int {
+        return hs   // sum of reps of all pubs that appear in blocks not in common
+            //.let { println(it) ; println(con1.reps) ; it }
+            .map    { this.fsLoadBlock(it) }
+            .filter { it.sign != null }
+            .map    { reps.getZ(it.sign!!.pub) }
+            .sum    ()
+    }
+
     while (!pnds.isEmpty()) {
         // week average of posts in the last 28 days (counting from latest block in cons)
         val week_avg = let {
@@ -261,14 +273,23 @@ fun Chain.consensus (now: Long = getNow()) {
             max(7, (ts.count() / 4))                 // 7 posts/week minimum
         }
 
-        val nxt: Block = pnds                    // find node with more reps inside sts
-            .map {                              // get all reps
-                val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
-                Pair(it, rep)
-            }
-            .sortedWith (                       // sort by highest rep or hash
-                compareByDescending<Pair<Block,Int>> { 0 }
-                    .thenByDescending { (blk,_) ->
+        val nxt: Block = pnds                           // find node with more reps inside pnds
+            .maxWithOrNull { blk1, blk2 ->                  // sort by highest rep or hash
+                val h1s = xxx(blk1.hash)
+                val h2s = xxx(blk2.hash)
+                val h1s_h2s = h1s - h2s
+                val h2s_h1s = h2s - h1s
+                val a1 = auths(h1s_h2s)
+                val a2 = auths(h2s_h1s)
+
+                blk1.hash.compareTo(blk2.hash)
+                        /*
+                    .map {                              // get all reps
+                        val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
+                        Pair(it, rep)
+                    }
+                compareByDescending<Pair<Block, Int>> { 0 }
+                    .thenByDescending { (blk, _) ->
                         val olds = this.cons
                         val nxts = olds.dropWhile { blk.hash != it }.count()
                         if (nxts >= week_avg) {
@@ -284,12 +305,24 @@ fun Chain.consensus (now: Long = getNow()) {
                     }
                     .thenByDescending { it.second }
                     .thenByDescending { it.first.hash }
-            )
-            .first()                            // get highest
-            .first                              // get block (ignore reps)
+                         */
+                val t1 = this.fsLoadTime(h1)
+                val t2 = this.fsLoadTime(h2)
+                //println("avg = $week_avg")
+                //println(n1.toString() + " vs " + n2)
+                when {
+                    // both branches have 7 days of posts, the oldest (smaller time) wins (h2-h1)
+                    (h1s_h2s.count()>=week_avg && t1<t2) ->  1
+                    (h2s_h1s.count()>=week_avg && t2<t1) -> -1
+                    // both branches have same reps, the "hashest" wins (h1 vs h2)
+                    (a1 == a2) -> h1.compareTo(h2)
+                    // otherwise, most reps wins (n1-n2)
+                    else -> (a1 - a2)
+                }
+            }!!
 
-        pnds.remove(nxt)     // rem it from sts
-        cons.add(nxt)       // add it to consensus list
+        pnds.remove(nxt)  // rem it from sts
+        cons.add(nxt)     // add it to consensus list
 
         // set reps, negs, zers
         when {
