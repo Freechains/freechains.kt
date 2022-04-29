@@ -300,8 +300,11 @@ class Tests {
 
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         println(str)
-        assert(str == ",a1,a2,b2,a3")  // a2>b2
-        //assert(str == ",a1,b2,a3,a2")
+        if (a2>b2) {
+            assert(str == ",a1,a2,b2,a3")
+        } else {
+            assert(str == ",a1,b2,a3,a2")
+        }
     }
     @Test
     fun c06_ord1() {
@@ -409,8 +412,8 @@ class Tests {
         chain.consensus()
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
-        //assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
-        assert(str == ",b1,a2,c3,a4,a5,c6,b5,a6,a7")
+        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
+        //assert(str == ",b1,a2,c3,a4,a5,c6,b5,a6,a7")
     }
     @Test
     fun c08_ord3() {
@@ -449,8 +452,8 @@ class Tests {
         chain.consensus()
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
-        //assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
-        assert(str == ",b1,a2,c3,a4,a5,c5,c6,b5,a6,a7")
+        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
+        //assert(str == ",b1,a2,c3,a4,a5,c5,c6,b5,a6,a7")
     }
     @Test
     fun c09_ord4() {
@@ -560,9 +563,9 @@ class Tests {
         chain.consensus()
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
+        assert(str == ",b1,a2,c3,a4,b5,a6,c5")
         //assert(str == ",b1,a2,c3,a4,b5,a6,c5")
-        //assert(str == ",b1,a2,c3,a4,b5,a6,c5")
-        assert(str == ",b1,a2,c3,a4,c5,c6,b5,a6,c7")
+        //assert(str == ",b1,a2,c3,a4,c5,c6,b5,a6,c7")
         //println(inv)
         //assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
     }

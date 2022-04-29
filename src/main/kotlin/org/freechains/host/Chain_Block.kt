@@ -36,6 +36,8 @@ fun Chain.isHidden (blk: Block) : Boolean {
 // NEW
 
 fun Chain.blockNew (sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, backs: Set<Hash>?) : Hash {
+    val now = getNow()
+
     val backs_ = when {
         (backs != null) -> backs
         (like!=null && like.n>0 && this.heads(Head_State.BLOCKED).contains(like.hash)) -> setOf(like.hash)
@@ -49,7 +51,7 @@ fun Chain.blockNew (sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, ba
     }
 
     val imm = Immut (
-        time = max (getNow(), 1+backs_.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
+        time = max(now, 1+backs_.map{ this.fsLoadBlock(it).immut.time }.maxOrNull()!!),
         pay = Payload (
             crypt = this.name.startsWith('$') || crypt,
             hash  = pay_.calcHash()
@@ -70,7 +72,7 @@ fun Chain.blockNew (sign: HKey?, like: Like?, pay: ByteArray, crypt: Boolean, ba
         Signature(sig_hash, sign.pvtToPub())
     }
 
-    this.fsSaveBlock(Block(imm, hash, signature), pay_)
+    this.fsSaveBlock(Block(imm, hash, signature, now), pay_)
     return hash
 }
 

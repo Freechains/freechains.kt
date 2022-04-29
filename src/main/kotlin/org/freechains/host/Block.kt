@@ -49,7 +49,8 @@ data class Block_Get (          // only used in "freechains ... get block ...
 data class Block (
     val immut   : Immut,        // things to hash
     val hash    : Hash,         // hash of immut
-    val sign    : Signature?
+    val sign    : Signature?,
+    val local   : Long          // local save time
 )
 
 fun Immut.toJson (): String {

@@ -274,48 +274,19 @@ fun Chain.consensus (now: Long = getNow()) {
         }
 
         val nxt: Block = pnds                           // find node with more reps inside pnds
-            .maxWithOrNull { blk1, blk2 ->                  // sort by highest rep or hash
-                val h1s = xxx(blk1.hash)
+            .maxWithOrNull { blk1, blk2 ->
+                val h1s = xxx(blk1.hash)                // all nodes after blk1
                 val h2s = xxx(blk2.hash)
-                val h1s_h2s = h1s - h2s
+                val h1s_h2s = h1s - h2s                 // all nodes in blk1, not in blk2
                 val h2s_h1s = h2s - h1s
-                val a1 = auths(h1s_h2s)
+                val a1 = auths(h1s_h2s)                 // reps authors sum in blk1, not in blk2
                 val a2 = auths(h2s_h1s)
-
-                blk1.hash.compareTo(blk2.hash)
-                        /*
-                    .map {                              // get all reps
-                        val rep = if (it.sign==null) 0 else reps.getZ(it.sign.pub)
-                        Pair(it, rep)
-                    }
-                compareByDescending<Pair<Block, Int>> { 0 }
-                    .thenByDescending { (blk, _) ->
-                        val olds = this.cons
-                        val nxts = olds.dropWhile { blk.hash != it }.count()
-                        if (nxts >= week_avg) {
-                            val xs = olds.takeWhile { blk.hash != it }
-                            val ys = cons.takeWhile { blk != it }.map { it.hash }
-                            //println(xs)
-                            //println(ys)
-                            assert(xs == ys) { "bug found: if blk is above week_avg, olds/cons must be the same" }
-                            1
-                        } else {
-                            0
-                        }
-                    }
-                    .thenByDescending { it.second }
-                    .thenByDescending { it.first.hash }
-                         */
-                val t1 = this.fsLoadTime(h1)
-                val t2 = this.fsLoadTime(h2)
-                //println("avg = $week_avg")
-                //println(n1.toString() + " vs " + n2)
                 when {
                     // both branches have 7 days of posts, the oldest (smaller time) wins (h2-h1)
-                    (h1s_h2s.count()>=week_avg && t1<t2) ->  1
-                    (h2s_h1s.count()>=week_avg && t2<t1) -> -1
+                    (h1s.count()>=week_avg && blk1.local<blk2.local) ->  1
+                    (h2s.count()>=week_avg && blk2.local<blk1.local) -> -1
                     // both branches have same reps, the "hashest" wins (h1 vs h2)
-                    (a1 == a2) -> h1.compareTo(h2)
+                    (a1 == a2) -> blk1.hash.compareTo(blk2.hash)
                     // otherwise, most reps wins (n1-n2)
                     else -> (a1 - a2)
                 }
