@@ -266,12 +266,13 @@ fun Chain.consensus (now: Long = getNow()) {
 
         val nxt: Block = pnds                           // find node with more reps inside pnds
             .maxWithOrNull { blk1, blk2 ->
-                val h1s = blk1.hash.allFronts()                // all nodes after blk1
+                val h1s = blk1.hash.allFronts()         // all nodes after blk1
                 val h2s = blk2.hash.allFronts()
                 val h1s_h2s = h1s - h2s                 // all nodes in blk1, not in blk2
                 val h2s_h1s = h2s - h1s
                 val a1 = auths(h1s_h2s)                 // reps authors sum in blk1, not in blk2
                 val a2 = auths(h2s_h1s)
+                //println("W: $week_avg, B1: ${h1s.count()}/${blk1.local}, B2: ${h2s.count()}/${blk2.local}")
                 when {
                     // both branches have 7 days of posts, the oldest (smaller time) wins (h2-h1)
                     (h1s.count()>=week_avg && blk1.local<blk2.local) ->  1

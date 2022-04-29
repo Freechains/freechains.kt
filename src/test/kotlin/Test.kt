@@ -1866,7 +1866,7 @@ class Tests {
     @Test
     fun m17_likes_day () {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/M17/")) }
-        Thread.sleep(200)
+        Thread.sleep(300)
         main_cli(arrayOf(H0, "chains", "join", "#", PUB0))
 
         main_host_assert(arrayOf(P0, "now", "0"))
@@ -2038,14 +2038,17 @@ class Tests {
             val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
             assert(s1 == "2 / 2" && r1 == "3 / 3")
 
-            //val x1 = main_cli_assert(arrayOf(H1, "chain", "#", "traverse", gen))
+            val x1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+            val x2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
+            //println("-=-=-=-")
             //println(x1)
-            //val x2 = main_cli_assert(arrayOf(H2, "chain", "#", "traverse", gen))
             //println(x2)
+            //println(b1)
             //println(b3)
 
             assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB1)))
-            assert("2" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+            //println(main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
+            assert("1" == main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2)))
         }
 
         main_host_assert(arrayOf(P1, "now", "${1*day + 15*hour}"))
@@ -2163,6 +2166,7 @@ class Tests {
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "7 / 7" && r1 == "7 / 7")
 
+        //println("-=-=-=-")
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 != v2)
