@@ -308,7 +308,7 @@ class Tests {
         assert( 2 == chain.reps.getZ(PUB1))
 
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        println(str)
+        //println(str)
         if (a2>b2) {
             assert(str == ",a1,a2,b2,a3")
         } else {
@@ -2221,9 +2221,13 @@ class Tests {
             val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
             val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
             assert(s1 == "$n / $n" && r1 == "$n / $n")
+            //println("-=-=-=-")
             val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
             val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
             //println("DAY=$i, n=$n, nxt=${4*i}")
+            //println(v1)
+            //println(v2)
+            //println(i)
             assert(v1 == v2)
             main_host_assert(arrayOf(P1, "now", (now + 4*i*day).toString()))
             main_host_assert(arrayOf(P2, "now", (now + 4*i*day).toString()))
@@ -2314,12 +2318,10 @@ class Tests {
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#xxx", PUB0))
-        var old = getNow()
         for (i in 0..1000) {
+            //val old = getNow()
             main_cli(arrayOf("chain", "#xxx", "post", "inline", i.toString(), S0))
-            var now = getNow()
-            println(now-old)
-            old = now
+            //println(getNow()-old)
         }
     }
 }

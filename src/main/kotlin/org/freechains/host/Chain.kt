@@ -186,22 +186,28 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
 }
 
 fun Chain.consensus (now: Long = getNow()) {
-    fun Chain.mapFronts (): Map<Hash,Set<Hash>> {
-        val all = this.fsAll()
-        val ret: MutableMap<Hash,Set<Hash>> = mutableMapOf()
-        for (h in all) {
-            ret[h] = all.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
-        }
-        return ret.toMap()
-    }
-
-    val fronts: Map<Hash,Set<Hash>> = this.mapFronts()
-    val pnds:  MutableSet<Block>    = mutableSetOf(this.fsLoadBlock(this.genesis()))
+    val pnds: MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
     val reps: MutableMap<HKey,Int>  = mutableMapOf()
     val cons: MutableList<Block>    = mutableListOf()
     val negs: MutableSet<Block>     = mutableSetOf()    // new posts still penalized
     val zers: MutableSet<Block>     = mutableSetOf()    // new posts not yet consolidated
     val ones: MutableMap<HKey,Long> = mutableMapOf()    // last time block by pub was consolidated
+
+    //val old = getNow()
+    val fronts: Map<Hash,Set<Hash>> = this.fsAll().let {
+        val ret: MutableMap<Hash,MutableSet<Hash>> = mutableMapOf()
+        for (h in it) {
+            ret[h] = mutableSetOf()
+        }
+        for (h in it) {
+            this.fsLoadBlock(h).immut.backs.forEach {
+                ret[it]!!.add(h)
+            }
+            //ret[h] = it.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
+        }
+        ret.toMap()
+    }
+    //println(getNow()-old)
 
     fun negs_zers (now: Long) {
         //negs_zers(nxt.immut.time, xcon.toValue())
@@ -275,8 +281,8 @@ fun Chain.consensus (now: Long = getNow()) {
                 //println("W: $week_avg, B1: ${h1s.count()}/${blk1.local}, B2: ${h2s.count()}/${blk2.local}")
                 when {
                     // both branches have 7 days of posts, the oldest (smaller time) wins (h2-h1)
-                    (h1s.count()>=week_avg && blk1.local<blk2.local) ->  1
-                    (h2s.count()>=week_avg && blk2.local<blk1.local) -> -1
+                    (h1s_h2s.count()>=week_avg && blk1.local<blk2.local) ->  1
+                    (h2s_h1s.count()>=week_avg && blk2.local<blk1.local) -> -1
                     // both branches have same reps, the "hashest" wins (h1 vs h2)
                     (a1 == a2) -> blk1.hash.compareTo(blk2.hash)
                     // otherwise, most reps wins (n1-n2)
@@ -336,11 +342,6 @@ fun Chain.consensus (now: Long = getNow()) {
                          && (this.fromOwner(it) ||              // either from owner
                              reps.getZ(it.sign!!.pub)>0)        //  or from someone with reps
                         }
-
-                    if (blk.sign != null) {
-                        println(blk.hash)
-                        println(reps.getZ(blk.sign.pub))
-                    }
 
                     val ok = (blk.hash == this.genesis())       // genesis is always accepted
                           || this.fromOwner(blk)                // owner in identity chain
