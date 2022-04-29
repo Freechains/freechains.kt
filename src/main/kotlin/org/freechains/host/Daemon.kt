@@ -23,7 +23,7 @@ class Daemon (loc_: Host) {
     private fun chainsLoadSync (name: String) : Chain {
         return synchronized(this.getLock(name)) {
             val chain = loc.chainsLoad(name)    // TODO: remove synchronized??? check git history
-            chain.consensus()
+            //chain.consensus()
             chain
         }
     }

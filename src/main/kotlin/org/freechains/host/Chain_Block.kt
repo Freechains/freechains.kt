@@ -20,9 +20,9 @@ fun Chain.isHidden (blk: Block) : Boolean {
         this.name.startsWith('$') -> false       // chain with trusted hosts/authors only
         (blk.immut.like != null)       -> false       // a like
         this.cons.any {
-            val blk2 = this.fsLoadBlock(it)
-            val lk2 = blk2.immut.like
-            (lk2!=null && lk2.hash==blk.hash && blk.sign!=null && blk.sign.pub==blk2.sign!!.pub)
+            val oth = this.fsLoadBlock(it)
+            val lk2 = oth.immut.like
+            (lk2!=null && lk2.hash==blk.hash && blk.sign!=null && blk.sign.pub==oth.sign!!.pub)
         }                              -> true        // dislike from itself
 
         // mutable

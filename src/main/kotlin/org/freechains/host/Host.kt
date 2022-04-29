@@ -5,7 +5,8 @@ import java.io.File
 
 data class Host (
     val root: String,
-    val port: Int
+    val port: Int,
+    val chains: MutableMap<String,Chain> = mutableMapOf()
 )
 
 fun Host_load (dir: String, port: Int = PORT_8330) : Host {
@@ -23,10 +24,15 @@ fun Host_load (dir: String, port: Int = PORT_8330) : Host {
 // CHAINS
 
 fun Host.chainsLoad (name: String) : Chain {
-    val file = File(this.root + "/chains/" + name + "/" + "chain")
-    val chain = file.readText().fromJsonToChain()
-    chain.root = this.root
-    return chain
+    val ret = if (this.chains[name] != null) this.chains[name]!! else {
+        val file = File(this.root + "/chains/" + name + "/" + "chain")
+        val chain = file.readText().fromJsonToChain()
+        chain.root = this.root
+        this.chains[name] = chain
+        chain
+    }
+    ret.consensus_all()
+    return ret
 }
 
 fun Host.chainsJoin (name: String, keys: List<HKey>) : Chain {

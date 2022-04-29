@@ -135,7 +135,7 @@ fun Chain.fsSaveBlock (blk: Block, pay: ByteArray) {
     this.blockAssert(blk, pay.size)
     File(this.path() + "/blocks/" + blk.hash + ".pay").writeBytes(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-    this.consensus(blk.immut.time, blk)
+    this.consensus_one(blk)
 }
 
 fun Chain.fsAll (): Set<Hash> {
@@ -186,7 +186,15 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
     return this[pub]!!
 }
 
-fun Chain.consensus (now: Long=getNow(), nxt: Block?=null) {
+fun Chain.consensus_one (nxt: Block) {
+    this.consensus(nxt.immut.time)
+}
+
+fun Chain.consensus_all () {
+    this.consensus(getNow())
+}
+
+fun Chain.consensus (now: Long) {
     val aaa = getNow()
 
     val pnds: MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
@@ -419,7 +427,7 @@ fun Chain.consensus (now: Long=getNow(), nxt: Block?=null) {
     negs_zers(now)
     this.cons = cons.map {it.hash}
     this.reps = reps.toMap()
-    this.fsSave()
+    //this.fsSave()
     println(">D> ${getNow()-ddd}")
     println(">A> ${getNow()-aaa}")
 }
