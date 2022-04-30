@@ -200,8 +200,14 @@ class Tests {
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
+        println(chain.cons)
+        println("-=-=-=-=-=-")
         val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
+        println(chain.cons)
+        println("-=-=-=-=-=-")
         val n2 = chain.blockNew(PVT1, null, B("2.1"), false, null)
+        println(chain.cons)
+        println("-=-=-=-=-=-")
         val n3 = chain.blockNew(PVT1, null, B("2.2"), false, null)
         assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
         assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
@@ -323,6 +329,11 @@ class Tests {
         val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
         val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
         val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
+
+        val str1 = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        //println(str1)
+        assert(str1 == ",b1,a2,c3,a4,a5,c5,b5")
+
         val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
         val a7 = chain.blockNew(PVT0, null, B("a7"), false, setOf(a6,c5))
 
@@ -336,9 +347,10 @@ class Tests {
         assert( 1 == chain.reps.getZ(PUB1))
         assert( 1 == chain.reps.getZ(PUB2))
 
-        val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        //println(str)
-        assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
+        val str3 = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        println(str3)
+        assert(str3 == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
+        //              ,b1,a2,c3,a4,a5,c5,b5,a6,a7
         //assert(str == ",b1,a2,c3,a4,c5,a5,b5,a6,a7")
 
         setNow(25*hour)
@@ -2032,13 +2044,15 @@ class Tests {
         // gen -- a1 ... a6
         //    \-- b1 ... b6
 
+        println("-=-=-=-=-")
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "6 / 6" && r1 == "6 / 6")
 
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        //println(v1)
+        println(v1)
+        println(v2)
         assert(v1 == v2)
     }
     @Test

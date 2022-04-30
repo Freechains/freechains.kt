@@ -12,8 +12,6 @@ import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
-// internal methods are private but are used in tests
-
 @Serializable
 data class Chain (
     var root : String,
@@ -21,8 +19,17 @@ data class Chain (
     val keys : List<HKey> // multiple pioneers for public / single shared for private chain / empty otherwise
 ) {
     val hash : String = (this.name + "/" + keys).calcHash()
+
+    // Hold consensus() result: many function require cons/reps
     var reps : Map<HKey,Int> = emptyMap()
     var cons : List<Hash>    = listOf(this.genesis())
+    // ...
+    // But they cannot be used "as is" in incremental consensus:
+    //  - a fork may be introduced in an arbitrary place, which invalidates both cons/reps
+    // The idea is to
+    //  1. clear reps entirely
+    //  2. recalculate reps/negs/ones blindly from current cons while blocks are freezed
+    //  3. use the algorithm for the remaining blocks
 }
 
 fun Chain.validate () : Chain {
@@ -197,29 +204,36 @@ fun Chain.consensus_all () {
 fun Chain.consensus (now: Long) {
     val aaa = getNow()
 
-    val pnds: MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
-    val reps: MutableMap<HKey,Int>  = mutableMapOf()
-    val cons: MutableList<Block>    = mutableListOf()
+    // find the newest freezed block in the current consensus
+    assert(this.cons.size >= 1)
+    var freeze = 1  // genesis block is freezed
+    for (i in 1..this.cons.size-1) {                        // drop i from end of list
+        val ts = this.cons.dropLast(i)                      // work from the end of the list
+            .map { this.fsLoadBlock(it) }
+            .map { it.immut.time }                          // time of past blocks in cons
+            .let { all ->
+                val last = all.maxOrNull()                  // latest block in cons
+                all.dropWhile { it < last!! - 28 * day }    // only blocks in the past 28 days
+            }
+        val week_avg = max(7, (ts.count() / 4))          // 7 posts/week minimum
+        if (i >= week_avg) {
+            freeze = this.cons.size-i                       // more posts then the week avg starting at i
+            break                                           // stop on first (newest) freeze
+        }
+    }
+
+    println("FREEZE: $freeze/${this.cons.size}")
+    val frzs: List<Block> = this.cons.take(freeze).map { this.fsLoadBlock(it) }
+
+    // just need to recalculate consensus after freeze
+    val xcons: MutableList<Block>   = mutableListOf()
+    val xreps: MutableMap<HKey,Int> = mutableMapOf()
     val xons: SortedSet<Hash>       = sortedSetOf()
     val negs: MutableSet<Block>     = mutableSetOf()    // new posts still penalized
     val zers: MutableSet<Block>     = mutableSetOf()    // new posts not yet consolidated
     val ones: MutableMap<HKey,Long> = mutableMapOf()    // last time block by pub was consolidated
+    val pnds: MutableSet<Block>     = mutableSetOf(this.fsLoadBlock(this.genesis()))
 
-    val bbb = getNow()
-    val fronts: Map<Hash,Set<Hash>> = this.fsAll().let {
-        val ret: MutableMap<Hash,MutableSet<Hash>> = mutableMapOf()
-        for (h in it) {
-            ret[h] = mutableSetOf()
-        }
-        for (h in it) {
-            this.fsLoadBlock(h).immut.backs.forEach {
-                ret[it]!!.add(h)
-            }
-            //ret[h] = it.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
-        }
-        ret.toMap()
-    }
-    println(">B> ${getNow()-bbb}")
 
     var iii: Long = 0
     var jjj: Long = 0
@@ -227,14 +241,14 @@ fun Chain.consensus (now: Long) {
     fun negs_zers (now: Long) {
         //negs_zers(nxt.immut.time, xcon.toValue())
         val _iii = getNow()
-        val tot = reps.values.sum()
+        val tot = xreps.values.sum()
         val rems = mutableSetOf<Block>()
         for (neg in negs) {
-            val aft = cons
-                .drop(cons.indexOf(neg))    // blocks after myself (including me)
+            val aft = xcons
+                .drop(xcons.indexOf(neg))    // blocks after myself (including me)
                 .map { it.sign!!.pub }      // take their authors
                 .toSet()                    // remove duplicates
-                .map { reps[it]!! }         // take their reps
+                .map { xreps[it]!! }         // take their reps
                 .sum()                      // sum everything
             // 0% -> 0, 50% -> 1
             val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble() / tot * 2)).toInt()
@@ -242,7 +256,7 @@ fun Chain.consensus (now: Long) {
             //println("[${T12h_new}] dt=$dt // 0.5 - $aft/$tot")
             if (neg.immut.time <= now - dt) {
                 rems.add(neg)
-                reps[neg.sign!!.pub] = min(LK30_max, reps.getXZ(neg.sign.pub) + 1)
+                xreps[neg.sign!!.pub] = min(LK30_max, xreps.getXZ(neg.sign.pub) + 1)
             }
         }
         negs.removeAll(rems)
@@ -278,12 +292,85 @@ fun Chain.consensus (now: Long) {
             val one = ones[it.sign!!.pub]
             if (one == null || one + T24h_old <= it.immut.time) {
                 ones[it.sign.pub] = it.immut.time
-                reps[it.sign.pub] = min(LK30_max, reps.getXZ(it.sign.pub) + 1)
+                xreps[it.sign.pub] = min(LK30_max, xreps.getXZ(it.sign.pub) + 1)
                 //println("consol : +1 : ${it.sign.pub}")
             }
         }
         jjj += getNow()-_jjj
     }
+
+    fun add (blk: Block) {
+        xcons.add(blk)     // add it to consensus list
+        xons.add(blk.hash)
+
+        // set reps, negs, zers
+        when {
+            // genesis block: set pioneers reps
+            (blk.hash == this.genesis()) -> {
+                when {
+                    this.name.startsWith("#") -> this.keys.forEach { xreps[it] = LK30_max/this.keys.size }
+                    this.name.startsWith("@") -> xreps[this.atKey()!!] = LK30_max
+                }
+            }
+
+            // a like: dec reps from author, inc reps to target
+            (blk.immut.like != null) -> {
+                if (blk.sign != null) {
+                    xreps[blk.sign.pub] = xreps.getXZ(blk.sign.pub) - blk.immut.like.n.absoluteValue
+                }
+                val target = this.fsLoadBlock(blk.immut.like.hash).let {
+                    if (it.sign == null) null else it.sign.pub
+                }
+                if (target != null) {
+                    xreps[target] = min(LK30_max, xreps.getXZ(target) + blk.immut.like.n)
+                }
+            }
+
+            // a signed post: dec reps from author
+            (blk.sign != null) -> {
+                xreps[blk.sign.pub] = xreps.getXZ(blk.sign.pub) - 1
+                negs.add(blk)
+                zers.add(blk)
+            }
+        }
+
+        negs_zers(blk.immut.time) // nxt may affect previous blks in negs/zers
+    }
+
+    val bbb = getNow()
+    val fronts: Map<Hash,Set<Hash>> = this.fsAll().let {
+        val ret: MutableMap<Hash,MutableSet<Hash>> = mutableMapOf()
+        for (h in it) {
+            ret[h] = mutableSetOf()
+        }
+        for (h in it) {
+            this.fsLoadBlock(h).immut.backs.forEach {
+                ret[it]!!.add(h)
+            }
+            //ret[h] = it.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
+        }
+        ret.toMap()
+    }
+    //println(">B> ${getNow()-bbb}")
+    println("FS1: " + fronts)
+    //println("FRZ: " + frzs.map { it.hash })
+    println("FRZ: " + frzs.map { this.fsLoadPayRaw(it.hash).toString(Charsets.UTF_8) })
+
+    ///*
+    pnds.clear()
+    frzs.forEach {
+        pnds.remove(it)
+        add(it)
+        println("H: " + it.hash)
+        println("FS2: " + fronts[it.hash])
+        pnds.addAll (
+            fronts[it.hash]!!
+                .filter { ft -> frzs.none { fz -> ft == fz.hash } }
+                .map { this.fsLoadBlock(it) }
+        )
+        println("PNDS: " + pnds.map { it.hash })
+    }
+    //*/
 
     fun Hash.allFronts (): Set<Hash> {
         return setOf(this) + fronts[this]!!.map { it.allFronts() }.flatten().toSet()
@@ -294,7 +381,7 @@ fun Chain.consensus (now: Long) {
             //.let { println(it) ; println(con1.reps) ; it }
             .map    { this.fsLoadBlock(it) }
             .filter { it.sign != null }
-            .map    { reps.getZ(it.sign!!.pub) }
+            .map    { xreps.getZ(it.sign!!.pub) }
             .sum    ()
     }
 
@@ -307,7 +394,7 @@ fun Chain.consensus (now: Long) {
         // week average of posts in the last 28 days (counting from latest block in cons)
         val y111 = getNow()
         val week_avg = let {
-            val ts = cons
+            val ts = xcons
                 .map { it.immut.time }                   // time of past blocks in cons
                 .let { all ->
                     val last = all.maxOrNull()           // latest block in cons
@@ -337,46 +424,7 @@ fun Chain.consensus (now: Long) {
             }!!
 
         pnds.remove(nxt)  // rem it from sts
-        cons.add(nxt)     // add it to consensus list
-        xons.add(nxt.hash)
-        x111 += getNow()-y111
-
-        // set reps, negs, zers
-        val y222 = getNow()
-        when {
-            // genesis block: set pioneers reps
-            (nxt.hash == this.genesis()) -> {
-                when {
-                    this.name.startsWith("#") -> this.keys.forEach { reps[it] = LK30_max/this.keys.size }
-                    this.name.startsWith("@") -> reps[this.atKey()!!] = LK30_max
-                }
-            }
-
-            // a like: dec reps from author, inc reps to target
-            (nxt.immut.like != null) -> {
-                if (nxt.sign != null) {
-                    reps[nxt.sign.pub] = reps.getXZ(nxt.sign.pub) - nxt.immut.like.n.absoluteValue
-                }
-                val target = this.fsLoadBlock(nxt.immut.like.hash).let {
-                    if (it.sign == null) null else it.sign.pub
-                }
-                if (target != null) {
-                    reps[target] = min(LK30_max, reps.getXZ(target) + nxt.immut.like.n)
-                }
-            }
-
-            // a signed post: dec reps from author
-            (nxt.sign != null) -> {
-                reps[nxt.sign.pub] = reps.getXZ(nxt.sign.pub) - 1
-                negs.add(nxt)
-                zers.add(nxt)
-            }
-        }
-        x222 += getNow()-y222
-
-        val y444 = getNow()
-        negs_zers(nxt.immut.time)// nxt may affect previous blks in negs/zers
-        x444 += getNow()-y444
+        add(nxt)
 
         // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
         val y333 = getNow()
@@ -395,14 +443,14 @@ fun Chain.consensus (now: Long) {
                          && (it.immut.like.hash == blk.hash)    // to myself
                          && (it.immut.like.n > 0)               // positive
                          && (this.fromOwner(it) ||              // either from owner
-                             reps.getZ(it.sign!!.pub)>0)        //  or from someone with reps
+                             xreps.getZ(it.sign!!.pub)>0)        //  or from someone with reps
                         }
 
                     val ok = (blk.hash == this.genesis())       // genesis is always accepted
                           || this.fromOwner(blk)                // owner in identity chain
                           || this.name.startsWith('$')    // private chain
                           || (islk && blk.immut.like==null)     // liked in next block
-                          || (blk.sign!=null && reps.getZ(blk.sign.pub)>0)  // has reps
+                          || (blk.sign!=null && xreps.getZ(blk.sign.pub)>0)  // has reps
                     ok
                 }
         )
@@ -411,6 +459,7 @@ fun Chain.consensus (now: Long) {
         //println(">2>: ${xxx-old}")
         //old = xxx
     }
+    /*
     println(">1> $x111")
     println(">2> $x222")
     println(">3> $x333")
@@ -418,6 +467,7 @@ fun Chain.consensus (now: Long) {
     println(">I> $iii")
     println(">J> $jjj")
     println(">C> ${getNow()-ccc}")
+     */
 
     //xxx = getNow()
     //println(">2>: ${xxx-old}")
@@ -425,9 +475,10 @@ fun Chain.consensus (now: Long) {
 
     val ddd = getNow()
     negs_zers(now)
-    this.cons = cons.map {it.hash}
-    this.reps = reps.toMap()
+    this.cons = xcons.map {it.hash}
+    this.reps = xreps.toMap()
+    println("CONS: " + this.cons)
     //this.fsSave()
-    println(">D> ${getNow()-ddd}")
-    println(">A> ${getNow()-aaa}")
+    //println(">D> ${getNow()-ddd}")
+    //println(">A> ${getNow()-aaa}")
 }
