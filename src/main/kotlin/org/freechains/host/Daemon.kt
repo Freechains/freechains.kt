@@ -511,7 +511,7 @@ class Daemon (loc_: Host) {
             xxx@for (j in 1..nin) {
                 try {
                     val len1 = reader.readLineX().toInt() // 6
-                    val blk = reader.readNBytesX(len1).toString(Charsets.UTF_8).jsonToBlock().copy(local=getNow())
+                    val blk = reader.readNBytesX(len1).toString(Charsets.UTF_8).jsonToBlock().copy() //local=getNow()
                     val len2 = reader.readLineX().toInt()
                     if (chain.fromOwner(blk) || chain.name.startsWith('$')) {
                         // ok

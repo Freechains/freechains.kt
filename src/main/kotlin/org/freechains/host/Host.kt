@@ -49,8 +49,7 @@ fun Host.chainsJoin (name: String, keys: List<HKey>) : Chain {
             emptySet()
         ),
         chain.genesis(),
-        null,
-        getNow()
+        null
     )
     chain.fsSaveBlock(gen, ByteArray(0))
 
