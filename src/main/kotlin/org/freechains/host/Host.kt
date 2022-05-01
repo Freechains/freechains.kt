@@ -31,7 +31,7 @@ fun Host.chainsLoad (name: String) : Chain {
         this.chains[name] = chain
         chain
     }
-    ret.consensus_all()
+    ret.consensus()
     return ret
 }
 

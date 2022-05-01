@@ -234,7 +234,7 @@ class Tests {
         val rep1 = chain.reps.getZ(PUB0)
         assert(rep1 == 30)
         setNow(12*hour+100)
-        chain.consensus_all()
+        chain.consensus()
         val rep2 = chain.reps.getZ(PUB0)
         assert(rep2 == 30)
     }
@@ -243,17 +243,17 @@ class Tests {
         val loc = Host_load("/tmp/freechains/tests/C04/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
         setNow(0)
-        chain.consensus_all()
+        chain.consensus()
         assert(30 == chain.reps.getZ(PUB0))
         val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
         assert(30 == chain.reps.getZ(PUB0))
         setNow(12*hour+100)
-        chain.consensus_all()
+        chain.consensus()
         assert(30 == chain.reps.getZ(PUB0))
         val n2 = chain.blockNew(PVT0, null, B("2"), false, null)
         assert(30 == chain.reps.getZ(PUB0))
         setNow(24*hour+200)
-        chain.consensus_all()
+        chain.consensus()
         assert(30 == chain.reps.getZ(PUB0))
         val n3 = chain.blockNew(PVT0, null, B("3"), false, null)
         assert(30 == chain.reps.getZ(PUB0))
@@ -285,12 +285,12 @@ class Tests {
         assert( 1 == chain.reps.getZ(PUB1))
 
         setNow(12*hour+100)
-        chain.consensus_all()
+        chain.consensus()
         assert(29 == chain.reps.getZ(PUB0))
         assert( 1 == chain.reps.getZ(PUB1))
 
         setNow(24*hour+200)
-        chain.consensus_all()
+        chain.consensus()
         assert(30 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
 
@@ -321,7 +321,7 @@ class Tests {
         assert( 1 == chain.reps.getZ(PUB2))
 
         setNow(13*hour)
-        chain.consensus_all()
+        chain.consensus()
         assert(28 == chain.reps.getZ(PUB0))
         assert( 1 == chain.reps.getZ(PUB1))
         assert( 1 == chain.reps.getZ(PUB2))
@@ -358,7 +358,7 @@ class Tests {
         //assert(str == ",b1,a2,c3,a4,c5,a5,b5,a6,a7")
 
         setNow(25*hour)
-        chain.consensus_all()
+        chain.consensus()
         //println(con4.repsAuthor(PUB0))
         assert(28 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
@@ -366,7 +366,7 @@ class Tests {
 
         //println("-=-=-=-=-")
         setNow(38*hour)
-        chain.consensus_all()
+        chain.consensus()
         //println(con5.repsAuthor(PUB0))
         assert(29 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
@@ -385,7 +385,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        chain.consensus_all()
+        chain.consensus()
         val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
         val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
         val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
@@ -414,7 +414,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        chain.consensus_all()
+        chain.consensus()
         val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
         val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
         val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
@@ -444,7 +444,7 @@ class Tests {
         // gen <- b1 <- a2 <- c3 <- a4
 
         setNow(13*hour)
-        chain.consensus_all()
+        chain.consensus()
         val a5 = chain.blockNew(PVT0, null, B("a5"), false, setOf(a4))
         val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
         val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
@@ -490,13 +490,13 @@ class Tests {
 
         setNow(13*hour)
 
-        chain.consensus_all()
+        chain.consensus()
         assert(2 == chain.reps.getZ(PUB2))
         assert(1 == chain.reps.getZ(PUB1))
 
         setNow(25*hour)
 
-        chain.consensus_all()
+        chain.consensus()
         assert(3 == chain.reps.getZ(PUB2))
         assert(2 == chain.reps.getZ(PUB1))
 
@@ -551,19 +551,19 @@ class Tests {
         assert( 0 == chain.reps.getZ(PUB2))
 
         setNow(11*hour + 59*min)
-        chain.consensus_all()
+        chain.consensus()
         assert(29 == chain.reps.getZ(PUB0))
         assert( 0 == chain.reps.getZ(PUB1))
         assert( 0 == chain.reps.getZ(PUB2))
 
         setNow(12*hour + 100)
-        chain.consensus_all()
+        chain.consensus()
         assert(29 == chain.reps.getZ(PUB0))
         assert( 0 == chain.reps.getZ(PUB1))
         assert( 1 == chain.reps.getZ(PUB2))
 
         setNow(24*hour + 100)
-        chain.consensus_all()
+        chain.consensus()
         assert(30 == chain.reps.getZ(PUB0))
         assert( 1 == chain.reps.getZ(PUB1))
         assert( 2 == chain.reps.getZ(PUB2))
@@ -572,7 +572,7 @@ class Tests {
     fun c13_pioneers() {
         val loc = Host_load("/tmp/freechains/tests/C13/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0,PUB1))
-        chain.consensus_all()
+        chain.consensus()
         assert(15 == chain.reps.getZ(PUB0))
         assert(15 == chain.reps.getZ(PUB1))
     }
@@ -2055,12 +2055,13 @@ class Tests {
         // a
         // 0 1 2 3 a b c 4 d 5 e 6 f
 
-        val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         //println("-=-=-=-=-")
+        val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
         //println(main_cli_assert(arrayOf(H2, "chain", "#", "consensus")))
-        //TODO()
+        //println("-=-=-=-=-")
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "6 / 6" && r1 == "6 / 6")
+        //TODO()
 
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
@@ -2110,7 +2111,7 @@ class Tests {
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         //println(v1)
         //println(v2)
-        assert(v1 == v2)
+        assert(v1 != v2)
         assert(v1.contains(As[0]))
         assert(v2.contains(Bs[0]))
     }
@@ -2222,9 +2223,9 @@ class Tests {
         assert(s1 == "11 / 11" && r1 == "11 / 11")
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        println(v1)
-        println(v2)
-        assert(v1 == v2)
+        //println(v1)
+        //println(v2)
+        assert(v1 != v2)
         let {
             val a1 = v1.split(" ")
             val a2 = v2.split(" ")
