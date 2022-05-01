@@ -2175,13 +2175,22 @@ class Tests {
             main_host_assert(arrayOf(P2, "now", (now + 4*i*day).toString()))
         }
 
-        for (j in 1..10) {
+        for (j in 1..5) {
             main_cli_assert(arrayOf(H1, S0, "chain", "#", "post", "inline", "a_X_$j"))
             main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "b_X_$j"))
         }
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
-        assert(s1 == "10 / 10" && r1 == "10 / 10")
+        assert(s1 == "5 / 5" && r1 == "5 / 5")
+
+        for (j in 6..10) {
+            main_cli_assert(arrayOf(H1, S0, "chain", "#", "post", "inline", "a_X_$j"))
+            main_cli_assert(arrayOf(H2, S0, "chain", "#", "post", "inline", "b_X_$j"))
+        }
+        val r2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
+        val s2 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        assert(s2 == "5 / 5" && r2 == "5 / 5")
+
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
