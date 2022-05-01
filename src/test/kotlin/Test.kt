@@ -295,11 +295,11 @@ class Tests {
         assert( 2 == chain.reps.getZ(PUB1))
 
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        //println(str)
-        if (a2>b2) {
+        println(str)
+        if (b2>a2) {
             assert(str == ",a1,a2,b2,a3")
         } else {
-            assert(str == ",a1,b2,a3,a2")
+            assert(str == ",a1,b2,a2,a3")
         }
     }
     @Test
@@ -332,7 +332,11 @@ class Tests {
 
         val str1 = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str1)
-        assert(str1 == ",b1,a2,c3,a4,a5,c5,b5")
+        if (b5 > c5) {
+            assert(str1 == ",b1,a2,c3,a4,a5,c5,b5")
+        } else {
+            assert(str1 == ",b1,a2,c3,a4,a5,b5,c5")
+        }
 
         val a6 = chain.blockNew(PVT0, null, B("a6"), false, setOf(a5,b5))
         val a7 = chain.blockNew(PVT0, null, B("a7"), false, setOf(a6,c5))
@@ -1921,7 +1925,7 @@ class Tests {
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
-        assert(v1.endsWith(if (a2 > b2) b2 else a2))
+        assert(v1.endsWith(if (a2 > b2) a2 else b2))
     }
     @Test
     fun n02_merge_win () {
@@ -2044,15 +2048,24 @@ class Tests {
         // gen -- a1 ... a6
         //    \-- b1 ... b6
 
-        println("-=-=-=-=-")
+        //println("-=-=-=-=-")
+        println(main_cli_assert(arrayOf(H2, "chain", "#", "consensus")))
+        // 0_4B54E 1_3591F3 2_FCC6 3_99F09EEE7 4_C95F5 5_BDDA7DB9 6_6AB7985D71E46165F22A84028
+        // 0 1 2 3 4 5 6
+        // a
+        // 0 1 2 3 a b c 4 d 5 e 6 f
+
         val s1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        //println("-=-=-=-=-")
+        //println(main_cli_assert(arrayOf(H2, "chain", "#", "consensus")))
+        //TODO()
         val r1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "recv", "#"))
         assert(s1 == "6 / 6" && r1 == "6 / 6")
 
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        println(v1)
-        println(v2)
+        //println(v1)
+        //println(v2)
         assert(v1 == v2)
     }
     @Test
@@ -2095,7 +2108,9 @@ class Tests {
         //println("-=-=-=-")
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        assert(v1 != v2)
+        //println(v1)
+        //println(v2)
+        assert(v1 == v2)
         assert(v1.contains(As[0]))
         assert(v2.contains(Bs[0]))
     }
@@ -2124,8 +2139,8 @@ class Tests {
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         assert(v1 == v2)
-        assert(v1.endsWith(c1))
-        assert(v2.endsWith(c1))
+        assert(v1.endsWith(b2))
+        assert(v2.endsWith(b2))
     }
     @Test
     fun n06_merge_ok () {
@@ -2207,9 +2222,9 @@ class Tests {
         assert(s1 == "11 / 11" && r1 == "11 / 11")
         val v1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
         val v2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
-        //println(v1)
-        //println(v2)
-        assert(v1 != v2)
+        println(v1)
+        println(v2)
+        assert(v1 == v2)
         let {
             val a1 = v1.split(" ")
             val a2 = v2.split(" ")
