@@ -24,7 +24,7 @@ fun Host_load (dir: String, port: Int = PORT_8330) : Host {
 // CHAINS
 
 fun Host.chainsLoad (name: String) : Chain {
-    val ret = if (this.chains[name] != null) this.chains[name]!! else {
+    val ret = if (this.chains.containsKey(name)) this.chains[name]!! else {
         val file = File(this.root + "/chains/" + name + "/" + "chain")
         val chain = file.readText().fromJsonToChain()
         chain.root = this.root
@@ -57,6 +57,9 @@ fun Host.chainsJoin (name: String, keys: List<HKey>) : Chain {
 }
 
 fun Host.chainsLeave (name: String) : Boolean {
+    if (this.chains.containsKey(name)) {
+        this.chains.remove(name)
+    }
     val chain = Chain(this.root, name, emptyList())
     val file = File(chain.path())
     return file.exists() && file.deleteRecursively()

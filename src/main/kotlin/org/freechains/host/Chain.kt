@@ -226,6 +226,7 @@ fun Chain.consensus (now: Long=getNow()) {
     val frzs: List<Hash> = this.cons.take(this.frze+1)      // frzs includes myself
     //println("<F< " + this.fsLoadPayRaw(this.cons[this.frze]).toString(Charsets.UTF_8))
     //println("=== " + frzs.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
+    //println(">F> " + this.cons[this.frze])
 
     val t2 = getNow()
 
@@ -253,8 +254,11 @@ fun Chain.consensus (now: Long=getNow()) {
     val xpnds: MutableSet<Hash>      = mutableSetOf()
 
     var tnegs: Long = 0
-    var nnegs1 = 0
-    var nnegs2 = 0
+    var tnegs1: Long = 0
+    var tnegs2: Long = 0
+    var tnegs3: Long = 0
+    var nnegs1 = 0      // max xnegs.size
+    var nnegs2 = 0      // max xcons-neg index
     fun negs_zers (now: Long) {
         val t0 = getNow()
         val tot = xreps.values.sum()
@@ -279,7 +283,12 @@ fun Chain.consensus (now: Long=getNow()) {
                 break   // must remove in consensus order, not time order
             }
         }
+        val t1 = getNow()
+        tnegs1 += t1-t0
+
         xnegs.removeAll(rems)
+        val t2 = getNow()
+        tnegs2 += t2-t1
 
         val nozers = xzers
             .map    { this.fsLoadBlock(it) }
@@ -293,11 +302,12 @@ fun Chain.consensus (now: Long=getNow()) {
                 //println("consol : +1 : ${it.sign.pub}")
             }
         }
-        tnegs += (getNow()-t0)
+        val t3 = getNow()
+        tnegs3 += t3-t2
+        tnegs += (t3-t0)
     }
 
-    val newest = this.fsLoadBlock(frzs.last()).immut.time
-    fun add (hash: Hash) {
+    fun add (hash: Hash, newest: Long) {
         val blk = this.fsLoadBlock(hash)
         xcons.add(hash)     // add it to consensus list
 
@@ -344,16 +354,19 @@ fun Chain.consensus (now: Long=getNow()) {
         negs_zers(blk.immut.time) // this blk may affect previous blks in negs/zers
     }
 
-    val t4 = getNow()
+    val t4 = getNow()       // t4=0
 
     // xpnds will hold the blocks outside stable consensus w/o incoming edges
+    val newest = this.fsLoadBlock(frzs.last()).immut.time
     frzs.forEach {
         xpnds.remove(it)
-        add(it)
+        //add(it, newest)
+        add(it, 0)
+        assert(fronts[it] != null) { it }
         xpnds.addAll(fronts[it]!!.minus(frzs))
     }
 
-    val t5 = getNow()
+    val t5 = getNow()       // t5=1810
 
     fun Hash.allFronts (): Set<Hash> {
         return setOf(this) + fronts[this]!!.map { it.allFronts() }.flatten().toSet()
@@ -371,10 +384,17 @@ fun Chain.consensus (now: Long=getNow()) {
             .sum    ()                          // sum everything
     }
 
-    val t6 = getNow()
+    val t6 = getNow()       // t6=0
 
+    var t61: Long = 0
+    var t62: Long = 0
+    var t63: Long = 0
+    //println("FRONTS: " + fronts["52_C78E1AE73C801526BDB4D81C781E7078C808E98501266566CD6B39EBE38DBABE"])
     while (!xpnds.isEmpty()) {
+        //println(xpnds)
+        assert(xpnds.intersect(frzs).isEmpty()) { "xpnds vs frzs"}
         //println("xpnds = ${xpnds.map { it.take(6) }}")
+        val x61 = getNow()
         val nxt: Hash = xpnds               // find node with more reps inside pnds
             .maxWithOrNull { h1, h2 ->
                 val h1s = h1.allFronts()    // all nodes after blk1
@@ -393,9 +413,14 @@ fun Chain.consensus (now: Long=getNow()) {
             }!!
 
         xpnds.remove(nxt)  // rem it from sts
-        add(nxt)
+        t61 += getNow()-x61
+
+        val x62 = getNow()
+        add(nxt, 0)
+        t62 += getNow()-x62
 
         // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
+        val x63 = getNow()
         xpnds.addAll (
             fronts[nxt]!!
                 .map    { this.fsLoadBlock(it) }
@@ -417,19 +442,23 @@ fun Chain.consensus (now: Long=getNow()) {
                           || this.name.startsWith('$')    // private chain
                           || (islk && blk.immut.like==null)     // liked in next block
                           || (blk.sign!=null && xreps.getZ(blk.sign.pub)>0)  // has reps
+                    //println("? ${blk.hash}, $islk, $ok")
+                    //if (blk.sign!=null) println(xreps.getZ(blk.sign.pub))
                     ok
                 }
                 .map { it.hash }
         )
+        t63 += getNow()-x63
     }
 
-    val t7 = getNow()
+    val t7 = getNow()       //  t7=543 (0,404,85)
 
     negs_zers(now)
     this.cons = xcons.toList()
     this.reps = xreps.toMap()
 
     val t8 = getNow()
-    println("TOTAL=${t8-t1} | fz=${frzs.size} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} | t8=${t8-t7} | tnegs[${nnegs1}x${nnegs2}]=$tnegs")
+    println("TOTAL=${t8-t1} | fz=${frzs.size} | t2=${t2-t1} | t3=${t3-t2} | t5=${t5-t4} | t7=${t7-t6} ($t62,$t63) | t8=${t8-t7} | tnegs[${nnegs1}x${nnegs2}]=$tnegs=$tnegs1+$tnegs3")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
+    this.fsSave()
 }
