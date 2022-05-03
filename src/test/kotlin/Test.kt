@@ -200,14 +200,8 @@ class Tests {
     fun c02_blocked() {
         val loc = Host_load("/tmp/freechains/tests/C02/")
         val chain = loc.chainsJoin("#xxx", listOf(PUB0))
-        println(chain.cons)
-        println("-=-=-=-=-=-")
         val n1 = chain.blockNew(PVT0, null, B("1"), false, null)
-        println(chain.cons)
-        println("-=-=-=-=-=-")
         val n2 = chain.blockNew(PVT1, null, B("2.1"), false, null)
-        println(chain.cons)
-        println("-=-=-=-=-=-")
         val n3 = chain.blockNew(PVT1, null, B("2.2"), false, null)
         assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
         assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
@@ -295,7 +289,7 @@ class Tests {
         assert( 2 == chain.reps.getZ(PUB1))
 
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        println(str)
+        //println(str)
         if (b2>a2) {
             assert(str == ",a1,a2,b2,a3")
         } else {
@@ -330,7 +324,7 @@ class Tests {
         val c5 = chain.blockNew(PVT2, null, B("c5"), false, setOf(a4))
         val b5 = chain.blockNew(PVT1, null, B("b5"), false, setOf(a4))
 
-        val str1 = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
+        val str1 = chain.cons.map { chain.fsLoadPayRaw(it).utf8() }.joinToString(",")
         //println(str1)
         if (b5 > c5) {
             assert(str1 == ",b1,a2,c3,a4,a5,c5,b5")
@@ -351,23 +345,19 @@ class Tests {
         assert( 1 == chain.reps.getZ(PUB1))
         assert( 1 == chain.reps.getZ(PUB2))
 
-        val str3 = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
-        println(str3)
+        val str3 = chain.cons.map { chain.fsLoadPayRaw(it).utf8() }.joinToString(",")
         assert(str3 == ",b1,a2,c3,a4,a5,b5,a6,c5,a7")
         //              ,b1,a2,c3,a4,a5,c5,b5,a6,a7
         //assert(str == ",b1,a2,c3,a4,c5,a5,b5,a6,a7")
 
         setNow(25*hour)
         chain.consensus()
-        //println(con4.repsAuthor(PUB0))
         assert(28 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
         assert( 2 == chain.reps.getZ(PUB2))
 
-        //println("-=-=-=-=-")
         setNow(38*hour)
         chain.consensus()
-        //println(con5.repsAuthor(PUB0))
         assert(29 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
         assert( 2 == chain.reps.getZ(PUB2))
