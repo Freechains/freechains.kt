@@ -219,14 +219,23 @@ fun Chain.consensus (now: Long=getNow()) {
     // When we fail, it means that the last one to succeed is the freezed position.
     var nnn1 = 0
     var nnn2 = 0
+    //println("======")
+    //println(this.frze)
+    //println(this.cons.size)
     for (i in this.frze+1..this.cons.size-1) {                  // start from next after freeze
+        //println("-=-=-=-=-")
+        //println("i = $i")
+        //println("take = ${this.cons.take(i+1).size}")
         val ts = this.cons.take(i+1)                        // take all up to (including) nxt freeze
             .map { this.fsLoadBlock(it) }
             .map { it.immut.time }                              // time of past blocks in cons
             .let { all ->
-                all.dropLastWhile { nnn1++ ; it >= all.last()-28*day }   // only blocks in the past 28 days
+                all.takeLastWhile { nnn1++ ; it >= all.last()-28*day }   // only blocks in the past 28 days
             }
+        //println("ts = ${ts.count()}")
         val week_avg = max(7, (ts.count() / 4))             // 7 posts/week minimum
+        //println(week_avg)
+        //println(this.cons.size-i)
         if (this.cons.size-i >= week_avg) {                    // how many posts after me?
             nnn2++
             this.frze = i                                       // more than avg, success
@@ -236,6 +245,7 @@ fun Chain.consensus (now: Long=getNow()) {
     }
 
     val nfrze = (this.cons.size - this.frze)
+    //println(">>> $nfrze = ${this.cons.size} - ${this.frze}")
     val t2 = getNow()
 
     // new freezes
@@ -284,6 +294,7 @@ fun Chain.consensus (now: Long=getNow()) {
                 .map { it.sign!!.pub }          // take their authors
                 .toSet()                        // remove duplicates
                 .map { xreps[it]!! }            // take their reps
+                //.map { xreps[it] ?: 0 }            // take their reps
                 .sum()                          // sum everything
             // 0% -> 0, 50% -> 1
             val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble() / tot * 2)).toInt()
