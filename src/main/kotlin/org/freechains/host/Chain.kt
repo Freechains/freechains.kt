@@ -21,7 +21,6 @@ data class Chain (
     val hash : String = (this.name + "/" + keys).calcHash()
 
     // Hold consensus() result: many function require cons/reps
-    var frze : Int           = 0
     var reps : Map<HKey,Int> = emptyMap()
     var cons : List<Hash>    = listOf(this.genesis())
 
@@ -214,46 +213,24 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
 fun Chain.consensus (now: Long=getNow()) {
     val t1 = getNow()
 
-    // Find the newest freezed block in the current consensus.
-    // We start from the previous freezed and try the next block.
-    // When we fail, it means that the last one to succeed is the freezed position.
-    var nnn1 = 0
-    var nnn2 = 0
-    //println("======")
-    //println(this.frze)
-    //println(this.cons.size)
-    for (i in this.frze+1..this.cons.size-1) {                  // start from next after freeze
-        //println("-=-=-=-=-")
-        //println("i = $i")
-        //println("take = ${this.cons.take(i+1).size}")
-        val ts = this.cons.take(i+1)                        // take all up to (including) nxt freeze
-            .map { this.fsLoadBlock(it) }
-            .map { it.immut.time }                              // time of past blocks in cons
-            .let { all ->
-                all.takeLastWhile { nnn1++ ; it >= all.last()-28*day }   // only blocks in the past 28 days
-            }
-        //println("ts = ${ts.count()}")
-        val week_avg = max(7, (ts.count() / 4))             // 7 posts/week minimum
-        //println(week_avg)
-        //println(this.cons.size-i)
-        if (this.cons.size-i >= week_avg) {                    // how many posts after me?
-            nnn2++
-            this.frze = i                                       // more than avg, success
-        } else {
-            break                                               // less than avg, fail
-        }
-    }
-
-    val nfrze = (this.cons.size - this.frze)
-    //println(">>> $nfrze = ${this.cons.size} - ${this.frze}")
-    val t2 = getNow()
-
     // new freezes
-    val xcons: MutableList<Hash>     = this.cons.take(this.frze+1).toMutableList() // frzs includes myself
+    val last = this.fsLoadBlock(this.cons.last()).immut.time
+    var n = 0
     val xreps: MutableMap<HKey,Int>  = this.freps.toMutableMap()
     val xnegs: MutableSet<Hash>      = this.fnegs.toMutableSet()
     val xzers: MutableSet<Hash>      = this.fzers.toMutableSet()
     val xones: MutableMap<HKey,Long> = this.fones.toMutableMap()
+    val t2 = getNow()
+    val xcons: MutableList<Hash>     = this.cons.dropLastWhile {
+        val cur = this.fsLoadBlock(it)
+        n++
+        //println("${cur.immut.time} >= ${last-7*day}")
+        it!=this.genesis() && cur.immut.time>last-7*day && n<=100
+    }.toMutableList()
+    val t3 = getNow()
+    val nfrze = n
+    //println(this.cons)
+    //println(xcons)
 
     //println(">>> " + this.fcons.map { this.fsLoadPayRaw(it).utf8() })
     //println("<<< " + xcons.map { this.fsLoadPayRaw(it).utf8() })
@@ -271,8 +248,6 @@ fun Chain.consensus (now: Long=getNow()) {
         }
         ret.toMap()
     }
-
-    val t3 = getNow()
 
     var tnegs: Long = 0
     var tnegs1: Long = 0
@@ -293,8 +268,7 @@ fun Chain.consensus (now: Long=getNow()) {
                 .map { this.fsLoadBlock(it) }
                 .map { it.sign!!.pub }          // take their authors
                 .toSet()                        // remove duplicates
-                .map { xreps[it]!! }            // take their reps
-                //.map { xreps[it] ?: 0 }            // take their reps
+                .map { xreps[it] ?: 0 }         // take their reps
                 .sum()                          // sum everything
             // 0% -> 0, 50% -> 1
             val dt = (T12h_new * max(0.toDouble(), 1 - aft.toDouble() / tot * 2)).toInt()
@@ -384,13 +358,13 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(this.freps)
     //println(xreps)
 
+    val t5 = getNow()       // t5=1810
+
     this.fcons = xcons.toList()
     this.freps = xreps.toMap()
     this.fnegs = xnegs.toSet()
     this.fzers = xzers.toSet()
     this.fones = xones.toMap()
-
-    val t5 = getNow()       // t5=1810
 
     fun Hash.allFronts (): Set<Hash> {
         return setOf(this) + fronts[this]!!.map { it.allFronts() }.flatten().toSet()
@@ -488,8 +462,8 @@ fun Chain.consensus (now: Long=getNow()) {
     this.reps = xreps.toMap()
 
     val t8 = getNow()
-    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t5=${t5-t4} | t7=${t7-t6} ($t62,$t63) | t8=${t8-t7} | tnegs=$tnegs=$tnegs1+$tnegs3")
-    println("SIZES | fz=${xcons.size}/$nfrze/$nnn1/$nnn2 | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nfrnts")
+    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
+    println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nfrnts")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     this.fsSave()
 }
