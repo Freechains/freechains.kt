@@ -23,12 +23,13 @@ data class Chain (
     // Hold consensus() result: many function require cons/reps
     var reps : Map<HKey,Int> = emptyMap()
     var cons : List<Hash>    = listOf(this.genesis())
+    var frts : Map<Hash,Set<Hash>> = mapOf(Pair(this.genesis(), emptySet()))
 
-    var fcons: List<Hash>     = emptyList()
-    var freps: Map<HKey,Int>  = emptyMap()
-    var fnegs: Set<Hash>      = emptySet()    // new posts still penalized
-    var fzers: Set<Hash>      = emptySet()    // new posts not yet consolidated
-    var fones: Map<HKey,Long> = emptyMap()    // last time block by pub was consolidated
+    var fcons : List<Hash>     = emptyList()
+    var freps : Map<HKey,Int>  = emptyMap()
+    var fnegs : Set<Hash>      = emptySet()    // new posts still penalized
+    var fzers : Set<Hash>      = emptySet()    // new posts not yet consolidated
+    var fones : Map<HKey,Long> = emptyMap()    // last time block by pub was consolidated
 
     // ...
     // But they cannot be used "as is" in incremental consensus:
@@ -216,18 +217,22 @@ fun Chain.consensus (now: Long=getNow()) {
     // new freezes
     val last = this.fsLoadBlock(this.cons.last()).immut.time
     var n = 0
-    val xreps: MutableMap<HKey,Int>  = this.freps.toMutableMap()
-    val xnegs: MutableSet<Hash>      = this.fnegs.toMutableSet()
-    val xzers: MutableSet<Hash>      = this.fzers.toMutableSet()
-    val xones: MutableMap<HKey,Long> = this.fones.toMutableMap()
+    val xreps: MutableMap<HKey,Int>       = this.freps.toMutableMap()
+    val xnegs: MutableSet<Hash>           = this.fnegs.toMutableSet()
+    val xzers: MutableSet<Hash>           = this.fzers.toMutableSet()
+    val xones: MutableMap<HKey,Long>      = this.fones.toMutableMap()
+    val xfrts: MutableMap<Hash,MutableSet<Hash>> = this.frts.let {
+        val ret: MutableMap<Hash,MutableSet<Hash>> = mutableMapOf()
+        it.forEach { s, set -> ret[s] = set.toMutableSet() }
+        ret
+    }
     val t2 = getNow()
-    val xcons: MutableList<Hash>     = this.cons.dropLastWhile {
+    val xcons: MutableList<Hash>          = this.cons.dropLastWhile {
         val cur = this.fsLoadBlock(it)
         n++
         //println("${cur.immut.time} >= ${last-7*day}")
         it!=this.genesis() && cur.immut.time>last-7*day && n<=100
     }.toMutableList()
-    val t3 = getNow()
     val nfrze = n
     //println(this.cons)
     //println(xcons)
@@ -235,18 +240,17 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(">>> " + this.fcons.map { this.fsLoadPayRaw(it).utf8() })
     //println("<<< " + xcons.map { this.fsLoadPayRaw(it).utf8() })
 
-    val fronts: Map<Hash,Set<Hash>> = this.fsAll().let {
-        val ret: MutableMap<Hash,MutableSet<Hash>> = mutableMapOf()
+    val t3 = getNow()
+    this.fsAll().minus(this.cons).let {
         for (h in it) {
-            ret[h] = mutableSetOf()
+            //println(h)
+            xfrts[h] = mutableSetOf()
         }
         for (h in it) {
             this.fsLoadBlock(h).immut.backs.forEach {
-                ret[it]!!.add(h)
+                xfrts[it]!!.add(h)
             }
-            //ret[h] = it.filter { this.fsLoadBlock(it).immut.backs.contains(h) }.toSet()
         }
-        ret.toMap()
     }
 
     var tnegs: Long = 0
@@ -340,17 +344,20 @@ fun Chain.consensus (now: Long=getNow()) {
         negs_zers(blk.immut.time) // this blk may affect previous blks in negs/zers
     }
 
-    val t4 = getNow()       // t4=0
-
     // xpnds will hold the blocks outside stable consensus w/o incoming edges
     val xpnds: MutableSet<Hash> = mutableSetOf()
     for (i in this.fcons.size .. xcons.size-1) {
         reps(xcons[i])
     }
+
+    val t4 = getNow()
+
+    val ord = xcons.toSortedSet()
     for (i in 0 .. xcons.size-1) {
         val x = xcons[i]
         xpnds.remove(x)
-        xpnds.addAll(fronts[x]!!.minus(xcons))
+        //println("<<< " + x)
+        xpnds.addAll(xfrts[x]!!.filter { !ord.contains(it) })
     }
     //println(this.fcons.size)
     //println(fronts)
@@ -358,16 +365,17 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(this.freps)
     //println(xreps)
 
-    val t5 = getNow()       // t5=1810
+    val t5 = getNow()       // TODO: 110
 
     this.fcons = xcons.toList()
     this.freps = xreps.toMap()
     this.fnegs = xnegs.toSet()
     this.fzers = xzers.toSet()
     this.fones = xones.toMap()
+    this.frts = xfrts.toMap()
 
     fun Hash.allFronts (): Set<Hash> {
-        return setOf(this) + fronts[this]!!.map { it.allFronts() }.flatten().toSet()
+        return setOf(this) + xfrts[this]!!.map { it.allFronts() }.flatten().toSet()
     }
 
     // sum of reps of all authors that appear in blocks not in common
@@ -426,12 +434,12 @@ fun Chain.consensus (now: Long=getNow()) {
         // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
         val x63 = getNow()
         xpnds.addAll (
-            fronts[nxt]!!
+            xfrts[nxt]!!
                 .map    { this.fsLoadBlock(it) }
                 .filter { it.immut.backs.minus(xcons).isEmpty() }   // (2)
                 .filter { blk ->                                    // (1)
                     // block in sequence is a like to my hash?
-                    val islk = fronts[blk.hash]!!               // take my fronts
+                    val islk = xfrts[blk.hash]!!               // take my fronts
                         .map { this.fsLoadBlock(it) }
                         .any {                                  // (it should be only one, no?)
                             (it.immut.like != null)             // must be a like
@@ -462,7 +470,7 @@ fun Chain.consensus (now: Long=getNow()) {
     this.reps = xreps.toMap()
 
     val t8 = getNow()
-    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
+    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} | t8=${t8-t7} | tnegs=$tnegs")
     println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nfrnts")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     this.fsSave()
