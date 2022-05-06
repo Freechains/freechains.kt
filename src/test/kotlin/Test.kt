@@ -100,6 +100,50 @@ class Tests {
     }
      */
 
+    fun check_reset (chain: Chain) {
+        val x1 = chain.cons.toString()
+        val x2 = chain.reps.toString()
+        val x3 = chain.frts.mapValues { it.value.sorted() }.toSortedMap().toString()
+        val x4 = chain.fcons.toString()
+        val x5 = chain.freps.toString()
+        val x6 = chain.fnegs.toString()
+        val x7 = chain.fzers.toString()
+        val x8 = chain.fones.toString()
+        chain.reset()
+        chain.consensus()
+        //println(">>>")
+        //chain.consensus()
+        //println("<<<")
+        val y1 = chain.cons.toString()
+        val y2 = chain.reps.toString()
+        val y3 = chain.frts.mapValues { it.value.sorted() }.toSortedMap().toString()
+        val y4 = chain.fcons.toString()
+        val y5 = chain.freps.toString()
+        val y6 = chain.fnegs.toString()
+        val y7 = chain.fzers.toString()
+        val y8 = chain.fones.toString()
+        assert(x1==y1 && x2==y2 && x3==y3)
+        assert(x1==y1 && x2==y2 && x3==y3 && x4==y4 && x5==y5 && x6==y6 && x7==y7 && x8==y8) {
+            //println(x1)
+            //println(y1)
+            //println(x2)
+            //println(y2)
+            //println(x3)
+            //println(y3)
+            println("fcons")
+            println(x4)
+            println(y4)
+            println(x5)
+            println(y5)
+            println(x6)
+            println(y6)
+            println(x7)
+            println(y7)
+            println(x8)
+            println(y8)
+        }
+    }
+
     @Test
     fun a1_json() {
         @Serializable
@@ -155,6 +199,7 @@ class Tests {
         val c1 = h.chainsJoin("#uerj", listOf(PUB0))
 
         val c2 = h.chainsLoad(c1.name)
+        println(c2.cons)
         assert_(c1.hashCode().equals(c2.hashCode()))
 
         val hash = c2.blockNew(null, null, B(""), false, null)
@@ -205,6 +250,7 @@ class Tests {
         val n3 = chain.blockNew(PVT1, null, B("2.2"), false, null)
         assert(chain.heads(Head_State.LINKED).let { it.size==1 && it.contains(n1) })
         assert(chain.heads(Head_State.BLOCKED).let { it.size==2 && it.contains(n2) && it.contains(n3) })
+        check_reset(chain)
     }
 
     fun Chain.allFrom (h: Hash): Set<Hash> {
@@ -231,6 +277,22 @@ class Tests {
         chain.consensus()
         val rep2 = chain.reps.getZ(PUB0)
         assert(rep2 == 30)
+        check_reset(chain)
+    }
+    @Test
+    fun c03_100s() {
+        val loc = Host_load("/tmp/freechains/tests/C03/")
+        val chain = loc.chainsJoin("@$PUB0", emptyList())
+
+        for (i in 1..100) {
+            val x = chain.blockNew(PVT1, null, B(i.toString()), false, null)
+            chain.blockNew(PVT0, Like(1,x), B(i.toString()), false, null)
+            println(i)
+            println(PUB0)
+            println(PUB1)
+            check_reset(chain)
+        }
+        println(chain.cons)
     }
     @Test
     fun c04_all() {
@@ -251,6 +313,7 @@ class Tests {
         assert(30 == chain.reps.getZ(PUB0))
         val n3 = chain.blockNew(PVT0, null, B("3"), false, null)
         assert(30 == chain.reps.getZ(PUB0))
+        check_reset(chain)
     }
     @Test
     fun c05_seq() {
@@ -295,6 +358,7 @@ class Tests {
         } else {
             assert(str == ",a1,b2,a2,a3")
         }
+        check_reset(chain)
     }
     @Test
     fun c06_ord1() {
@@ -361,6 +425,7 @@ class Tests {
         assert(29 == chain.reps.getZ(PUB0))
         assert( 2 == chain.reps.getZ(PUB1))
         assert( 2 == chain.reps.getZ(PUB2))
+        check_reset(chain)
     }
     @Test
     fun c07_ord2() {
@@ -390,6 +455,7 @@ class Tests {
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c6,a7")
         //assert(str == ",b1,a2,c3,a4,a5,c6,b5,a6,a7")
+        check_reset(chain)
     }
     @Test
     fun c08_ord3() {
@@ -420,6 +486,7 @@ class Tests {
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,b5,a6,c5,c6,a7")
         //assert(str == ",b1,a2,c3,a4,a5,c5,c6,b5,a6,a7")
+        check_reset(chain)
     }
     @Test
     fun c09_ord4() {
@@ -447,6 +514,7 @@ class Tests {
         val str = chain.cons.map { chain.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(",")
         //println(str)
         assert(str == ",b1,a2,c3,a4,a5,c5,b5,a6")
+        check_reset(chain)
     }
     @Test
     fun c10_inv1() {
@@ -464,6 +532,7 @@ class Tests {
         //println(str)
         assert(str == ",b1,a2,c3,a4")
         //assert(con.invs.isEmpty())
+        check_reset(chain)
     }
     @Test
     fun c11_inv2() {
@@ -510,6 +579,7 @@ class Tests {
         //assert(str == ",b1,a2,c3,a4,c5,c6,b5,a6,c7")
         //println(inv)
         //assert(con4.invs.let { it.size==2 && it.contains(c6) && it.contains(c7) })
+        check_reset(chain)
     }
     @Test
     fun c12_dt12h() {
@@ -557,6 +627,7 @@ class Tests {
         assert(30 == chain.reps.getZ(PUB0))
         assert( 1 == chain.reps.getZ(PUB1))
         assert( 2 == chain.reps.getZ(PUB2))
+        check_reset(chain)
     }
     @Test
     fun c13_pioneers() {
@@ -565,6 +636,7 @@ class Tests {
         chain.consensus()
         assert(15 == chain.reps.getZ(PUB0))
         assert(15 == chain.reps.getZ(PUB1))
+        check_reset(chain)
     }
 
     @Test

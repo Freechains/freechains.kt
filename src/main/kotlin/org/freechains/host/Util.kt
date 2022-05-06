@@ -12,6 +12,8 @@ internal var NOW : Long? = null
 const val T30M_future = 30*min          // refuse posts +30m in the future
 const val T12h_new    = 12*hour         // -1 post younger than 12h
 const val T24h_old    = 24*hour         // +1 post older than 24h
+const val T7d_fork    = 7*day
+const val N100_fork   = 100
 
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -21,7 +23,6 @@ const val LK3_dislikes = 3
 const val S128_pay = 128000             // 128 KBytes maximum size of payload
 
 const val N16_blockeds = 16             // hold at most 16 blocked blocks locally
-const val N500_cache = 500              // hold at most 500 consensus memoizations
 
 ///////////////////////////////////////////////////////////////////////////////
 

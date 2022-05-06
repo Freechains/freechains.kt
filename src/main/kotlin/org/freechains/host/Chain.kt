@@ -12,6 +12,17 @@ import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
+fun Chain.reset () {
+    this.reps  = emptyMap()
+    this.cons  = listOf(this.genesis())
+    this.frts  = mapOf(Pair(this.genesis(), emptySet()))
+    this.fcons = emptyList()
+    this.freps = emptyMap()
+    this.fnegs = emptySet()
+    this.fzers = emptySet()
+    this.fones = emptyMap()
+}
+
 @Serializable
 data class Chain (
     var root : String,
@@ -21,9 +32,9 @@ data class Chain (
     val hash : String = (this.name + "/" + keys).calcHash()
 
     // Hold consensus() result: many function require cons/reps
+    var cons : List<Hash>    = emptyList()
     var reps : Map<HKey,Int> = emptyMap()
-    var cons : List<Hash>    = listOf(this.genesis())
-    var frts : Map<Hash,Set<Hash>> = mapOf(Pair(this.genesis(), emptySet()))
+    var frts : Map<Hash,Set<Hash>> = emptyMap()
 
     var fcons : List<Hash>     = emptyList()
     var freps : Map<HKey,Int>  = emptyMap()
@@ -179,7 +190,7 @@ fun Chain.repsPost (hash: String) : Pair<Int,Int> {
     return Pair(pos.sum(),-neg.sum())
 }
 
-fun Chain.heads (want: Head_State): Set<Hash> {
+fun Chain.heads1 (want: Head_State): Set<Hash> {
     fun Chain.find_heads (all: Set<Hash>): Set<Hash> {
         val backs = all.map { this.fsLoadBlock(it) }.map { it.immut.backs }.toSet().unionAll()
         return all - backs
@@ -191,6 +202,26 @@ fun Chain.heads (want: Head_State): Set<Hash> {
     return when (want) {
         Head_State.BLOCKED -> blockeds
         Head_State.LINKED  -> this.find_heads(this.cons.toSet())
+        else -> error("TODO")
+    }
+}
+
+fun Chain.heads2 (want: Head_State): Set<Hash> {
+    val blocked = (this.fsAll() - this.cons)
+        .filter { this.fsLoadBlock(it).immut.backs.all { this.cons.contains(it) } }
+        .toSet()
+    return when (want) {
+        Head_State.LINKED  -> this.cons.filter { (this.frts[it]!! - blocked).isEmpty() }.toSet()
+        Head_State.BLOCKED -> blocked
+        else -> error("TODO")
+    }
+}
+
+fun Chain.heads (want: Head_State): Set<Hash> {
+    //this.consensus()
+    return when (want) {
+        Head_State.LINKED  -> this.heads2(want)
+        Head_State.BLOCKED -> this.heads2(want)
         else -> error("TODO")
     }
 }
@@ -215,7 +246,7 @@ fun Chain.consensus (now: Long=getNow()) {
     val t1 = getNow()
 
     // new freezes
-    val last = this.fsLoadBlock(this.cons.last()).immut.time
+    val last = this.cons.lastOrNull().let { if (it == null) null else this.fsLoadBlock(it).immut.time }
     var n = 0
     val xreps: MutableMap<HKey,Int>       = this.freps.toMutableMap()
     val xnegs: MutableSet<Hash>           = this.fnegs.toMutableSet()
@@ -226,12 +257,12 @@ fun Chain.consensus (now: Long=getNow()) {
         it.forEach { s, set -> ret[s] = set.toMutableSet() }
         ret
     }
-    val t2 = getNow()
     val xcons: MutableList<Hash>          = this.cons.dropLastWhile {
         val cur = this.fsLoadBlock(it)
         n++
+        val isblocked = this.frts[it]!!.any { this.fsLoadBlock(it).immut.like?.hash == cur.hash }
         //println("${cur.immut.time} >= ${last-7*day}")
-        it!=this.genesis() && cur.immut.time>last-7*day && n<=100
+        isblocked || (it!=this.genesis() && cur.immut.time>last!!-T7d_fork && n<=N100_fork)
     }.toMutableList()
     val nfrze = n
     //println(this.cons)
@@ -239,8 +270,9 @@ fun Chain.consensus (now: Long=getNow()) {
 
     //println(">>> " + this.fcons.map { this.fsLoadPayRaw(it).utf8() })
     //println("<<< " + xcons.map { this.fsLoadPayRaw(it).utf8() })
+    val t2 = getNow()
 
-    val t3 = getNow()
+    // xfrts = ...
     this.fsAll().minus(this.cons).let {
         for (h in it) {
             //println(h)
@@ -253,12 +285,15 @@ fun Chain.consensus (now: Long=getNow()) {
         }
     }
 
+    val t3 = getNow()
+
     var tnegs: Long = 0
     var tnegs1: Long = 0
     var tnegs2: Long = 0
     var tnegs3: Long = 0
     var nnegs1 = 0      // max xnegs.size
     var nnegs2 = 0      // max xcons-neg index
+    //println(xnegs)
     fun negs_zers (now: Long) {
         val t0 = getNow()
         val tot = xreps.values.sum()
@@ -345,7 +380,7 @@ fun Chain.consensus (now: Long=getNow()) {
     }
 
     // xpnds will hold the blocks outside stable consensus w/o incoming edges
-    val xpnds: MutableSet<Hash> = mutableSetOf()
+    val xpnds: MutableSet<Hash> = mutableSetOf(this.genesis())
     for (i in this.fcons.size .. xcons.size-1) {
         reps(xcons[i])
     }
@@ -395,11 +430,10 @@ fun Chain.consensus (now: Long=getNow()) {
     var t61: Long = 0
     var t62: Long = 0
     var t63: Long = 0
-    var nxpnds = 0
+    var nxpnds = xpnds.size
     var nfrnts = 0
     //println("FRONTS: " + fronts["52_C78E1AE73C801526BDB4D81C781E7078C808E98501266566CD6B39EBE38DBABE"])
     while (!xpnds.isEmpty()) {
-        nxpnds = max(nxpnds, xpnds.size)
         //println(xpnds)
         //assert(xpnds.intersect(frzs).isEmpty()) { "xpnds vs frzs"}
         //println("xpnds = ${xpnds.map { it.take(6) }}")
@@ -426,8 +460,9 @@ fun Chain.consensus (now: Long=getNow()) {
         xpnds.remove(nxt)  // rem it from sts
         t61 += getNow()-x61
 
-        val x62 = getNow()
         xcons.add(nxt)     // add it to consensus list
+        ord.add(nxt)
+        val x62 = getNow()
         reps(nxt)
         t62 += getNow()-x62
 
@@ -436,7 +471,7 @@ fun Chain.consensus (now: Long=getNow()) {
         xpnds.addAll (
             xfrts[nxt]!!
                 .map    { this.fsLoadBlock(it) }
-                .filter { it.immut.backs.minus(xcons).isEmpty() }   // (2)
+                .filter { ord.containsAll(it.immut.backs) }   // (2)
                 .filter { blk ->                                    // (1)
                     // block in sequence is a like to my hash?
                     val islk = xfrts[blk.hash]!!               // take my fronts
@@ -459,6 +494,10 @@ fun Chain.consensus (now: Long=getNow()) {
                     ok
                 }
                 .map { it.hash }
+                .let {
+                    nxpnds += it.size
+                    it
+                }
         )
         t63 += getNow()-x63
     }
@@ -470,7 +509,7 @@ fun Chain.consensus (now: Long=getNow()) {
     this.reps = xreps.toMap()
 
     val t8 = getNow()
-    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} | t8=${t8-t7} | tnegs=$tnegs")
+    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t61,$t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
     println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nfrnts")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     this.fsSave()
