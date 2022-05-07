@@ -208,8 +208,6 @@ fun Chain.heads1 (want: Head_State): Set<Hash> {
 
 fun Chain.heads2 (want: Head_State): Set<Hash> {
     val blocked = (this.fsAll() - this.cons)
-        .filter { this.fsLoadBlock(it).immut.backs.all { this.cons.contains(it) } }
-        .toSet()
     return when (want) {
         Head_State.LINKED  -> this.cons.filter { (this.frts[it]!! - blocked).isEmpty() }.toSet()
         Head_State.BLOCKED -> blocked
@@ -273,7 +271,11 @@ fun Chain.consensus (now: Long=getNow()) {
     val t2 = getNow()
 
     // xfrts = ...
-    this.fsAll().minus(this.cons).let {
+    val ord = this.cons.toSortedSet()
+    //println("-=-=-=-")
+    //println(ord)
+    //println("-=-=-=-")
+    this.fsAll().filter { !ord.contains(it) }.let {
         for (h in it) {
             //println(h)
             xfrts[h] = mutableSetOf()
@@ -301,10 +303,12 @@ fun Chain.consensus (now: Long=getNow()) {
         nnegs1 = max(nnegs1, xnegs.size)
         for (neg_ in xnegs) {
             val neg = this.fsLoadBlock(neg_)
+            //println(neg_)
             nnegs2 = max(nnegs2, xcons.size-xcons.indexOf(neg_))
-            val aft = xcons
-                .drop(xcons.indexOf(neg_))       // blocks after myself (including me)
+            val aft = xcons  // TODO: not calculating blocks before (-1) drop
+                .drop(xcons.indexOf(neg_).let { if (it==-1) 0 else it }) // blocks after myself (including me)
                 .map { this.fsLoadBlock(it) }
+                .filter { it.sign != null }
                 .map { it.sign!!.pub }          // take their authors
                 .toSet()                        // remove duplicates
                 .map { xreps[it] ?: 0 }         // take their reps
@@ -387,12 +391,12 @@ fun Chain.consensus (now: Long=getNow()) {
 
     val t4 = getNow()
 
-    val ord = xcons.toSortedSet()
+    val xord = xcons.toSortedSet()
     for (i in 0 .. xcons.size-1) {
         val x = xcons[i]
         xpnds.remove(x)
         //println("<<< " + x)
-        xpnds.addAll(xfrts[x]!!.filter { !ord.contains(it) })
+        xpnds.addAll(xfrts[x]!!.filter { !xord.contains(it) })
     }
     //println(this.fcons.size)
     //println(fronts)
@@ -433,6 +437,7 @@ fun Chain.consensus (now: Long=getNow()) {
     var nxpnds = xpnds.size
     var nfrnts = 0
     //println("FRONTS: " + fronts["52_C78E1AE73C801526BDB4D81C781E7078C808E98501266566CD6B39EBE38DBABE"])
+    //println("REJECTED")
     while (!xpnds.isEmpty()) {
         //println(xpnds)
         //assert(xpnds.intersect(frzs).isEmpty()) { "xpnds vs frzs"}
@@ -461,7 +466,7 @@ fun Chain.consensus (now: Long=getNow()) {
         t61 += getNow()-x61
 
         xcons.add(nxt)     // add it to consensus list
-        ord.add(nxt)
+        xord.add(nxt)
         val x62 = getNow()
         reps(nxt)
         t62 += getNow()-x62
@@ -471,7 +476,7 @@ fun Chain.consensus (now: Long=getNow()) {
         xpnds.addAll (
             xfrts[nxt]!!
                 .map    { this.fsLoadBlock(it) }
-                .filter { ord.containsAll(it.immut.backs) }   // (2)
+                .filter { xord.containsAll(it.immut.backs) }   // (2)
                 .filter { blk ->                                    // (1)
                     // block in sequence is a like to my hash?
                     val islk = xfrts[blk.hash]!!               // take my fronts
@@ -490,7 +495,7 @@ fun Chain.consensus (now: Long=getNow()) {
                           || (islk && blk.immut.like==null)     // liked in next block
                           || (blk.sign!=null && xreps.getZ(blk.sign.pub)>0)  // has reps
                     //println("? ${blk.hash}, $islk, $ok")
-                    //if (blk.sign!=null) println(xreps.getZ(blk.sign.pub))
+                    //if (!ok) println(blk.hash)
                     ok
                 }
                 .map { it.hash }

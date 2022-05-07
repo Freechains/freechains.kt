@@ -438,6 +438,7 @@ class Daemon (loc_: Host) {
 
                 val blk = chain.fsLoadBlock(hash)
 
+                //println(">>> $hash")
                 writer.writeLineX(hash)                             // 2: asks if contains hash
                 val has = reader.readLineX().toBoolean()   // 3: receives yes or no
                 if (has) {
@@ -496,9 +497,11 @@ class Daemon (loc_: Host) {
             // for each head path of blocks
             while (true) {
                 val hash = reader.readLineX()   // 2: receives hash in the path
+                //println("<<< $hash")
                 if (hash.isEmpty()) {                   // 4
                     break                               // nothing else to answer
                 } else {
+                    //println(chain.fsExistsBlock(hash).toString())
                     writer.writeLineX(chain.fsExistsBlock(hash).toString())   // 3: have or not block
                 }
             }

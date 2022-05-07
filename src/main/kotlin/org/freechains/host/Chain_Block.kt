@@ -82,7 +82,12 @@ fun Chain.blockAssert (blk: Block, size: Int) {
     for (bk in blk.immut.backs) {
         assert_(this.fsExistsBlock(bk)) { "back must exist" }
         assert_(this.fsLoadBlock(bk).immut.time <= blk.immut.time) { "back must be older" }
-        assert_(!this.heads(Head_State.BLOCKED).contains(bk) || (blk.immut.like!=null && blk.immut.like.hash==bk)) {
+        assert_(!this.heads(Head_State.BLOCKED).contains(bk) || (blk.immut.like?.hash==bk)) {
+            //println(">>> " + blk.hash)
+            //println(">>> " + bk)
+            //println(this.heads(Head_State.BLOCKED))
+            //println(this.heads(Head_State.BLOCKED).contains(bk))
+            //println(blk.immut.like?.hash)
             "backs must be accepted"
         }
     }
