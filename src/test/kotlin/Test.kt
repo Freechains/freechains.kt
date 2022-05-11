@@ -180,6 +180,18 @@ class Tests {
         //println(str.length.toString() + " vs " + dec.length)
         assert(str == dec)
     }
+    @Test
+    fun a4_minus() {
+        val s1 = sortedSetOf(1,2,5,10)
+        val s2 = sortedSetOf(3,5,7,10)
+        assert(sortedMinus(s1.sortedCopy(),s2.sortedCopy()) == sortedSetOf(1,2))
+        assert(sortedMinus(s2.sortedCopy(),s1.sortedCopy()) == sortedSetOf(3,7))
+
+        val s3 = sortedSetOf(4,5,7,8)
+        val s4 = sortedSetOf(3,5,7,10)
+        assert(sortedMinus(s3.sortedCopy(),s4.sortedCopy()) == sortedSetOf(4,8))
+        assert(sortedMinus(s4.sortedCopy(),s3.sortedCopy()) == sortedSetOf(3,10))
+    }
 
     @Test
     fun b1_host() {
@@ -649,6 +661,13 @@ class Tests {
         assert(h1 == h2) {
             h1 + h2
         }
+    }
+    @Test
+    fun c16 () {
+        val pub = "@57B7F4EF65AF1630C64B7A7094E4A01B01C9821622E32ECBB8D7F3B718A367FD"
+        val loc = Host_load("/tmp/fc-8501/")
+        val chain = loc.chainsLoad(pub)
+        println(chain.cons.joinToString("\n"))
     }
 
     @Test
@@ -2316,6 +2335,58 @@ class Tests {
             assert(a1[a1.size-12*2] == a2[a2.size-12*2])
             assert(a1[a1.size-11*2] != a2[a2.size-11*2])
         }
+    }
+    @Test
+    fun n08_merge_fail () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N08.1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N08.2/", P2)) }
+        Thread.sleep(200)
+
+        main_host_assert(arrayOf(P1, "now", "0"))
+        main_host_assert(arrayOf(P2, "now", "0"))
+
+        main_cli_assert(arrayOf(H1, "chains", "join", "#", PUB0))
+        main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0))
+
+        //                           /- a5 -- a6 (dislike b3)
+        // G -- a1 -- x2 -- b3 -- x4
+        //                           \- b5 -- b6 (dislike a1)
+
+        val a1 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "a1"))
+        val x2 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", a1))
+        val b3 = main_cli_assert(arrayOf(H1, S2, "chain", "#", "post", "inline", "b3"))
+        val x4 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", b3))
+
+        val s = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        assert(s == "4 / 4")
+
+        main_host_assert(arrayOf(P1, "now", "${25 * hour}"))
+        main_host_assert(arrayOf(P2, "now", "${25 * hour}"))
+
+        val a5 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "dislike", b3))
+        val a6 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "dislike", b3))
+        val b5 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "dislike", a1))
+        val b6 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "dislike", a1))
+
+        val r1 = main_cli_assert(arrayOf(H1, "chain", "#", "reps", PUB2))
+        val r2 = main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1))
+        println(r1)
+        println(r2)
+
+        val c1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val c2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
+        println(c1)
+        println(c2)
+
+        val t1 = main_cli_assert(arrayOf(H1, "peer", "localhost:$PORT2", "send", "#"))
+        val t2 = main_cli_assert(arrayOf(H2, "peer", "localhost:$PORT1", "send", "#"))
+        println(t1)
+        println(t2)
+
+        val d1 = main_cli_assert(arrayOf(H1, "chain", "#", "consensus"))
+        val d2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
+        println(d1)
+        println(d2)
     }
 
     @Test

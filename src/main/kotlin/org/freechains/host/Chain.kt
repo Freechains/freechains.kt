@@ -14,8 +14,8 @@ import kotlin.math.min
 
 fun Chain.reset () {
     this.reps  = emptyMap()
-    this.cons  = listOf(this.genesis())
-    this.frts  = mapOf(Pair(this.genesis(), emptySet()))
+    this.cons  = emptyList()
+    this.frts  = emptyMap()
     this.fcons = emptyList()
     this.freps = emptyMap()
     this.fnegs = emptySet()
@@ -240,6 +240,42 @@ fun MutableMap<HKey,Int>.getXZ (pub: HKey): Int {
     return this[pub]!!
 }
 
+fun <T> SortedSet<T>.sortedCopy (): SortedSet<T> {
+    val ret: SortedSet<T> = sortedSetOf()
+    ret.addAll(this)
+    return ret
+}
+
+fun <T:Comparable<T>> sortedMinus (s1: SortedSet<T>, s2: SortedSet<T>): SortedSet<T> {
+    val ret: SortedSet<T> = sortedSetOf()
+
+    while (true) {
+        if (s1.isEmpty()) {
+            break
+        }
+        if (s2.isEmpty()) {
+            ret.addAll(s1)
+            break
+        }
+        val v1 = s1.first()
+        val v2 = s2.first()
+        when {
+            (v1 < v2) -> {
+                ret.add(v1)
+                s1.remove(v1)
+            }
+            (v1 == v2) -> {
+                s1.remove(v1)
+                s2.remove(v2)
+            }
+            (v1 > v2) -> {
+                s2.remove(v2)
+            }
+        }
+    }
+    return ret
+}
+
 fun Chain.consensus (now: Long=getNow()) {
     val t1 = getNow()
 
@@ -269,15 +305,11 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(">>> " + this.fcons.map { this.fsLoadPayRaw(it).utf8() })
     //println("<<< " + xcons.map { this.fsLoadPayRaw(it).utf8() })
     val t2 = getNow()
+    //println(">>> T2 = $t2")
 
     // xfrts = ...
-    val ord = this.cons.toSortedSet()
-    //println("-=-=-=-")
-    //println(ord)
-    //println("-=-=-=-")
-    this.fsAll().filter { !ord.contains(it) }.let {
+    sortedMinus(this.fsAll().toSortedSet(), this.cons.toSortedSet()).let {
         for (h in it) {
-            //println(h)
             xfrts[h] = mutableSetOf()
         }
         for (h in it) {
@@ -288,6 +320,7 @@ fun Chain.consensus (now: Long=getNow()) {
     }
 
     val t3 = getNow()
+    //println(">>> T3 = $t3")
 
     var tnegs: Long = 0
     var tnegs1: Long = 0
@@ -383,13 +416,23 @@ fun Chain.consensus (now: Long=getNow()) {
         negs_zers(blk.immut.time) // this blk may affect previous blks in negs/zers
     }
 
-    // xpnds will hold the blocks outside stable consensus w/o incoming edges
-    val xpnds: MutableSet<Hash> = mutableSetOf(this.genesis())
     for (i in this.fcons.size .. xcons.size-1) {
         reps(xcons[i])
     }
 
     val t4 = getNow()
+    //println(">>> T4 = $t4")
+
+    // xpnds will hold the blocks outside stable consensus w/o incoming edges
+    val xpnds: MutableSet<Hash> = mutableSetOf(this.genesis())
+    /*
+    val xpnds: MutableSet<Pair<Hash,SortedSet<Hash>>> = mutableSetOf (
+        Pair (
+            this.genesis(),     // hold fronts sorted to optimize "minus" below
+            this.genesis().allFronts().toSortedSet()
+        )
+    )
+     */
 
     val xord = xcons.toSortedSet()
     for (i in 0 .. xcons.size-1) {
@@ -405,6 +448,7 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(xreps)
 
     val t5 = getNow()       // TODO: 110
+    //println(">>> T5 = $t5")
 
     this.fcons = xcons.toList()
     this.freps = xreps.toMap()
@@ -413,8 +457,17 @@ fun Chain.consensus (now: Long=getNow()) {
     this.fones = xones.toMap()
     this.frts = xfrts.toMap()
 
-    fun Hash.allFronts (): Set<Hash> {
-        return setOf(this) + xfrts[this]!!.map { it.allFronts() }.flatten().toSet()
+    //println(xfrts)
+    //xfrts.forEach { (h,set) -> assert(set.all { it.toHeight() >= h.toHeight() }) }
+    val cache: SortedMap<Hash,SortedSet<Hash>> = sortedMapOf()
+    fun Hash.allFronts (): SortedSet<Hash> {
+        return if (cache.containsKey(this)) {
+            cache.getValue(this)
+        } else {
+            val ret = (setOf(this) + xfrts[this]!!.map { /*println("$this -> $it");*/ it.allFronts() }.flatten()).toSortedSet()
+            cache.put(this, ret)
+            ret
+        }
     }
 
     // sum of reps of all authors that appear in blocks not in common
@@ -430,39 +483,55 @@ fun Chain.consensus (now: Long=getNow()) {
     }
 
     val t6 = getNow()       // t6=0
+    //println(">>> T6 = $t6")
 
     var t61: Long = 0
     var t62: Long = 0
     var t63: Long = 0
-    var nxpnds = xpnds.size
-    var nfrnts = 0
+    var nxpnds = 0      // max number of simultaneous nodes in xpnds
+    var nforks = 0      // max number of uncommon nodes in forks
     //println("FRONTS: " + fronts["52_C78E1AE73C801526BDB4D81C781E7078C808E98501266566CD6B39EBE38DBABE"])
     //println("REJECTED")
+
+    // GUARDAR FRONTS EM XPNDS, colocar em ordem
+    // otimizar h1s-h2s
+
+    fun cmp (h1: Hash, h2: Hash): Int {
+        //println(">>>")
+        val h1s = h1.allFronts()    // all nodes after blk1
+        //println("---")
+        val h2s = h2.allFronts()
+        //println("<<<")
+        val h1s_h2s = sortedMinus(h1s.sortedCopy(), h2s.sortedCopy())  // all nodes in blk1, not in blk2
+        val h2s_h1s = sortedMinus(h2s.sortedCopy(), h1s.sortedCopy())
+        if (h1s_h2s.size==0 || h2s_h1s.size==0) {
+            return when {
+                (h1s_h2s.size > 0) ->  1
+                (h2s_h1s.size > 0) -> -1
+                else -> -h1.compareTo(h2)
+            }
+        }
+        //val h1s_h2s = fr1.minus(fr2)     // all nodes in blk1, not in blk2
+        //val h2s_h1s = fr2.minus(fr1)
+        nforks = max(nforks, h1s_h2s.size)
+        nforks = max(nforks, h2s_h1s.size)
+        val a1 = auths(h1s_h2s.toSet())     // reps authors sum in blk1, not in blk2
+        val a2 = auths(h2s_h1s.toSet())
+        //println("${h1.take(6)} vs ${h2.take(6)} // $a1 vs $a2")
+        // both branches have same reps, the "hashest" wins (h1 vs h2)
+        return if (a1 != a2) (a1 - a2) else -h1.compareTo(h2)
+    }
+
     while (!xpnds.isEmpty()) {
-        //println(xpnds)
-        //assert(xpnds.intersect(frzs).isEmpty()) { "xpnds vs frzs"}
-        //println("xpnds = ${xpnds.map { it.take(6) }}")
+        nxpnds = max(nxpnds, xpnds.size)
         val x61 = getNow()
-        val nxt: Hash = xpnds               // find node with more reps inside pnds
-            .maxWithOrNull { h1, h2 ->
-                val h1s = h1.allFronts()    // all nodes after blk1
-                val h2s = h2.allFronts()
-                nfrnts = max(nfrnts, h1s.size)
-                nfrnts = max(nfrnts, h2s.size)
-                val h1s_h2s = h1s - h2s     // all nodes in blk1, not in blk2
-                val h2s_h1s = h2s - h1s
-                val a1 = auths(h1s_h2s)     // reps authors sum in blk1, not in blk2
-                val a2 = auths(h2s_h1s)
-                //println("${h1.take(6)} vs ${h2.take(6)} // $a1 vs $a2")
-                when {
-                    // both branches have same reps, the "hashest" wins (h1 vs h2)
-                    (a1 == a2) -> -h1.compareTo(h2)
-                    // otherwise, most reps wins (n1-n2)
-                    else -> (a1 - a2)
-                }
-            }!!
+        // find node with more reps inside pnds
+        val nxt: Hash = xpnds.maxWithOrNull(::cmp)!!    //.maxWithOrNull { (h1,fr1), (h2,fr2) -> ... }!!.first
+        //println(">>> $nxt")
+        //println(">>> $nxt: ${xpnds.sorted()}")
 
         xpnds.remove(nxt)  // rem it from sts
+        //xpnds.removeIf { it.first==nxt }  // rem it from sts
         t61 += getNow()-x61
 
         xcons.add(nxt)     // add it to consensus list
@@ -508,14 +577,16 @@ fun Chain.consensus (now: Long=getNow()) {
     }
 
     val t7 = getNow()       //  t7=543 (0,404,85)
+    //println(">>> T7 = $t7")
 
     negs_zers(now)
     this.cons = xcons.toList()
     this.reps = xreps.toMap()
 
     val t8 = getNow()
+    //println(">>> T8 = $t8")
     println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t61,$t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
-    println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nfrnts")
+    println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nforks")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     this.fsSave()
 }
