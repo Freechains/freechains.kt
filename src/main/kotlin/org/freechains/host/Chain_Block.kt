@@ -12,7 +12,7 @@ fun Chain.fromOwner (blk: Block) : Boolean {
 
 // STATE
 
-fun Chain.isHidden (blk: Block) : Boolean {
+fun Chain.isRevoked (blk: Block) : Boolean {
     return when {
         // immutable
         (blk.hash.toHeight() == 0)     -> false       // genesis block

@@ -215,6 +215,15 @@ fun Chain.heads2 (want: Head_State): Set<Hash> {
     }
 }
 
+fun Chain.heads3 (want: Head_State): Set<Hash> {
+    val blocked = (this.fsAll() - this.cons)
+    return when (want) {
+        Head_State.LINKED  -> this.cons.toSet() //this.cons.filter { (this.frts[it]!! - blocked).isEmpty() }.plus(this.cons).toSet()
+        Head_State.BLOCKED -> emptySet() //blocked.minus(blocked)
+        else -> error("TODO")
+    }
+}
+
 fun Chain.heads (want: Head_State): Set<Hash> {
     //this.consensus()
     return when (want) {
@@ -308,7 +317,8 @@ fun Chain.consensus (now: Long=getNow()) {
     //println(">>> T2 = $t2")
 
     // xfrts = ...
-    sortedMinus(this.fsAll().toSortedSet(), this.cons.toSortedSet()).let {
+    //sortedMinus(this.fsAll().toSortedSet(), this.cons.toSortedSet()).let {
+    this.fsAll().filter { !this.cons.contains(it) }.let {
         for (h in it) {
             xfrts[h] = mutableSetOf()
         }

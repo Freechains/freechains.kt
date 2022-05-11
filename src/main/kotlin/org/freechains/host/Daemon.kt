@@ -299,7 +299,7 @@ class Daemon (loc_: Host) {
                                                 writer.writeBytes(ret)
                                             }
                                             "payload" -> {
-                                                val ret = if (chain.isHidden(chain.fsLoadBlock(hash))) {
+                                                val ret = if (chain.isRevoked(chain.fsLoadBlock(hash))) {
                                                     ByteArray(0)
                                                 } else {
                                                     chain.fsLoadPayCrypt(hash,decrypt)
@@ -461,7 +461,7 @@ class Daemon (loc_: Host) {
                 val json = out.toJson()
                 writer.writeLineX(json.length.toString()) // 6
                 writer.writeBytes(json)
-                val pay = if (chain.isHidden(out)) ByteArray(0) else chain.fsLoadPayRaw(hash)
+                val pay = if (chain.isRevoked(out)) ByteArray(0) else chain.fsLoadPayRaw(hash)
                 writer.writeLineX(pay.size.toString())
                 writer.write(pay)
                 writer.writeLineX("")
@@ -487,9 +487,9 @@ class Daemon (loc_: Host) {
         var nmax = 0
         var nmin = 0
 
-        // list of received hidden blocks (empty payloads)
-        // will check if are really hidden
-        val hiddens = mutableListOf<Block>()
+        // list of received revoked blocks (empty payloads)
+        // will check if are really revoked
+        val revokeds = mutableListOf<Block>()
 
         // for each remote head
         val nout = reader.readLineX().toInt()        // 1
@@ -531,11 +531,11 @@ class Daemon (loc_: Host) {
                     }
 
                     synchronized(getLock(chain.name)) {
-                        assert_(chain.heads(Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
+                        //assert_(chain.heads(Head_State.BLOCKED).size <= N16_blockeds) { "too many blocked blocks" }
                         chain.fsSaveBlock(blk,pay)
                     }
                     if (pay.size==0 && blk.immut.pay.hash!="".calcHash()) {
-                        hiddens.add(blk)
+                        revokeds.add(blk)
                     } // else: payload is really an empty string
 
                     nmin++
@@ -549,9 +549,9 @@ class Daemon (loc_: Host) {
         }
         writer.writeLineX(nout.toString())                // 8
 
-        for (blk in hiddens) {
-            assert_(chain.isHidden(blk)) {
-                "bug found: expected hidden state"
+        for (blk in revokeds) {
+            assert_(chain.isRevoked(blk)) {
+                "bug found: expected revoked state"
             }
         }
 
