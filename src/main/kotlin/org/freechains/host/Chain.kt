@@ -171,7 +171,7 @@ fun Chain.fsSaveBlock (blk: Block, pay: ByteArray) {
     this.blockAssert(blk, pay.size)
     File(this.path() + "/blocks/" + blk.hash + ".pay").writeBytes(pay)
     File(this.path() + "/blocks/" + blk.hash + ".blk").writeText(blk.toJson()+"\n")
-    this.consensus(blk.immut.time)
+    this.consensus()
 }
 
 fun Chain.fsAll (): Set<Hash> {
@@ -285,11 +285,13 @@ fun <T:Comparable<T>> sortedMinus (s1: SortedSet<T>, s2: SortedSet<T>): SortedSe
     return ret
 }
 
-fun Chain.consensus (now: Long=getNow()) {
-    val t1 = getNow()
+fun Chain.consensus () {
+    val now = getNow()
+    val t1 = now
+    //println(">>> T1 = $t1")
 
     // new freezes
-    val last = this.cons.lastOrNull().let { if (it == null) null else this.fsLoadBlock(it).immut.time }
+    //val last = this.cons.lastOrNull().let { if (it == null) null else this.fsLoadBlock(it).immut.time }
     var n = 0
     val xreps: MutableMap<HKey,Int>       = this.freps.toMutableMap()
     val xnegs: MutableSet<Hash>           = this.fnegs.toMutableSet()
@@ -305,7 +307,7 @@ fun Chain.consensus (now: Long=getNow()) {
         n++
         val isblocked = this.frts[it]!!.any { this.fsLoadBlock(it).immut.like?.hash == cur.hash }
         //println("${cur.immut.time} >= ${last-7*day}")
-        isblocked || (it!=this.genesis() && cur.immut.time>last!!-T7d_fork && n<=N100_fork)
+        isblocked || (it!=this.genesis() && cur.immut.time>now-T7d_fork && n<=N100_fork)
     }.toMutableList()
     val nfrze = n
     //println(this.cons)

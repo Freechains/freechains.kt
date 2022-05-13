@@ -101,6 +101,7 @@ fun Chain.blockAssert (blk: Block, size: Int) {
             assert_(this.fromOwner(blk)) { "must be from owner" }
         }
     }
+    //println("${imm.time} <= $now + $T30M_future")
     assert_(imm.time <= now + T30M_future) { "from the future" }
 
     if (blk.sign != null) {                 // sig.hash/blk.hash/sig.pubkey all match
