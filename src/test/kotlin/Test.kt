@@ -2418,7 +2418,8 @@ class Tests {
     @Test
     fun x02_cons() {
         thread {
-            main_host_assert(arrayOf("start", "/tmp/freechains/tests/X02/"))
+            thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N08.1/", P1)) }
+            thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N08.2/", P2)) }
         }
         Thread.sleep(200)
         main_cli(arrayOf("chains", "join", "#xxx", PUB0))
@@ -2427,5 +2428,62 @@ class Tests {
             main_cli(arrayOf("chain", "#xxx", "post", "inline", i.toString(), S0))
             //println(getNow()-old)
         }
+    }
+    @Test
+    fun x03_cons() {
+        val N = 5
+        val rand = Random(0)
+
+        for (i in 1..N) {
+            thread {
+                main_host_assert(arrayOf("start", "/tmp/freechains/tests/X03.$i/", "--port=${8330+i}"))
+            }
+        }
+        Thread.sleep(500)
+        for (i in 1..N) {
+            main_host_assert(arrayOf("--port=${8330+i}", "now", "0"))
+            main_cli_assert(arrayOf("chains", "join", "@$PUB0", "--port=${8330+i}"))
+        }
+        for (i in 1..500) {     // 101=ok,102=no // 107=no,108=ok // 126=ok,127=no
+            for (j in 1..N) {
+                main_host_assert(arrayOf("--port=${8330+j}", "now", (i*hour).toString()))
+            }
+
+            val p1 = 8330 + rand.nextInt(2)+1
+            println(">>> POST $p1/$i")
+            main_cli(arrayOf("chain", "@$PUB0", "post", "inline", "$p1/$i", S0, "--port=$p1"))
+            if (i % 2 == 1) {
+                for (j in 1..N) {
+                    val p2 = 8330 + rand.nextInt(2)+1
+                    if (p1 != p2) {
+                        println(">>> SEND $p1 -> $p2")
+                        main_cli_assert(arrayOf("--port=$p1", "peer", "localhost:$p2", "send", "@$PUB0"))
+                    }
+                }
+            }
+        }
+        for (i in 1..N) {
+            for (j in 1..N) {
+                if (i != j) {
+                    println(">>> SYNC $i -> $j")
+                    main_cli_assert(arrayOf("--port=${8330+i}", "peer", "localhost:${8330+j}", "send", "@$PUB0"))
+                }
+            }
+        }
+        val c1 = main_cli_assert(arrayOf("chain", "@$PUB0", "consensus", "--port=${8330+1}"))
+        //println(c1.split(" ").joinToString("\n"))
+        for (i in 2..N) {
+            val c2 = main_cli_assert(arrayOf("chain", "@$PUB0", "consensus", "--port=${8330+i}"))
+            assert(c1 == c2) {
+                ("[1]: "+(c1.split(" ").map { it.take(5) })+"\n[$i]: "+(c2.split(" ").map { it.take(5) }))
+            }
+        }
+    }
+    @Test
+    fun x04_cons() {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/X03.1/", "--port=${8330 + 2}")) }
+        Thread.sleep(200)
+        val c1 = main_cli_assert(arrayOf("chain", "@$PUB0", "consensus", "--port=${8330+2}"))
+        println(c1.split(" ").joinToString("\n"))
     }
 }
