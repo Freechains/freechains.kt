@@ -2431,8 +2431,8 @@ class Tests {
     }
     @Test
     fun x03_cons() {
-        val N = 5
-        val rand = Random(0)
+        val N = 9
+        val rand = Random(2)
 
         for (i in 1..N) {
             thread {
@@ -2444,7 +2444,8 @@ class Tests {
             main_host_assert(arrayOf("--port=${8330+i}", "now", "0"))
             main_cli_assert(arrayOf("chains", "join", "@$PUB0", "--port=${8330+i}"))
         }
-        for (i in 1..500) {     // 101=ok,102=no // 107=no,108=ok // 126=ok,127=no
+        for (i in 1..5000) {
+            println(">>>>> $i")
             for (j in 1..N) {
                 main_host_assert(arrayOf("--port=${8330+j}", "now", (i*hour).toString()))
             }
@@ -2453,11 +2454,11 @@ class Tests {
             println(">>> POST $p1/$i")
             main_cli(arrayOf("chain", "@$PUB0", "post", "inline", "$p1/$i", S0, "--port=$p1"))
             if (i % 2 == 1) {
-                for (j in 1..N) {
-                    val p2 = 8330 + rand.nextInt(2)+1
+                for (j in 1..3) {
+                    val p2 = 8330 + rand.nextInt(N)+1
                     if (p1 != p2) {
                         println(">>> SEND $p1 -> $p2")
-                        main_cli_assert(arrayOf("--port=$p1", "peer", "localhost:$p2", "send", "@$PUB0"))
+                        main_cli(arrayOf("--port=$p1", "peer", "localhost:$p2", "send", "@$PUB0"))
                     }
                 }
             }
@@ -2478,6 +2479,7 @@ class Tests {
                 ("[1]: "+(c1.split(" ").map { it.take(5) })+"\n[$i]: "+(c2.split(" ").map { it.take(5) }))
             }
         }
+        println("!!! DONE !!!")
     }
     @Test
     fun x04_cons() {

@@ -310,8 +310,9 @@ fun Chain.consensus () {
         isblocked || (it!=this.genesis() && cur.immut.time>now-T7d_fork && n<=N100_fork)
     }.toMutableList()
     val nfrze = n
-    //println(this.cons)
-    //println(xcons)
+    //println(">>>")
+    //println("111: " + this.cons.map { it.take(5) })
+    //println("222: " + xcons.map { it.take(5) })
 
     //println(">>> " + this.fcons.map { this.fsLoadPayRaw(it).utf8() })
     //println("<<< " + xcons.map { this.fsLoadPayRaw(it).utf8() })
@@ -435,24 +436,6 @@ fun Chain.consensus () {
     val t4 = getNow()
     //println(">>> T4 = $t4")
 
-    // xpnds will hold the blocks outside stable consensus w/o incoming edges
-    val xpnds: MutableSet<Hash> = mutableSetOf(this.genesis())
-    /*
-    val xpnds: MutableSet<Pair<Hash,SortedSet<Hash>>> = mutableSetOf (
-        Pair (
-            this.genesis(),     // hold fronts sorted to optimize "minus" below
-            this.genesis().allFronts().toSortedSet()
-        )
-    )
-     */
-
-    val xord = xcons.toSortedSet()
-    for (i in 0 .. xcons.size-1) {
-        val x = xcons[i]
-        xpnds.remove(x)
-        //println("<<< " + x)
-        xpnds.addAll(xfrts[x]!!.filter { !xord.contains(it) })
-    }
     //println(this.fcons.size)
     //println(fronts)
     //println(xpnds)
@@ -508,14 +491,22 @@ fun Chain.consensus () {
     // GUARDAR FRONTS EM XPNDS, colocar em ordem
     // otimizar h1s-h2s
 
-    fun cmp (h1: Hash, h2: Hash): Int {
-        //println(">>>")
-        val h1s = h1.allFronts()    // all nodes after blk1
-        //println("---")
-        val h2s = h2.allFronts()
+    fun cmp (x1: Pair<Hash,SortedSet<Hash>>, x2: Pair<Hash,SortedSet<Hash>>): Int {
+        val (h1,fr1) = x1
+        val (h2,fr2) = x2
         //println("<<<")
-        val h1s_h2s = sortedMinus(h1s.sortedCopy(), h2s.sortedCopy())  // all nodes in blk1, not in blk2
-        val h2s_h1s = sortedMinus(h2s.sortedCopy(), h1s.sortedCopy())
+        val h1s_h2s = sortedMinus(fr1.sortedCopy(), fr2.sortedCopy())  // all nodes in blk1, not in blk2
+        val h2s_h1s = sortedMinus(fr2.sortedCopy(), fr1.sortedCopy())
+        /*
+        if (h1s.contains(h2)) {
+            return 1
+        }
+        if (h2s.contains(h1)) {
+            return -1
+        }
+         */
+        val (b1,c1) = h1.hashSplit()
+        val (b2,c2) = h2.hashSplit()
         if (h1s_h2s.size==0 || h2s_h1s.size==0) {
             return when {
                 (h1s_h2s.size > 0) ->  1
@@ -534,28 +525,59 @@ fun Chain.consensus () {
         return if (a1 != a2) (a1 - a2) else -h1.compareTo(h2)
     }
 
+    // xpnds will hold the blocks outside stable consensus w/o incoming edges
+    val xpnds: MutableSet<Pair<Hash,SortedSet<Hash>>> = mutableSetOf()
+    val xord = xcons.toSortedSet()
+    if (!xord.contains(this.genesis())) {
+        val gen = this.genesis()
+        xpnds.add(Pair(gen, gen.allFronts().sortedCopy()))
+    }
+    for (h in xcons) {
+        xpnds.addAll (  // add all of xcons fronts
+            xfrts[h]!!
+                .filter { !xord.contains(it) }
+                .filter { new -> xpnds.none { it.second.contains(new) } }
+                .map    { Pair(it, it.allFronts().sortedCopy()) }
+        )
+    }
+    //println(xcons)
+    //println(xpnds)
+
     while (!xpnds.isEmpty()) {
         nxpnds = max(nxpnds, xpnds.size)
         val x61 = getNow()
         // find node with more reps inside pnds
-        val nxt: Hash = xpnds.maxWithOrNull(::cmp)!!    //.maxWithOrNull { (h1,fr1), (h2,fr2) -> ... }!!.first
-        //println(">>> $nxt")
-        //println(">>> $nxt: ${xpnds.sorted()}")
+        val nxt = xpnds.maxWithOrNull(::cmp)!!    //.maxWithOrNull { (h1,fr1), (h2,fr2) -> ... }!!.first
+        //if (nxt.toHeight() <= 25) {
+            //println(">>> ${xpnds.sorted().map { it.take(5) }}")
+            //println("<<< $nxt")
+        //}
 
-        xpnds.remove(nxt)  // rem it from sts
-        //xpnds.removeIf { it.first==nxt }  // rem it from sts
+        assert(xpnds.remove(nxt))  // rem it from sts
+        //println(">>> $nxt: ${xpnds.sorted()}")
         t61 += getNow()-x61
 
-        xcons.add(nxt)     // add it to consensus list
-        xord.add(nxt)
+        //if (nxt == "1321_8FEB85E73D1EBE9DE62D84F5B5F1C781FA32A0323B4002A7723321837CFBC2FA") {
+        //    System.err.println(xpnds.sorted().map { it.take(10) })
+        //}
+
+        assert(!xcons.contains(nxt)) {
+            (nxt.first + " // " +
+            //xpnds.sorted().map { it.take(10) } + " // " +
+            "!!! ERRO !!!")
+        }
+        xcons.add(nxt.first)     // add it to consensus list
+        //println("    >>> $nxt")
+        xord.add(nxt.first)
         val x62 = getNow()
-        reps(nxt)
+        reps(nxt.first)
         t62 += getNow()-x62
 
         // take next blocks and enqueue those (1) valid and (2) with all backs already in the consensus list
         val x63 = getNow()
         xpnds.addAll (
-            xfrts[nxt]!!
+            xfrts[nxt.first]!!
+                .filter { new -> xpnds.none { it.second.contains(new) } }
                 .map    { this.fsLoadBlock(it) }
                 .filter { xord.containsAll(it.immut.backs) }   // (2)
                 .filter { blk ->                                    // (1)
@@ -579,7 +601,7 @@ fun Chain.consensus () {
                     //if (!ok) println(blk.hash)
                     ok
                 }
-                .map { it.hash }
+                .map { Pair(it.hash, it.hash.allFronts().sortedCopy()) }
                 .let {
                     nxpnds += it.size
                     it
@@ -593,6 +615,8 @@ fun Chain.consensus () {
 
     negs_zers(now)
     this.cons = xcons.toList()
+    //println("333: " + this.cons.map { it.take(5) })
+    //println("<<<")
     this.reps = xreps.toMap()
 
     val t8 = getNow()
