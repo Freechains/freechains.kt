@@ -307,6 +307,7 @@ fun Chain.consensus () {
         n++
         val isblocked = this.frts[it]!!.any { this.fsLoadBlock(it).immut.like?.hash == cur.hash }
         //println("${cur.immut.time} >= ${last-7*day}")
+        //isblocked || (it!=this.genesis() && /*cur.immut.time>now-T7d_fork &&*/ n<=N100_fork)
         isblocked || (it!=this.genesis() && cur.immut.time>now-T7d_fork && n<=N100_fork)
     }.toMutableList()
     val nfrze = n
@@ -497,32 +498,21 @@ fun Chain.consensus () {
         //println("<<<")
         val h1s_h2s = sortedMinus(fr1.sortedCopy(), fr2.sortedCopy())  // all nodes in blk1, not in blk2
         val h2s_h1s = sortedMinus(fr2.sortedCopy(), fr1.sortedCopy())
-        /*
-        if (h1s.contains(h2)) {
-            return 1
-        }
-        if (h2s.contains(h1)) {
-            return -1
-        }
-         */
-        val (b1,c1) = h1.hashSplit()
-        val (b2,c2) = h2.hashSplit()
-        if (h1s_h2s.size==0 || h2s_h1s.size==0) {
-            return when {
-                (h1s_h2s.size > 0) ->  1
-                (h2s_h1s.size > 0) -> -1
-                else -> -h1.compareTo(h2)
-            }
-        }
-        //val h1s_h2s = fr1.minus(fr2)     // all nodes in blk1, not in blk2
-        //val h2s_h1s = fr2.minus(fr1)
+        assert(h1s_h2s.size!=0 && h2s_h1s.size!=0)
         nforks = max(nforks, h1s_h2s.size)
         nforks = max(nforks, h2s_h1s.size)
+
+        val (b1,c1) = h1.hashSplit()
+        val (b2,c2) = h2.hashSplit()
+
         val a1 = auths(h1s_h2s.toSet())     // reps authors sum in blk1, not in blk2
         val a2 = auths(h2s_h1s.toSet())
-        //println("${h1.take(6)} vs ${h2.take(6)} // $a1 vs $a2")
-        // both branches have same reps, the "hashest" wins (h1 vs h2)
-        return if (a1 != a2) (a1 - a2) else -h1.compareTo(h2)
+
+        return when {
+            (a1 != a2) -> (a1 - a2)
+            (b1 != b2) -> -(b1 - b2)
+            else -> -c1.compareTo(c2)
+        }
     }
 
     // xpnds will hold the blocks outside stable consensus w/o incoming edges
@@ -561,11 +551,14 @@ fun Chain.consensus () {
         //    System.err.println(xpnds.sorted().map { it.take(10) })
         //}
 
+        /*
         assert(!xcons.contains(nxt)) {
             (nxt.first + " // " +
             //xpnds.sorted().map { it.take(10) } + " // " +
             "!!! ERRO !!!")
         }
+         */
+
         xcons.add(nxt.first)     // add it to consensus list
         //println("    >>> $nxt")
         xord.add(nxt.first)

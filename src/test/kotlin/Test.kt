@@ -2415,6 +2415,8 @@ class Tests {
         val ret = main_cli_assert(arrayOf(H0, "peer", "localhost:$PORT1", "send", "@!$PUB"))
         assert_(ret == "$n / $n")
     }
+
+    @Disabled
     @Test
     fun x02_cons() {
         thread {
@@ -2429,6 +2431,7 @@ class Tests {
             //println(getNow()-old)
         }
     }
+    @Disabled   // requires deterministic getNow
     @Test
     fun x03_cons() {
         val N = 9
@@ -2481,6 +2484,7 @@ class Tests {
         }
         println("!!! DONE !!!")
     }
+    @Disabled
     @Test
     fun x04_cons() {
         thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/X03.1/", "--port=${8330 + 2}")) }

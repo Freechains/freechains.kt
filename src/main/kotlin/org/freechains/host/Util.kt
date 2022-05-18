@@ -27,10 +27,12 @@ const val N16_blockeds = 16             // hold at most 16 blocked blocks locall
 ///////////////////////////////////////////////////////////////////////////////
 
 fun setNow (t: Long) {
+    //NOW = t
     NOW = Instant.now().toEpochMilli() - t
 }
 
 fun getNow () : Long {
+    //return NOW ?: 0
     return Instant.now().toEpochMilli() - (if (NOW == null) 0 else NOW!!)
 }
 
