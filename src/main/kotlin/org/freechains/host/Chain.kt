@@ -498,7 +498,7 @@ fun Chain.consensus () {
         //println("<<<")
         val h1s_h2s = sortedMinus(fr1.sortedCopy(), fr2.sortedCopy())  // all nodes in blk1, not in blk2
         val h2s_h1s = sortedMinus(fr2.sortedCopy(), fr1.sortedCopy())
-        assert(h1s_h2s.size!=0 && h2s_h1s.size!=0)
+        //assert(h1s_h2s.size!=0 && h2s_h1s.size!=0)
         nforks = max(nforks, h1s_h2s.size)
         nforks = max(nforks, h2s_h1s.size)
 
@@ -509,6 +509,8 @@ fun Chain.consensus () {
         val a2 = auths(h2s_h1s.toSet())
 
         return when {
+            //(h1s_h2s.size == 0) -> -1
+            //(h2s_h1s.size == 0) -> 1
             (a1 != a2) -> (a1 - a2)
             (b1 != b2) -> -(b1 - b2)
             else -> -c1.compareTo(c2)
