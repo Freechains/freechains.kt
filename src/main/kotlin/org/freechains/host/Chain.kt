@@ -321,8 +321,8 @@ fun Chain.consensus () {
     //println(">>> T2 = $t2")
 
     // xfrts = ...
-    //sortedMinus(this.fsAll().toSortedSet(), this.cons.toSortedSet()).let {
-    this.fsAll().filter { !this.cons.contains(it) }.let {
+    sortedMinus(this.fsAll().toSortedSet(), this.cons.toSortedSet()).let {
+    //this.fsAll().filter { !this.cons.contains(it) }.let {
         for (h in it) {
             xfrts[h] = mutableSetOf()
         }
