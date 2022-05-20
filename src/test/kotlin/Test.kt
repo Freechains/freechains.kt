@@ -19,9 +19,10 @@ import java.io.DataOutputStream
 import java.io.File
 import java.lang.Exception
 import java.net.Socket
-import java.time.Instant
 import java.util.*
 import kotlin.concurrent.thread
+
+private const val SHA0 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"
 
 private const val PVT0 = "6F99999751DE615705B9B1A987D8422D75D16F5D55AF43520765FA8C5329F7053CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
 private const val PUB0 = "3CCAF4839B1FDDF406552AF175613D7A247C5703683AEC6DBDF0BB3932DD8322"
@@ -29,7 +30,8 @@ private const val PVT1 = "6A416117B8F7627A3910C34F8B35921B15CF1AC386E9BB20E4B94A
 private const val PUB1 = "E14E4D7E152272D740C3CA4298D19733768DF7E74551A9472AAE384E8AB34369"
 private const val PVT2 = "320B59D3B1C969E20BD10D1349CEFECCD31B8FB84827369DCA644E780F004EA6146754D26A9B803138D47B62C92D9542343C22EB67BFFA9C429028985ED56C40"
 private const val PUB2 = "146754D26A9B803138D47B62C92D9542343C22EB67BFFA9C429028985ED56C40"
-private const val SHA0 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A2"
+private const val PVT3 = "64976DF4946F45D6EF37A35D06A1D9A1099768FBBC2B4F95484BA390811C63A293BB7635E1472D51F94B5B0F3C3157FAD1EB06E5F356371AA4A2C1EF00657698"
+private const val PUB3 = "93BB7635E1472D51F94B5B0F3C3157FAD1EB06E5F356371AA4A2C1EF00657698"
 
 private const val PORT0 = PORT_8330 +0
 private const val PORT1 = PORT_8330 +1
@@ -42,9 +44,11 @@ private const val P2 = "--port=${PORT2}"
 private const val H0 = "--host=localhost:$PORT0"
 private const val H1 = "--host=localhost:$PORT1"
 private const val H2 = "--host=localhost:$PORT2"
+
 private const val S0 = "--sign=$PVT0"
 private const val S1 = "--sign=$PVT1"
 private const val S2 = "--sign=$PVT2"
+private const val S3 = "--sign=$PVT3"
 
 fun B (s: String): ByteArray {
     return s.toByteArray()
@@ -783,7 +787,7 @@ class Tests {
             assert_(it.isNotEmpty())
         }
         main_cli_assert(arrayOf("chains", "list")).let {
-            assert_(it == "#yyy #xxx")
+            assert_(it=="#yyy #xxx" || it=="#xxx #yyy")
         }
         main_cli_assert(arrayOf("chains", "leave", "#xxx")).let {
             assert_(it == "true")
@@ -2395,6 +2399,42 @@ class Tests {
         val d2 = main_cli_assert(arrayOf(H2, "chain", "#", "consensus"))
         //println(d1)
         //println(d2)
+    }
+    @Test
+    fun n09_merge_fail_12h () {
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N09.1/", P1)) }
+        thread { main_host_assert(arrayOf("start", "/tmp/freechains/tests/N09.2/", P2)) }
+        Thread.sleep(200)
+
+        main_cli_assert(arrayOf(H1, "chains", "join", "#", PUB0, PUB1, PUB2))
+        val h1 = main_cli_assert(arrayOf(H1, S3, "chain", "#", "post", "inline", "from 3 1"))
+        val h2 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", h1))
+        val h3 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "like", h2))
+        //main_host_assert(arrayOf(P0, "now", "${1 * day + 1 * min}"))
+        val h4 = main_cli_assert(arrayOf(H1, S3, "chain", "#", "post", "inline", "from 3 2"))
+        val c1 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
+
+        // gen - S3 - S0 - S1 - S3
+        //     - S2 - S0* - S1*
+
+        main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0, PUB1, PUB2))
+        val n1 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "from 2: 1"))
+        for (i in 1..8) {
+            val n2 = main_cli_assert(arrayOf(H2, S0, "chain", "#", "like", n1))
+            val n3 = main_cli_assert(arrayOf(H2, S1, "chain", "#", "like", n1))
+        }
+        val nn = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "from 2: 2"))
+        main_cli_assert(arrayOf(H2, "peer", "localhost:$PORT1", "send", "#"))
+        val c2 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
+
+        println(h1)
+        println(c1.split(" ").map { it.take(5) }.joinToString(" "))
+        println(c2.split(" ").map { it.take(5) }.joinToString(" "))
+        println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB0)))
+        println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1)))
+        println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB2)))
+        assert(c1.contains(h4))
+        assert(!c2.contains(h4))
     }
 
     @Test

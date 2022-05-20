@@ -507,6 +507,9 @@ fun Chain.consensus () {
 
         val a1 = auths(h1s_h2s.toSet())     // reps authors sum in blk1, not in blk2
         val a2 = auths(h2s_h1s.toSet())
+        //println(">>> ${h1s_h2s.size} / ${h2s_h1s.size}")
+        //println(">>> ${h1.take(5)}: $a1")
+        //println(">>> ${h2.take(5)}: $a2")
 
         return when {
             (h1s_h2s.size == 0) -> -1
@@ -539,6 +542,7 @@ fun Chain.consensus () {
         nxpnds = max(nxpnds, xpnds.size)
         val x61 = getNow()
         // find node with more reps inside pnds
+        //println("-=-=-=-")
         val nxt = xpnds.maxWithOrNull(::cmp)!!    //.maxWithOrNull { (h1,fr1), (h2,fr2) -> ... }!!.first
         //if (nxt.toHeight() <= 25) {
             //println(">>> ${xpnds.sorted().map { it.take(5) }}")
