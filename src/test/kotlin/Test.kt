@@ -2414,8 +2414,10 @@ class Tests {
         val h4 = main_cli_assert(arrayOf(H1, S3, "chain", "#", "post", "inline", "from 3 2"))
         val c1 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
 
+        // S3 is a newbie. His 2nd post uses depends on 12h->0h due to S0-S1 in sequence.
         // gen - S3 - S0 - S1 - S3
         //     - S2 - S0* - S1*
+        // The other branch transfers S0-S1 reps to S2. When it merges, 12h->0h is no longer true.
 
         main_cli_assert(arrayOf(H2, "chains", "join", "#", PUB0, PUB1, PUB2))
         val n1 = main_cli_assert(arrayOf(H2, S2, "chain", "#", "post", "inline", "from 2: 1"))

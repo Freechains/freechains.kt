@@ -211,6 +211,8 @@ fun Chain.heads2 (want: Head_State): Set<Hash> {
     return when (want) {
         Head_State.LINKED  -> this.cons.filter { (this.frts[it]!! - blocked).isEmpty() }.toSet()
         Head_State.BLOCKED -> blocked
+            .filter { this.fsLoadBlock(it).immut.backs.all { this.cons.contains(it) } }
+            .toSet()
         else -> error("TODO")
     }
 }
@@ -455,15 +457,15 @@ fun Chain.consensus () {
 
     //println(xfrts)
     //xfrts.forEach { (h,set) -> assert(set.all { it.toHeight() >= h.toHeight() }) }
-    val cache: SortedMap<Hash,SortedSet<Hash>> = sortedMapOf()
+    val cache: MutableMap<Hash,SortedSet<Hash>> = WeakHashMap()
     fun Hash.allFronts (): SortedSet<Hash> {
-        return if (cache.containsKey(this)) {
-            cache.getValue(this)
-        } else {
-            val ret = (setOf(this) + xfrts[this]!!.map { /*println("$this -> $it");*/ it.allFronts() }.flatten()).toSortedSet()
-            cache.put(this, ret)
-            ret
-        }
+        return cache[this] ?:
+            (setOf(this) + xfrts[this]!!.map { it.allFronts() }.flatten())
+                .toSortedSet()
+                .let {
+                    cache[this] = it
+                    it
+                }
     }
 
     // sum of reps of all authors that appear in blocks not in common
@@ -583,7 +585,7 @@ fun Chain.consensus () {
                     // block in sequence is a like to my hash?
                     val islk = xfrts[blk.hash]!!               // take my fronts
                         .map { this.fsLoadBlock(it) }
-                        .any {                                  // (it should be only one, no?)
+                        .any {                                  // (like must have blk as single back, no?)
                             (it.immut.like != null)             // must be a like
                          && (it.immut.like.hash == blk.hash)    // to myself
                          && (it.immut.like.n > 0)               // positive
