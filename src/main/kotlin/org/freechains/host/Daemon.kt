@@ -275,7 +275,8 @@ class Daemon (loc_: Host) {
                                         else -> error("impossible case")
                                     }.joinToString(" ")
                                     writer.writeLineX(heads)
-                                    System.err.println("chain heads: $heads")
+                                    //System.err.println("chain heads: $heads")
+                                    System.err.println("chain heads: ...")
                                 }
                                 "consensus" -> {
                                     val ret = chain.cons.joinToString(" ")

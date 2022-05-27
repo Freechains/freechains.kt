@@ -2412,7 +2412,11 @@ class Tests {
         val h3 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "like", h2))
         //main_host_assert(arrayOf(P0, "now", "${1 * day + 1 * min}"))
         val h4 = main_cli_assert(arrayOf(H1, S3, "chain", "#", "post", "inline", "from 3 2"))
+        val h5 = main_cli_assert(arrayOf(H1, S1, "chain", "#", "post", "inline", "from 1"))
         val c1 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
+        println(c1.split(" ").map { it.take(5) }.joinToString(" "))
+        assert(c1.contains(h4))
+        assert(c1.contains(h5))
 
         // gen - S3 - S0 - S1 - S3
         //     - S2 - S0* - S1*
@@ -2428,13 +2432,23 @@ class Tests {
         val c2 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
 
         println(h1)
-        println(c1.split(" ").map { it.take(5) }.joinToString(" "))
         println(c2.split(" ").map { it.take(5) }.joinToString(" "))
         println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB0)))
         println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB1)))
         println(main_cli_assert(arrayOf(H2, "chain", "#", "reps", PUB2)))
-        assert(c1.contains(h4))
         assert(!c2.contains(h4))
+        assert(!c2.contains(h5))
+
+        // gen - S3 - S0 - S1 - S3
+        //     - S2 - S0* - S1*
+
+        val x5 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "like", h4))
+        val c3 = main_cli_assert(arrayOf(H1, S0, "chain", "#", "consensus"))
+        println(c1.split(" ").map { it.take(5) }.joinToString(" "))
+        println(c2.split(" ").map { it.take(5) }.joinToString(" "))
+        println(c3.split(" ").map { it.take(5) }.joinToString(" "))
+        assert(c3.contains(h4))
+        assert(c3.contains(h5))
     }
 
     @Test
