@@ -637,8 +637,8 @@ fun Chain.consensus () {
 
     val t8 = getNow()
     //println(">>> T8 = $t8")
-    println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t61,$t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
-    println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nforks")
+    //println("TIMES=${t8-t1} | t2=${t2-t1} | t3=${t3-t2} | t4=${t4-t3} | t5=${t5-t4} | t6=${t6-t5} | t7=${t7-t6} ($t61,$t62,$t63) | t8=${t8-t7} | tnegs=$tnegs")
+    //println("SIZES | fz=${xcons.size}/$nfrze | negs=${nnegs1}x${nnegs2}=${nnegs1*nnegs2} | xpnds=$nxpnds/$nforks")
     //println("<<< " + this.cons.map { this.fsLoadPayRaw(it).toString(Charsets.UTF_8) }.joinToString(","))
     this.fsSave()
 }
