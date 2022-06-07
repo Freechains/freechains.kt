@@ -60,6 +60,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
         val (addr, port_) = (opts["--host"] ?: "localhost:$PORT_8330").to_Addr_Port()
         val port = opts["--port"]?.toInt() ?: port_
         val socket = Socket(addr, port)
+        //socket.soTimeout = 0
         socket.soTimeout = 5000
         val writer = DataOutputStream(socket.getOutputStream()!!)
         val reader = DataInputStream(socket.getInputStream()!!)

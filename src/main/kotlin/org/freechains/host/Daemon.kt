@@ -33,6 +33,7 @@ class Daemon (loc_: Host) {
         while (true) {
             try {
                 val remote = server.accept()
+                //remote.soTimeout = 0
                 remote.soTimeout = 5000
                 System.err.println("remote connect: $loc <- ${remote.inetAddress.hostAddress}")
                 thread {

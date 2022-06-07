@@ -288,6 +288,21 @@ fun <T:Comparable<T>> sortedMinus (s1: SortedSet<T>, s2: SortedSet<T>): SortedSe
 }
 
 fun Chain.consensus () {
+    /*
+    val all = this.fsAll()
+    val x1 = all.count()
+    val x2 = all.map { this.fsLoadBlock(it) }
+        .map { it.immut.backs }
+        .groupingBy { it }
+        .eachCount()
+        .values
+        .map { it-1 }
+        .sum()
+    println(x1)
+    println(x2)
+    println("-=-=-=-=-=-=-=-")
+    */
+
     val now = getNow()
     val t1 = now
     //println(">>> T1 = $t1")
