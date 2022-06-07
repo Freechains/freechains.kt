@@ -324,8 +324,8 @@ fun Chain.consensus () {
         n++
         val isblocked = this.frts[it]!!.any { this.fsLoadBlock(it).immut.like?.hash == cur.hash }
         //println("${cur.immut.time} >= ${last-7*day}")
-        isblocked || (it!=this.genesis() && /*cur.immut.time>now-T7d_fork &&*/ n<=N100_fork)
-        //isblocked || (it!=this.genesis() && cur.immut.time>now-T7d_fork && n<=N100_fork)
+        //isblocked || (it!=this.genesis() && /*cur.immut.time>now-T7d_fork &&*/ n<=N100_fork)
+        isblocked || (it!=this.genesis() && cur.immut.time>now-T7d_fork && n<=N100_fork)
     }.toMutableList()
     val nfrze = n
     //println(">>>")
