@@ -40,12 +40,12 @@ class Daemon (loc_: Host) {
                     try {
                         handle(remote)
                     } catch (e: Throwable) {
-                        remote.close()
                         System.err.println(
                             e.message ?: e.toString()
                         )
                         System.err.println(e.stackTrace.contentToString())
                     }
+                    remote.close()
                 }
             } catch (e: SocketException) {
                 assert_(e.message == "Socket closed")
