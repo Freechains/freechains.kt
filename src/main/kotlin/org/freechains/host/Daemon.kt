@@ -263,6 +263,9 @@ class Daemon (loc_: Host) {
                                 }
                                 listenLists[name]!!.add(writer)
                             }
+                            while (true) {
+                                Thread.sleep(Long.MAX_VALUE);   // keeps this connection alive
+                            }
                         }
                         else -> {
                             val chain = this.chainsLoadSync(name)
