@@ -34,7 +34,7 @@ class Daemon (loc_: Host) {
             try {
                 val remote = server.accept()
                 //remote.soTimeout = 0
-                remote.soTimeout = 5000
+                remote.soTimeout = TIMEOUT
                 System.err.println("remote connect: $loc <- ${remote.inetAddress.hostAddress}")
                 thread {
                     try {
@@ -246,6 +246,9 @@ class Daemon (loc_: Host) {
                                 listenLists["*"] = mutableSetOf()
                             }
                             listenLists["*"]!!.add(writer)
+                        }
+                        while (true) {
+                            Thread.sleep(Long.MAX_VALUE);   // keeps this connection alive
                         }
                     }
                 }

@@ -16,6 +16,7 @@ const val VERSION  = "v$MAJOR.$MINOR.$REVISION"
 const val PRE      = "FC $VERSION"
 
 const val PORT_8330 = 8330 //8888
+const val TIMEOUT  = 0
 
 ///////////////////////////////////////////////////////////////////////////////
 

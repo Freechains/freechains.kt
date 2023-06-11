@@ -61,7 +61,7 @@ fun main_cli (args: Array<String>) : Pair<Boolean,String> {
         val port = opts["--port"]?.toInt() ?: port_
         val socket = Socket(addr, port)
         //socket.soTimeout = 0
-        socket.soTimeout = 5000
+        socket.soTimeout = TIMEOUT
         val writer = DataOutputStream(socket.getOutputStream()!!)
         val reader = DataInputStream(socket.getInputStream()!!)
 
