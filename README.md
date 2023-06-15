@@ -6,8 +6,14 @@
 $ git clone https://github.com/Freechains/freechains.kt/
 ```
 
-2. Open `IntelliJ IDEA` (version `2020.3.2`):
-    - (First ensure you have a JDK installed: `apt install default-jdk`)
+
+2. Install the Java SDK:
+
+```
+sudo apt install default-jdk
+```
+
+3. Open `IntelliJ IDEA` (version `2023.1.2`):
     - Open project/directory `freechains.kt/`
     - Wait for all imports (takes long...)
     - Run self tests:
@@ -21,9 +27,9 @@ $ git clone https://github.com/Freechains/freechains.kt/
         - Verify that `freechains.kt.main:jar` appears at the top
         - Click `OK`
     - Rebuild artifacts:
-        - Click `Build -> Build artifacts -> Rebuild`
+        - Click `Build -> Build artifacts -> Build`
 
-3. Install & Test binaries:
+4. Install & Test binaries:
 
 ```
 $ cd freechains.kt/src/test/shell/
@@ -32,7 +38,7 @@ $ cd test/
 $ ./tests.sh
 ```
 
-4. Use Freechains:
+5. Use Freechains:
 
 ```
 $ freechains-host --version
